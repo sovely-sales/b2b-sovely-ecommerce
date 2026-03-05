@@ -35,7 +35,6 @@ const ALL_PRODUCTS = [
     // Beauty
     { id: 120, skuId: 'SVL-DSP-120', name: 'Rose Quartz Facial Roller', category: 'Beauty', price: 699, originalPrice: 1199, rating: 4.7, reviews: 387, sale: true, shipping: '3-5', image: 'https://images.unsplash.com/photo-1620756235880-07b3dd0804a0?w=500&q=80' },
 ];
->>>>>>> Landing_Page_Gagan
 
 const CATEGORIES = ['All', 'Kitchen', 'Electronics', 'Home Decor', 'Fitness', 'Furniture', 'Beauty'];
 const SORT_OPTIONS = [
