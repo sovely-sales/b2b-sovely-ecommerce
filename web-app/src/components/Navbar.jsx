@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const categories = [
   { name: 'Electronics', emoji: '💻', color: '#D1FAE5' },
@@ -140,8 +141,8 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
             </button>
 
             <div className="nav-auth-buttons">
-              <button className="btn-nav-login" id="btn-login">Log in</button>
-              <button className="btn-nav-signup" id="btn-signup">Sign Up</button>
+              <Link to="/login" className="btn-nav-login" id="btn-login">Log in</Link>
+              <Link to="/signup" className="btn-nav-signup" id="btn-signup">Sign Up</Link>
             </div>
           </div>
           <button
