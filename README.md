@@ -31,8 +31,8 @@ RAZORPAY_KEY_ID=rzp_test_your_key_here
 RAZORPAY_KEY_SECRET=your_razorpay_secret_here
 
 Frontend (sovely-ecommerce/web-app/.env):
-Code snippet
-
+Code Snippet:
+VITE_API_BASE_URL=http://localhost:8000/api/v1
 VITE_RAZORPAY_KEY_ID=rzp_test_your_key_here
 
 3. Install Dependencies
@@ -82,6 +82,17 @@ npm run dev
     Admin Dashboard: http://localhost:5173/admin
 
     Backend API Base: http://localhost:8000/api/v1
+
+## 🛠️ Common Local Setup Errors & Troubleshooting
+
+If the app crashes or the frontend fails to load, check these common local setup issues:
+
+* **Backend Crash (`querySrv ENOTFOUND`):** If your Node server crashes immediately with a MongoDB error, your `MONGODB_URI` in the backend `.env` file is likely still using the placeholder `<username>:<password>` or cluster string. Replace it with your actual Atlas connection string.
+* **Terminal says `injecting env (0)`:** This means your backend server is not reading your environment variables. Ensure your backend file is named exactly `.env` (not `.env.example`) and is located in the root `sovely-ecommerce` folder.
+* **Frontend Red Screen (`AxiosError: Network Error`):** This is a CORS and routing failure. To fix this, you must have two things:
+  1. **Frontend:** Your `web-app/.env` must contain `VITE_API_BASE_URL=http://localhost:8000/api/v1`.
+  2. **Backend:** Your root `.env` must contain `CORS_ORIGIN=http://localhost:5173`.
+  *(Note: If you add or modify these files, you must restart both your frontend and backend servers for the changes to take effect!)*
 
 ⚠️ Important Developer Notes (Demo Hacks to Fix)
 

@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:8000/api/v1',
+    // Now it dynamically reads the URL we saved in the .env file!
+    baseURL: import.meta.env.VITE_API_BASE_URL, 
     withCredentials: true
 });
 
