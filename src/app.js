@@ -38,10 +38,13 @@ app.use("/api/v1/wishlist", wishlistRouter);
 
 // Global error handler — returns JSON instead of Express's default HTML error page
 app.use((err, req, res, next) => {
-    console.error("Global Error Handler Caught:", err);
-
     const statusCode = err.statusCode || 500;
     const message = err.message || "Something went wrong";
+
+    // Only log aggressively if it's an actual unexpected server/request error, don't spam for standard 401 session checks
+    if (statusCode !== 401) {
+        console.error("Global Error Handler Caught:", err);
+    }
 
     return res.status(statusCode).json({
         success: false,
