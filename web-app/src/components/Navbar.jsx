@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../AuthContext';
 import { CartContext } from '../CartContext';
 import { WishlistContext } from '../WishlistContext';
@@ -19,6 +19,7 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const dropRef = useRef(null);
   const hoverTimeout = useRef(null);
+  const navigate = useNavigate(); // Added for logout redirection
 
   const { data: dbCategories = [] } = useQuery({
     queryKey: ['categories'],
@@ -56,6 +57,12 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
     hoverTimeout.current = setTimeout(() => setCatDropOpen(false), 180);
   };
 
+  // Bulletproof logout wrapper
+  const handleLogout = async () => {
+    await logout();
+    navigate('/'); // Instantly kick them back to the home page so they don't get stuck on an admin screen
+  };
+
   return (
     <nav className="navbar" id="navbar">
       <div className="navbar-container">
@@ -68,10 +75,10 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
             >
               ☰
             </button>
-            <a href="#" className="navbar-logo">
+            <Link to="/" className="navbar-logo">
               <img src="https://m.media-amazon.com/images/X/bxt1/M/Bbxt1BI1cNpD5ln._SL160_QL95_FMwebp_.png" alt="Sovely Logo" className="logo-image" />
               <span className="logo-text">Sovely</span>
-            </a>
+            </Link>
           </div>
 
           <ul className={`nav-links ${mobileMenuOpen ? 'active' : ''}`}>
@@ -159,9 +166,52 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
               {loading ? (
                 <span className="nav-link">...</span>
               ) : user ? (
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '1.2rem', alignItems: 'center' }}>
+                  
+                  {/* 1. Name Greeting First */}
                   <Link to="/my-account" className="nav-link" style={{ fontWeight: 600 }}>Hi, {user.name.split(' ')[0]}</Link>
-                  <button onClick={logout} className="btn-nav-login" style={{ cursor: 'pointer', background: 'transparent', border: '1px solid #333' }}>Logout</button>
+                  
+                  {/* 2. Admin Panel Button (Sleek Theme Styling) */}
+                  {user.role === 'ADMIN' && (
+                    <Link 
+                        to="/admin" 
+                        style={{ 
+                            padding: '8px 20px', 
+                            background: '#1B4332', 
+                            color: '#fff', 
+                            borderRadius: '9999px', 
+                            fontSize: '0.85rem', 
+                            fontWeight: '600', 
+                            textDecoration: 'none', 
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 2px 8px rgba(27, 67, 50, 0.15)'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = '#2D6A4F'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = '#1B4332'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                    >
+                        Admin Panel
+                    </Link>
+                  )}
+                  
+                  {/* 3. Updated Logout Button */}
+                  <button 
+                      onClick={handleLogout} 
+                      style={{ 
+                          cursor: 'pointer', 
+                          background: 'transparent', 
+                          border: '1px solid #cbd5e1', 
+                          padding: '8px 20px', 
+                          borderRadius: '9999px', 
+                          fontSize: '0.85rem', 
+                          fontWeight: '600', 
+                          color: '#475569', 
+                          transition: 'all 0.2s ease' 
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#0f172a'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#475569'; }}
+                  >
+                    Logout
+                  </button>
                 </div>
               ) : (
                 <>
