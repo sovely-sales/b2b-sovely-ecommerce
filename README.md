@@ -21,7 +21,7 @@ Welcome to the Sovely E-Commerce repository! This is a full-stack MERN (MongoDB,
 You will need two `.env` files. Ask the lead developer for the `dotenvx` secrets, or create your own local `.env` files:
 
 **Backend (`sovely-ecommerce/.env`):**
-```env
+```
 PORT=8000
 MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/sovely
 CORS_ORIGIN=http://localhost:5173
@@ -29,17 +29,18 @@ ACCESS_TOKEN_SECRET=your_jwt_secret_here
 ACCESS_TOKEN_EXPIRY=1d
 RAZORPAY_KEY_ID=rzp_test_your_key_here
 RAZORPAY_KEY_SECRET=your_razorpay_secret_here
-
+```
 Frontend (sovely-ecommerce/web-app/.env):
+```
 Code Snippet:
 VITE_API_BASE_URL=http://localhost:8000/api/v1
 VITE_RAZORPAY_KEY_ID=rzp_test_your_key_here
+```
 
-3. Install Dependencies
+### 3. Install Dependencies
 
 Open your terminal and install packages for both environments:
-Bash
-
+```
 # Install backend dependencies
 cd sovely-ecommerce
 npm install
@@ -47,20 +48,19 @@ npm install
 # Install frontend dependencies
 cd web-app
 npm install
-
-4. Seed the Database (Crucial Step!)
+```
+### 4. Seed the Database (Crucial Step!)
 
 If you are connecting to a fresh MongoDB Atlas database, the products screen will be blank. You must import the catalog from the reference CSV file.
-Bash
-
+```
 # From the root backend folder:
 node importCsv.js
-
+```
 Wait for the terminal to confirm that all 800+ products have been saved.
-5. Start the Development Servers
+### 5. Start the Development Servers
 
 You will need two terminal windows running simultaneously.
-
+```
 Terminal 1 (Backend):
 Bash
 
@@ -74,8 +74,8 @@ Bash
 cd sovely-ecommerce/web-app
 npm run dev
 # Expected output: "Vite server running at http://localhost:5173"
-
-🗺️ Navigation & Key Routes
+```
+## 🗺️ Navigation & Key Routes
 
     Customer Storefront: http://localhost:5173
 
@@ -94,7 +94,7 @@ If the app crashes or the frontend fails to load, check these common local setup
   2. **Backend:** Your root `.env` must contain `CORS_ORIGIN=http://localhost:5173`.
   *(Note: If you add or modify these files, you must restart both your frontend and backend servers for the changes to take effect!)*
 
-⚠️ Important Developer Notes (Demo Hacks to Fix)
+## ⚠️ Important Developer Notes (Demo Hacks to Fix)
 
 To facilitate a seamless demonstration, a few security protocols were temporarily bypassed. DO NOT push this to production without fixing the following:
 

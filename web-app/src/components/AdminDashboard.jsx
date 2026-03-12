@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, ShoppingBag, Users, Package, TrendingUp, AlertCircle, DollarSign, Edit2, Search, Filter } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Users, Package, TrendingUp, AlertCircle, DollarSign, Edit2, Search, Filter, Upload } from 'lucide-react';
 import axios from 'axios';
 import Navbar from './Navbar';
+import BulkUpload from './BulkUpload';
 
 const api = axios.create({
     baseURL: 'http://localhost:8000/api/v1',
@@ -9,14 +10,14 @@ const api = axios.create({
 });
 
 const AdminDashboard = () => {
-    const [activeTab, setActiveTab] = useState('orders'); // 'overview', 'orders', 'products', 'users'
-    
+    const [activeTab, setActiveTab] = useState('orders'); // 'overview', 'orders', 'products', 'users', 'bulk-upload'
+
     // Data States
     const [orders, setOrders] = useState([]);
     const [products, setProducts] = useState([]);
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    
+
     // Search & Filter States
     const [searchQuery, setSearchQuery] = useState('');
     const [filterOption, setFilterOption] = useState('ALL');
@@ -100,7 +101,7 @@ const AdminDashboard = () => {
     };
 
     const getStatusColor = (status) => {
-        switch(status) {
+        switch (status) {
             case 'PENDING': return { bg: '#fef9c3', text: '#854d0e' };
             case 'PROCESSING': return { bg: '#e0f2fe', text: '#075985' };
             case 'SHIPPED': return { bg: '#fef08a', text: '#ca8a04' };
@@ -128,19 +129,19 @@ const AdminDashboard = () => {
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 300px', display: 'flex', alignItems: 'center', background: '#fff', padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                 <Search size={18} color="#94a3b8" />
-                <input 
-                    type="text" 
-                    placeholder={searchPlaceholder} 
-                    value={searchQuery} 
-                    onChange={(e) => setSearchQuery(e.target.value)} 
-                    style={{ border: 'none', outline: 'none', marginLeft: '12px', width: '100%', fontSize: '0.95rem' }} 
+                <input
+                    type="text"
+                    placeholder={searchPlaceholder}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ border: 'none', outline: 'none', marginLeft: '12px', width: '100%', fontSize: '0.95rem' }}
                 />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', background: '#fff', padding: '0 16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                <Filter size={18} color="#94a3b8" style={{ marginRight: '8px' }}/>
-                <select 
-                    value={filterOption} 
-                    onChange={(e) => setFilterOption(e.target.value)} 
+                <Filter size={18} color="#94a3b8" style={{ marginRight: '8px' }} />
+                <select
+                    value={filterOption}
+                    onChange={(e) => setFilterOption(e.target.value)}
                     style={{ border: 'none', outline: 'none', padding: '12px 0', background: 'transparent', fontSize: '0.95rem', cursor: 'pointer' }}
                 >
                     <option value="ALL">All Filters</option>
@@ -163,8 +164,8 @@ const AdminDashboard = () => {
                     <div style={{ background: '#f0fdf4', padding: '16px', borderRadius: '12px' }}><DollarSign size={24} color="#166534" /></div>
                     <div><p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>Total Revenue</p><h3 style={{ margin: 0, fontSize: '1.5rem', color: '#0f172a' }}>₹{totalRevenue.toLocaleString('en-IN')}</h3></div>
                 </div>
-                
-                <div 
+
+                <div
                     onClick={() => { setActiveTab('orders'); setFilterOption('PROCESSING'); }}
                     style={{ background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', transition: 'transform 0.2s' }}
                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
@@ -173,8 +174,8 @@ const AdminDashboard = () => {
                     <div style={{ background: '#eff6ff', padding: '16px', borderRadius: '12px' }}><ShoppingBag size={24} color="#1d4ed8" /></div>
                     <div><p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>Orders Processing</p><h3 style={{ margin: 0, fontSize: '1.5rem', color: '#0f172a' }}>{processingOrdersCount}</h3></div>
                 </div>
-                
-                <div 
+
+                <div
                     onClick={() => { setActiveTab('products'); setStockFilter('LOW_STOCK'); }}
                     style={{ background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: '16px', cursor: 'pointer', transition: 'transform 0.2s' }}
                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
@@ -189,8 +190,8 @@ const AdminDashboard = () => {
 
     const renderOrders = () => {
         const filteredData = orders.filter(o => {
-            const matchesSearch = o.orderId.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                  (o.customerId?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesSearch = o.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (o.customerId?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
             const matchesFilter = filterOption === 'ALL' || o.status === filterOption;
             return matchesSearch && matchesFilter;
         });
@@ -198,8 +199,8 @@ const AdminDashboard = () => {
         return (
             <>
                 {renderControls("Search by Order ID or Customer Name...", [
-                    { value: 'PENDING', label: 'Pending' }, { value: 'PROCESSING', label: 'Processing' }, 
-                    { value: 'SHIPPED', label: 'Shipped' }, { value: 'DELIVERED', label: 'Delivered' }, 
+                    { value: 'PENDING', label: 'Pending' }, { value: 'PROCESSING', label: 'Processing' },
+                    { value: 'SHIPPED', label: 'Shipped' }, { value: 'DELIVERED', label: 'Delivered' },
                     { value: 'CANCELLED', label: 'Cancelled' }
                 ])}
                 <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.02)', overflowX: 'auto' }}>
@@ -221,7 +222,7 @@ const AdminDashboard = () => {
                                 return (
                                     <tr key={order._id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                                         <td style={{ padding: '16px', fontWeight: '500' }}>{order.orderId}</td>
-                                        <td style={{ padding: '16px' }}>{order.customerId?.name || 'Unknown'}<br/><span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{order.customerId?.email}</span></td>
+                                        <td style={{ padding: '16px' }}>{order.customerId?.name || 'Unknown'}<br /><span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{order.customerId?.email}</span></td>
                                         <td style={{ padding: '16px', fontWeight: '500' }}>₹{order.totalAmount}</td>
                                         <td style={{ padding: '16px' }}>
                                             <span style={{ background: colors.bg, color: colors.text, padding: '4px 10px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: '600' }}>{order.status}</span>
@@ -230,25 +231,25 @@ const AdminDashboard = () => {
                                         <td style={{ padding: '16px' }}>
                                             {isUpdating ? (
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                    <select value={editForm.status} onChange={(e) => setEditForm({...editForm, status: e.target.value})} style={{ padding: '6px' }}>
+                                                    <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} style={{ padding: '6px' }}>
                                                         <option value="PENDING">Pending</option><option value="PROCESSING">Processing</option>
                                                         <option value="SHIPPED">Shipped</option><option value="DELIVERED">Delivered</option>
                                                         <option value="CANCELLED">Cancelled</option>
                                                     </select>
                                                     {(editForm.status === 'SHIPPED' || editForm.status === 'DELIVERED') && (
                                                         <>
-                                                            <input type="text" placeholder="Courier" value={editForm.courierName || ''} onChange={(e) => setEditForm({...editForm, courierName: e.target.value})} style={{ padding: '6px' }} />
-                                                            <input type="text" placeholder="AWB Number" value={editForm.trackingNumber || ''} onChange={(e) => setEditForm({...editForm, trackingNumber: e.target.value})} style={{ padding: '6px' }} />
+                                                            <input type="text" placeholder="Courier" value={editForm.courierName || ''} onChange={(e) => setEditForm({ ...editForm, courierName: e.target.value })} style={{ padding: '6px' }} />
+                                                            <input type="text" placeholder="AWB Number" value={editForm.trackingNumber || ''} onChange={(e) => setEditForm({ ...editForm, trackingNumber: e.target.value })} style={{ padding: '6px' }} />
                                                         </>
                                                     )}
                                                     <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <button 
-                                                            disabled={isSaving} 
-                                                            onClick={() => submitProductUpdate(order._id)} // Change this depending on which table you are in!
-                                                            style={{ 
-                                                                background: isSaving ? '#94a3b8' : '#1b4332', 
-                                                                color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', 
-                                                                cursor: isSaving ? 'not-allowed' : 'pointer' 
+                                                        <button
+                                                            disabled={isSaving}
+                                                            onClick={() => submitOrderUpdate(order._id)}
+                                                            style={{
+                                                                background: isSaving ? '#94a3b8' : '#1b4332',
+                                                                color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px',
+                                                                cursor: isSaving ? 'not-allowed' : 'pointer'
                                                             }}>
                                                             {isSaving ? 'Saving...' : 'Save'}
                                                         </button>
@@ -274,7 +275,7 @@ const AdminDashboard = () => {
         let filteredData = products.filter(p => {
             const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesStatus = filterOption === 'ALL' || p.status === filterOption;
-            
+
             let matchesPrice = true;
             if (priceFilter === 'UNDER_500') matchesPrice = p.platformSellPrice < 500;
             if (priceFilter === 'OVER_1000') matchesPrice = p.platformSellPrice >= 1000;
@@ -293,7 +294,7 @@ const AdminDashboard = () => {
             filteredData.sort((a, b) => {
                 let aValue = sortConfig.key === 'stock' ? (a.inventory?.stock || 0) : a[sortConfig.key];
                 let bValue = sortConfig.key === 'stock' ? (b.inventory?.stock || 0) : b[sortConfig.key];
-                
+
                 // String comparison for titles
                 if (typeof aValue === 'string') {
                     return sortConfig.direction === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
@@ -311,7 +312,7 @@ const AdminDashboard = () => {
                         <Search size={18} color="#94a3b8" />
                         <input type="text" placeholder="Search Title or SKU..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ border: 'none', outline: 'none', marginLeft: '12px', width: '100%' }} />
                     </div>
-                    
+
                     <select value={filterOption} onChange={(e) => setFilterOption(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff' }}>
                         <option value="ALL">All Statuses</option>
                         <option value="active">Active</option>
@@ -354,10 +355,10 @@ const AdminDashboard = () => {
                                             <div style={{ fontSize: '0.8rem', color: '#64748b' }}>SKU: {p.sku}</div>
                                         </td>
                                         <td style={{ padding: '16px' }}>
-                                            {isEdit ? <input type="number" value={editForm.price} onChange={e => setEditForm({...editForm, price: e.target.value})} style={{ width: '80px', padding: '4px' }}/> : p.platformSellPrice}
+                                            {isEdit ? <input type="number" value={editForm.price} onChange={e => setEditForm({ ...editForm, price: e.target.value })} style={{ width: '80px', padding: '4px' }} /> : p.platformSellPrice}
                                         </td>
                                         <td style={{ padding: '16px' }}>
-                                            {isEdit ? <input type="number" value={editForm.stock} onChange={e => setEditForm({...editForm, stock: e.target.value})} style={{ width: '60px', padding: '4px' }}/> : (
+                                            {isEdit ? <input type="number" value={editForm.stock} onChange={e => setEditForm({ ...editForm, stock: e.target.value })} style={{ width: '60px', padding: '4px' }} /> : (
                                                 <span style={{ color: p.inventory?.stock === 0 ? '#dc2626' : p.inventory?.stock <= 10 ? '#ca8a04' : 'inherit', fontWeight: p.inventory?.stock <= 10 ? '600' : 'normal' }}>
                                                     {p.inventory?.stock}
                                                 </span>
@@ -365,7 +366,7 @@ const AdminDashboard = () => {
                                         </td>
                                         <td style={{ padding: '16px' }}>
                                             {isEdit ? (
-                                                <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})} style={{ padding: '4px' }}>
+                                                <select value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value })} style={{ padding: '4px' }}>
                                                     <option value="active">Active</option>
                                                     <option value="draft">Draft</option>
                                                 </select>
@@ -376,13 +377,13 @@ const AdminDashboard = () => {
                                         <td style={{ padding: '16px' }}>
                                             {isEdit ? (
                                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <button 
-                                                        disabled={isSaving} 
+                                                    <button
+                                                        disabled={isSaving}
                                                         onClick={() => submitProductUpdate(p._id)} // Change this depending on which table you are in!
-                                                        style={{ 
-                                                            background: isSaving ? '#94a3b8' : '#1b4332', 
-                                                            color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', 
-                                                            cursor: isSaving ? 'not-allowed' : 'pointer' 
+                                                        style={{
+                                                            background: isSaving ? '#94a3b8' : '#1b4332',
+                                                            color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px',
+                                                            cursor: isSaving ? 'not-allowed' : 'pointer'
                                                         }}>
                                                         {isSaving ? 'Saving...' : 'Save'}
                                                     </button>
@@ -435,7 +436,7 @@ const AdminDashboard = () => {
                                         <td style={{ padding: '16px', color: '#64748b' }}>{u.email}</td>
                                         <td style={{ padding: '16px' }}>
                                             {isEdit ? (
-                                                <select value={editForm.role} onChange={e => setEditForm({...editForm, role: e.target.value})} style={{ padding: '4px' }}>
+                                                <select value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })} style={{ padding: '4px' }}>
                                                     <option value="CUSTOMER">Customer</option>
                                                     <option value="ADMIN">Admin</option>
                                                 </select>
@@ -447,13 +448,13 @@ const AdminDashboard = () => {
                                         <td style={{ padding: '16px' }}>
                                             {isEdit ? (
                                                 <div style={{ display: 'flex', gap: '8px' }}>
-                                                    <button 
-                                                        disabled={isSaving} 
-                                                        onClick={() => submitProductUpdate(u._id)} // Change this depending on which table you are in!
-                                                        style={{ 
-                                                            background: isSaving ? '#94a3b8' : '#1b4332', 
-                                                            color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', 
-                                                            cursor: isSaving ? 'not-allowed' : 'pointer' 
+                                                    <button
+                                                        disabled={isSaving}
+                                                        onClick={() => submitUserUpdate(u._id)} // Change this depending on which table you are in!
+                                                        style={{
+                                                            background: isSaving ? '#94a3b8' : '#1b4332',
+                                                            color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px',
+                                                            cursor: isSaving ? 'not-allowed' : 'pointer'
                                                         }}>
                                                         {isSaving ? 'Saving...' : 'Save'}
                                                     </button>
@@ -478,15 +479,16 @@ const AdminDashboard = () => {
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f1f5f9' }}>
             <Navbar />
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                
+
                 {/* SIDEBAR */}
                 <aside style={{ width: '260px', background: '#fff', borderRight: '1px solid #e2e8f0', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '1px', marginBottom: '8px', marginLeft: '12px' }}>Admin Control</h3>
-                    
+
                     {[
                         { id: 'overview', icon: TrendingUp, label: 'Overview' },
                         { id: 'orders', icon: ShoppingBag, label: 'Orders & Fulfillment' },
                         { id: 'products', icon: Package, label: 'Catalog / Products' },
+                        { id: 'bulk-upload', icon: Upload, label: 'Bulk Product Upload' },
                         { id: 'users', icon: Users, label: 'Customers & Roles' }
                     ].map(tab => (
                         <button
@@ -517,8 +519,9 @@ const AdminDashboard = () => {
                     {loading ? <p>Loading Data...</p> : (
                         <>
                             {activeTab === 'overview' && renderOverview()}
-                            {activeTab === 'orders' && renderOrders()} 
+                            {activeTab === 'orders' && renderOrders()}
                             {activeTab === 'products' && renderProducts()}
+                            {activeTab === 'bulk-upload' && <BulkUpload />}
                             {activeTab === 'users' && renderUsers()}
                         </>
                     )}
