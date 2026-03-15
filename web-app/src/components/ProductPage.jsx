@@ -212,6 +212,7 @@ function ProductPage() {
                                     }
 
                                     addToCart({
+                                        _id: product.id,
                                         id: product.id,
                                         name: product.name,
                                         price: typeof product.price === 'string' ? parseFloat(product.price.replace(/[^0-9.-]+/g, "")) : product.price,

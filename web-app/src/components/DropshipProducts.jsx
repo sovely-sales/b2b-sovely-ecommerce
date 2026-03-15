@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { useSuspenseQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { productApi } from '../features/products/api/productApi.js';
 import { CartContext } from '../CartContext.jsx';
 import { WishlistContext } from '../WishlistContext.jsx';
@@ -35,10 +35,18 @@ function DropshipProducts({
 }) {
     const { cartItems, addToCart, updateQuantity } = useContext(CartContext);
     // Fetch categories first (suspended) to map category names to IDs
-    const { data: dbCategories = [] } = useSuspenseQuery({
+    const { data: rawCategories = [] } = useQuery({
         queryKey: ['categories'],
         queryFn: productApi.getCategories
     });
+    const dbCategories = useMemo(
+        () =>
+            rawCategories.filter((cat, index, list) => {
+                const normalizedName = cat.name.trim().toLowerCase();
+                return index === list.findIndex(item => item.name.trim().toLowerCase() === normalizedName);
+            }),
+        [rawCategories]
+    );
 
     // ── Filter state ─────────────────────────────────────────────────────────
     const [category, setCategory] = useState(externalCategory || 'All');
@@ -81,9 +89,9 @@ function DropshipProducts({
         }),
         initialPageParam: 1,
         getNextPageParam: (lastPage) => {
-            if (!lastPage || !lastPage.pagination) return undefined;
-            const { page, pages } = lastPage.pagination;
-            return page < pages ? page + 1 : undefined;
+        const page = lastPage?.pagination?.page ?? 1;
+        const pages = lastPage?.pagination?.pages ?? 1;
+        return page < pages ? page + 1 : undefined;
         }
     });
 

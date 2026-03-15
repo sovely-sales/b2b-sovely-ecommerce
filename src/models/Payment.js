@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
 const paymentSchema = new mongoose.Schema({
-    customerId: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Customer',
+        ref: 'User',
         required: true
     },
     invoiceId: {

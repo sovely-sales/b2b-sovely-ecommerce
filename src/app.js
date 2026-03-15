@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }))
 app.use(express.static("public"))
 app.use(cookieParser())
 
+// Route Imports
 import healthRouter from "./routes/health.routes.js";
 import userRouter from "./routes/user.routes.js";
 import productRouter from "./routes/product.routes.js";
@@ -26,6 +28,20 @@ import paymentRouter from "./routes/payment.routes.js";
 import walletRouter from "./routes/wallet.routes.js";
 import wishlistRouter from "./routes/wishlist.routes.js";
 
+const app = express();
+
+// Middleware
+app.use(helmet()); // Added security headers
+app.use(cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true
+}));
+app.use(express.json({ limit: "20kb" }));
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(express.static("public"));
+app.use(cookieParser());
+
+// Routes
 app.use("/api/v1/health", healthRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/products", productRouter);
@@ -37,12 +53,11 @@ app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/wallet", walletRouter);
 app.use("/api/v1/wishlist", wishlistRouter);
 
-// Global error handler — returns JSON instead of Express's default HTML error page
+// Global error handler
 app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;
-    const message = err.message || "Something went wrong";
+    const message = err.message || "Internal Server Error";
 
-    // Only log aggressively if it's an actual unexpected server/request error, don't spam for standard 401 session checks
     if (statusCode !== 401) {
         console.error("Global Error Handler Caught:", err);
     }

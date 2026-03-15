@@ -7,10 +7,10 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { razorpayInstance } from './payment.controller.js';
 
 export const getBalance = asyncHandler(async (req, res) => {
-    const customerId = req.user._id;
+    const userId = req.user._id;
 
     // Calculate sum of credits minus debits
-    const transactions = await WalletTransaction.find({ customerId });
+    const transactions = await WalletTransaction.find({ userId });
 
     let balance = 0;
     for (const trx of transactions) {
@@ -22,7 +22,7 @@ export const getBalance = asyncHandler(async (req, res) => {
 });
 
 export const getTransactionHistory = asyncHandler(async (req, res) => {
-    const transactions = await WalletTransaction.find({ customerId: req.user._id })
+    const transactions = await WalletTransaction.find({ userId: req.user._id })
         .sort({ createdAt: -1 });
 
     return res.status(200).json(new ApiResponse(200, transactions, "Transaction history fetched"));
@@ -30,7 +30,7 @@ export const getTransactionHistory = asyncHandler(async (req, res) => {
 
 export const addMoney = asyncHandler(async (req, res) => {
     const { amount } = req.body;
-    const customerId = req.user._id;
+    const userId = req.user._id;
 
     if (!amount || amount <= 0) {
         throw new ApiError(400, "Valid amount is required to add money");
@@ -42,7 +42,7 @@ export const addMoney = asyncHandler(async (req, res) => {
 
     const invoice = await Invoice.create({
         invoiceNumber: invoiceNumStr,
-        customerId,
+        userId,
         invoiceType: 'WALLET_TOPUP',
         totalAmount: amount,
         paymentTerms: 'DUE_ON_RECEIPT',

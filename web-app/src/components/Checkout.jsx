@@ -6,12 +6,12 @@ import './Auth.css';
 import Navbar from './Navbar';
 import Footer from './Footer';
 
+// CRITICAL FIX: Use relative path for Vite Proxy
 const api = axios.create({
-    baseURL: 'http://localhost:8000/api/v1',
+    baseURL: '/api/v1',
     withCredentials: true
 });
 
-// Helper function to load the Razorpay script dynamically
 const loadRazorpayScript = () => {
     return new Promise((resolve) => {
         const script = document.createElement('script');
@@ -27,11 +27,11 @@ const Checkout = () => {
     const navigate = useNavigate();
     const items = location.state?.items;
 
-    // Defaulting to UPI as it's the most common in India
     const [paymentMethod, setPaymentMethod] = useState('UPI'); 
     const [paymentTerms, setPaymentTerms] = useState('DUE_ON_RECEIPT');
     const [loading, setLoading] = useState(false);
 
+    // ... (Keep the empty cart UI check here) ...
     if (!items || items.length === 0) {
         return (
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#fafafa' }}>
@@ -66,12 +66,10 @@ const Checkout = () => {
         try {
             const rawItems = items.map(i => ({ productId: i.productId, qty: i.qty }));
             
-            // Map the frontend UI choices to the backend allowed enums ('RAZORPAY', 'WALLET', 'BANK_TRANSFER')
             const backendPaymentMethod = ['UPI', 'CARD', 'NETBANKING'].includes(paymentMethod) 
                 ? 'RAZORPAY' 
                 : paymentMethod;
 
-            // Step 1: Create the Order in your Database
             const orderRes = await api.post('/orders', {
                 items: rawItems,
                 paymentMethod: backendPaymentMethod,
@@ -80,13 +78,11 @@ const Checkout = () => {
 
             const { order, invoice } = orderRes.data.data;
 
-            // Step 2: If Bank Transfer or Wallet, we are done!
             if (backendPaymentMethod !== 'RAZORPAY') {
                 navigate('/orders', { state: { successMessage: `Order placed! ID: ${order.orderId}` } });
                 return;
             }
 
-            // Step 3: If Razorpay (UPI/Card/NetBanking), trigger the Payment Gateway
             const res = await loadRazorpayScript();
             if (!res) {
                 alert('Razorpay SDK failed to load. Are you online?');
@@ -94,20 +90,19 @@ const Checkout = () => {
                 return;
             }
 
-            // Ask backend to create a Razorpay order ID
             const rzpOrderRes = await api.post('/payments/create-order', { amount: totalAmount });
             const rzpOrder = rzpOrderRes.data.data;
 
             const options = {
                 key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_dummy', 
-                amount: rzpOrder.amount,
+                // CRITICAL FIX: Ensure the amount passed to Razorpay is what the backend generated (in paise)
+                amount: rzpOrder.amount, 
                 currency: "INR",
                 name: "Sovely Store",
                 description: `Payment for Order ${order.orderId}`,
                 order_id: rzpOrder.id,
                 handler: async function (response) {
                     try {
-                        // Step 4: Verify payment on backend after user pays
                         await api.post('/payments/verify', {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
@@ -120,7 +115,7 @@ const Checkout = () => {
                     }
                 },
                 prefill: {
-                    name: "Customer", // You can pass actual user details from context here
+                    name: "Customer", 
                     email: "customer@example.com",
                     contact: "9999999999"
                 },
@@ -129,24 +124,7 @@ const Checkout = () => {
                 }
             };
 
-            console.log("Simulating Razorpay Widget Success...");
-            
-            // Wait 2 seconds to make it feel real
-            setTimeout(async () => {
-                try {
-                    // Step 4: Verify payment on backend with fake dummy data
-                    await api.post('/payments/verify', {
-                        razorpay_order_id: rzpOrder.id,
-                        razorpay_payment_id: `pay_mock_${Date.now()}`,
-                        razorpay_signature: "mock_signature_bypassed_by_backend",
-                        invoiceId: invoice._id
-                    });
-                    
-                    navigate('/orders', { state: { successMessage: 'Mock Payment Successful!' } });
-                } catch (err) {
-                    alert("Mock Verification failed: " + (err.response?.data?.message || err.message));
-                }
-            }, 2000);
+            const paymentObject = new window.Razorpay(options); // Fixed missing instantiation
             paymentObject.open();
 
         } catch (error) {

@@ -12,13 +12,13 @@ export const CartProvider = ({ children }) => {
         localStorage.setItem('sovely_cart', JSON.stringify(cartItems));
     }, [cartItems]);
 
-    // Add any quantity to cart given the minimal product info structure
+    // Use _id for MongoDB compatibility
     const addToCart = (product, quantity = 1) => {
         setCartItems(prev => {
-            const existing = prev.find(item => item.product.id === product.id);
+            const existing = prev.find(item => item.product._id === product._id);
             if (existing) {
                 return prev.map(item =>
-                    item.product.id === product.id
+                    item.product._id === product._id
                         ? { ...item, quantity: item.quantity + quantity }
                         : item
                 );
@@ -27,22 +27,20 @@ export const CartProvider = ({ children }) => {
         });
     };
 
-    // Remove completely from cart
     const removeFromCart = (productId) => {
-        setCartItems(prev => prev.filter(item => item.product.id !== productId));
+        setCartItems(prev => prev.filter(item => item.product._id !== productId));
     };
 
-    // + / - 1 mechanism
     const updateQuantity = (productId, change) => {
         setCartItems(prev => {
             return prev.map(item => {
-                if (item.product.id === productId) {
+                if (item.product._id === productId) {
                     const newQuantity = item.quantity + change;
-                    if (newQuantity <= 0) return null; // Marked for deletion
+                    if (newQuantity <= 0) return null; 
                     return { ...item, quantity: newQuantity };
                 }
                 return item;
-            }).filter(Boolean); // Filter out the nulls (deleted items)
+            }).filter(Boolean); 
         });
     };
 

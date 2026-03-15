@@ -9,7 +9,7 @@ import QRCode from 'qrcode'; // Newly added for the B2C dynamic QR
 export const getInvoice = asyncHandler(async (req, res) => {
     const invoice = await Invoice.findOne({
         _id: req.params.id,
-        customerId: req.user._id
+        userId: req.user._id
     }).populate('orderId');
 
     if (!invoice) throw new ApiError(404, "Invoice not found");
@@ -18,7 +18,7 @@ export const getInvoice = asyncHandler(async (req, res) => {
 });
 
 export const listMyInvoices = asyncHandler(async (req, res) => {
-    const invoices = await Invoice.find({ customerId: req.user._id })
+    const invoices = await Invoice.find({ userId: req.user._id })
         .populate('orderId')
         .sort({ createdAt: -1 });
 
@@ -51,7 +51,7 @@ const amountToWords = (amount) => {
 export const generateInvoicePDF = asyncHandler(async (req, res) => {
     const invoice = await Invoice.findOne({
         _id: req.params.id,
-        customerId: req.user._id
+        userId: req.user._id
     }).populate('orderId');
 
     if (!invoice) throw new ApiError(404, "Invoice not found");

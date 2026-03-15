@@ -7,7 +7,6 @@ const orderItemSnapshotSchema = new mongoose.Schema({
     qty: { type: Number, required: true, min: 1 }
 }, { _id: false });
 
-// New: Keep track of every time the order status changes for the timeline
 const statusHistorySchema = new mongoose.Schema({
     status: { type: String, required: true },
     comment: { type: String },
@@ -16,26 +15,21 @@ const statusHistorySchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema({
     orderId: { type: String, required: true, unique: true }, 
-    customerId: {
+    userId: { // Changed from customerId to userId
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Customer',
+        ref: 'User',
         required: true
     },
-    cartId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Cart',
-        required: true
-    }, 
     status: {
         type: String,
         enum: ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'],
         default: 'PENDING'
     },
-    statusHistory: [statusHistorySchema], // New array for the timeline
-    tracking: {                           // New object for Courier Info
-        courierName: { type: String },    // e.g., 'Delhivery', 'BlueDart'
-        trackingNumber: { type: String }, // e.g., 'AWB123456789'
-        trackingUrl: { type: String }     // e.g., 'https://delhivery.com/track/...'
+    statusHistory: [statusHistorySchema], 
+    tracking: {                           
+        courierName: { type: String },    
+        trackingNumber: { type: String }, 
+        trackingUrl: { type: String }     
     },
     paymentTerms: {
         type: String,
@@ -52,12 +46,14 @@ const orderSchema = new mongoose.Schema({
     orderDate: { type: Date, default: Date.now }
 }, { timestamps: true });
 
+// Index for filtering orders by status and user
+orderSchema.index({ userId: 1, status: 1 });
+
 // Pre-save hook: Automatically log the first status when an order is created
 orderSchema.pre('save', function() {
     if (this.isNew) {
         this.statusHistory.push({ status: this.status, comment: 'Order placed successfully' });
     }
-    // Also log if status is modified later
     if (!this.isNew && this.isModified('status')) {
         this.statusHistory.push({ status: this.status, comment: `Order marked as ${this.status}` });
     }

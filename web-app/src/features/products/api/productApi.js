@@ -1,10 +1,11 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../../../utils/apiBaseUrl.js';
 
 // Fallback to localhost:3000 if the env variable is missing during development
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 const api = axios.create({
-    baseURL, 
+    baseURL: API_BASE_URL,
     withCredentials: true
 });
 
@@ -39,7 +40,19 @@ export const productApi = {
         if (sort && sort !== 'default') params.append('sort', sort);
 
         const response = await api.get(`/products?${params.toString()}`);
-        return response.data?.data || { products: [], pagination: {} };
+    const payload = response.data?.data;
+        const safePage = Number(page) || 1;
+        const safeLimit = Number(limit) || 12;
+
+        return {
+            products: Array.isArray(payload?.products) ? payload.products : [],
+            pagination: {
+                total: Number(payload?.pagination?.total) || 0,
+                page: Number(payload?.pagination?.page) || safePage,
+                pages: Number(payload?.pagination?.pages) || 1,
+                limit: safeLimit,
+            },
+        };
     },
 
     getProductById: async (id) => {
@@ -50,8 +63,7 @@ export const productApi = {
 
     getCategories: async () => {
         const response = await api.get('/categories');
-        // Return an empty array instead of undefined if data is missing
-        return response.data?.data || []; 
+    return Array.isArray(response.data?.data) ? response.data.data : [];
     },
 
     getBestDeals: async (limit = 6) => {

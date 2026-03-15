@@ -2,9 +2,9 @@ import mongoose from 'mongoose';
 
 const invoiceSchema = new mongoose.Schema({
     invoiceNumber: { type: String, required: true, unique: true }, // From Counter
-    customerId: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Customer',
+        ref: 'User',
         required: true
     },
     orderId: {

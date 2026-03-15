@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
-const customerPricingSchema = new mongoose.Schema({
-    customerId: {
+const userPricingSchema = new mongoose.Schema({
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Customer',
+        ref: 'User',
         required: true
     },
     productId: {
@@ -18,6 +18,6 @@ const customerPricingSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Prevent duplicate pricing rules for the same customer-product pair
-customerPricingSchema.index({ customerId: 1, productId: 1 }, { unique: true });
+userPricingSchema.index({ userId: 1, productId: 1 }, { unique: true });
 
-export const CustomerPricing = mongoose.model('CustomerPricing', customerPricingSchema);
+export const UserPricing = mongoose.model('UserPricing', userPricingSchema);

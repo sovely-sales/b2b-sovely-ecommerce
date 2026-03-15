@@ -6,9 +6,9 @@ const wishlistItemSchema = new mongoose.Schema({
 }, { _id: false });
 
 const wishlistSchema = new mongoose.Schema({
-    customerId: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Customer',
+        ref: 'User',
         required: true,
         unique: true
     },

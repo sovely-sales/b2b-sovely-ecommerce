@@ -18,7 +18,8 @@ function CartDrawer({ isOpen, onClose }) {
     const handleCheckout = () => {
         onClose();
         const checkoutItems = cartItems.map(item => ({
-            productId: item.product.id,
+            // CRITICAL FIX: Use _id for MongoDB compatibility, fallback to id if needed
+            productId: item.product._id || item.product.id, 
             qty: item.quantity,
             product: item.product
         }));
@@ -53,8 +54,11 @@ function CartDrawer({ isOpen, onClose }) {
                                     safeThumb = typeof item.product.images[0] === 'string' ? item.product.images[0] : item.product.images[0].url;
                                 }
 
+                                // Use fallback for key as well
+                                const itemKey = item.product._id || item.product.id;
+
                                 return (
-                                    <div key={item.product.id} className="cart-item">
+                                    <div key={itemKey} className="cart-item">
                                         <img src={safeThumb} alt={item.product.name} className="cart-item-img" />
                                         <div className="cart-item-details">
                                             <h4 className="cart-item-title">{item.product.name}</h4>
@@ -65,11 +69,11 @@ function CartDrawer({ isOpen, onClose }) {
                                             </div>
                                             <div className="cart-item-actions">
                                                 <div className="cart-quantity-controls-small">
-                                                    <button onClick={() => updateQuantity(item.product.id, -1)}>−</button>
+                                                    <button onClick={() => updateQuantity(itemKey, -1)}>−</button>
                                                     <span>{item.quantity}</span>
-                                                    <button onClick={() => updateQuantity(item.product.id, 1)}>+</button>
+                                                    <button onClick={() => updateQuantity(itemKey, 1)}>+</button>
                                                 </div>
-                                                <button className="btn-remove-item" onClick={() => removeFromCart(item.product.id)}>
+                                                <button className="btn-remove-item" onClick={() => removeFromCart(itemKey)}>
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>

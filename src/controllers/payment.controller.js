@@ -37,7 +37,7 @@ export const razorpayInstance = key_id === 'rzp_test_dummy'
 // Endpoint called by frontend after successful Razorpay checkout widget payment
 export const verifyPaymentSignature = asyncHandler(async (req, res) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, invoiceId } = req.body;
-    const customerId = req.user._id;
+    const userId = req.user._id;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !invoiceId) {
         throw new ApiError(400, "Missing required payment parameters");
@@ -73,7 +73,7 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
 
     // Save Payment Record
     const payment = await Payment.create({
-        customerId,
+        userId,
         invoiceId,
         paymentMethod: 'CARD', // Or fetch exact method from Razorpay API
         status: 'SUCCESS',
@@ -87,7 +87,7 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
     // If this was a WALLET_TOPUP, immediately credit the wallet
     if (invoice.invoiceType === 'WALLET_TOPUP') {
         await WalletTransaction.create({
-            customerId,
+            userId,
             paymentId: payment._id,
             amount: invoice.totalAmount,
             transactionType: 'CREDIT',

@@ -48,6 +48,8 @@ productSchema.index({ status: 1, discountPercent: -1 });
 // Indexes for sorting/filtering
 productSchema.index({ platformSellPrice: 1 });
 productSchema.index({ averageRating: -1 });
+// Helpful for finding out-of-stock items quickly
+productSchema.index({ 'inventory.stock': 1 }); 
 
 // Pre-save hook to automatically calculate discount percent
 productSchema.pre('save', function() {
@@ -58,4 +60,5 @@ productSchema.pre('save', function() {
     }
     // Notice: We completely removed next()
 });
+
 export const Product = mongoose.model('Product', productSchema);

@@ -8,7 +8,12 @@ function Categories({ onSelectCategory }) {
         queryFn: productApi.getCategories
     });
 
-    const categories = dbCategories.map(cat => {
+    const categories = dbCategories
+    .filter((cat, index, list) => {
+        const normalizedName = cat.name.trim().toLowerCase();
+        return index === list.findIndex(item => item.name.trim().toLowerCase() === normalizedName);
+    })
+    .map(cat => {
         const visual = getCategoryIcon(cat.name);
         return {
             _id: cat._id,
