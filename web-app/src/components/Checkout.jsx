@@ -1,9 +1,10 @@
-import React, { useState, useContext } from 'react'; // Added useContext
+import React, { useState, useContext } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, CreditCard, Wallet, Landmark, Package, Smartphone } from 'lucide-react';
+import { ArrowLeft, CheckCircle, CreditCard, Wallet, Landmark, Package, Smartphone, ShieldCheck } from 'lucide-react';
 import api from '../utils/api.js';
-import { CartContext } from '../CartContext'; // Imported CartContext
-import './Auth.css';
+import { CartContext } from '../CartContext';
+import Navbar from './Navbar';
+import Footer from './Footer';
 
 const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -20,28 +21,30 @@ const Checkout = () => {
     const navigate = useNavigate();
     const items = location.state?.items;
     
-    // Grab clearCart from context
     const { clearCart } = useContext(CartContext); 
 
     const [paymentMethod, setPaymentMethod] = useState('UPI'); 
     const [paymentTerms, setPaymentTerms] = useState('DUE_ON_RECEIPT');
     const [loading, setLoading] = useState(false);
 
-    // ... (Keep the empty cart UI check here) ...
+    // Empty Cart State
     if (!items || items?.length === 0) {
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#fafafa' }}>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ textAlign: 'center', padding: '40px', background: '#fff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-                            <Package size={48} color="#94a3b8" />
+            <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-accent/30">
+                <Navbar />
+                <div className="flex-1 flex items-center justify-center p-6">
+                    <div className="bg-white/80 backdrop-blur-xl p-10 md:p-12 rounded-[2.5rem] shadow-sm border border-slate-100 text-center max-w-md w-full">
+                        <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
+                            <Package size={48} strokeWidth={1.5} />
                         </div>
-                        <h2 style={{ fontSize: '1.5rem', color: '#0f172a', marginBottom: '8px' }}>Your Cart is Empty</h2>
-                        <Link to="/" className="btn-primary" style={{ textDecoration: 'none', padding: '12px 24px', borderRadius: '8px', background: '#1b4332', color: '#fff' }}>
+                        <h2 className="text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">Your Cart is Empty</h2>
+                        <p className="text-slate-500 font-medium mb-8">Add some items to your cart to proceed with checkout.</p>
+                        <Link to="/" className="block w-full py-4 bg-slate-900 text-white rounded-full font-bold tracking-wide hover:bg-accent transition-all duration-300 shadow-md hover:shadow-accent/30">
                             Continue Shopping
                         </Link>
                     </div>
                 </div>
+                <Footer />
             </div>
         );
     }
@@ -87,7 +90,6 @@ const Checkout = () => {
 
             const options = {
                 key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_dummy', 
-                // CRITICAL FIX: Ensure the amount passed to Razorpay is what the backend generated (in paise)
                 amount: rzpOrder.amount, 
                 currency: "INR",
                 name: "Sovely Store",
@@ -113,11 +115,11 @@ const Checkout = () => {
                     contact: "9999999999"
                 },
                 theme: {
-                    color: "#1b4332"
+                    color: "#8b5cf6" // Updated to match the new accent color
                 }
             };
 
-            const paymentObject = new window.Razorpay(options); // Fixed missing instantiation
+            const paymentObject = new window.Razorpay(options); 
             paymentObject.open();
 
         } catch (error) {
@@ -128,23 +130,27 @@ const Checkout = () => {
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#fafafa' }}>
+        <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-accent/30">
             <Navbar />
-            <main style={{ flex: 1, padding: '40px 20px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
-
-                <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: '#64748b', marginBottom: '32px', fontWeight: '500' }}>
-                    <ArrowLeft size={18} /> Back to Shopping
+            
+            <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+                
+                <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-900 mb-8 transition-colors">
+                    <ArrowLeft size={16} /> Back to Shopping
                 </Link>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '40px', alignItems: 'start' }}>
-
+                <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
+                    
                     {/* Left Column: Form Settings */}
-                    <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-                        <h2 style={{ fontSize: '1.5rem', color: '#0f172a', marginBottom: '24px', fontWeight: '600' }}>Payment Method</h2>
+                    <div className="flex-1 w-full">
+                        <div className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-sm border border-slate-100">
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Payment Method</h2>
+                                <ShieldCheck className="text-green-500" size={28} />
+                            </div>
 
-                        <form onSubmit={handlePlaceOrder} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                            <div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <form onSubmit={handlePlaceOrder} className="space-y-8">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {[
                                         { id: 'UPI', label: 'UPI (GPay, PhonePe, Paytm)', icon: Smartphone },
                                         { id: 'CARD', label: 'Credit / Debit Card', icon: CreditCard },
@@ -155,55 +161,116 @@ const Checkout = () => {
                                         <div
                                             key={method.id}
                                             onClick={() => setPaymentMethod(method.id)}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', gap: '12px', padding: '16px',
-                                                border: `1px solid ${paymentMethod === method.id ? '#1b4332' : '#e2e8f0'}`,
-                                                borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s ease',
-                                                backgroundColor: paymentMethod === method.id ? '#f0fdf4' : '#fff'
-                                            }}
+                                            className={`relative flex flex-col p-5 rounded-2xl border-2 cursor-pointer transition-all duration-200 group ${
+                                                paymentMethod === method.id 
+                                                ? 'border-accent bg-accent/5' 
+                                                : 'border-slate-100 bg-white hover:border-slate-300'
+                                            }`}
                                         >
-                                            <method.icon size={20} color={paymentMethod === method.id ? '#1b4332' : '#64748b'} />
-                                            <span style={{ fontWeight: '500', color: paymentMethod === method.id ? '#1b4332' : '#0f172a' }}>{method.label}</span>
-                                            {paymentMethod === method.id && <CheckCircle size={18} color="#1b4332" style={{ marginLeft: 'auto' }} />}
+                                            <div className="flex items-center justify-between mb-3">
+                                                <method.icon size={24} className={paymentMethod === method.id ? 'text-accent' : 'text-slate-400 group-hover:text-slate-600 transition-colors'} />
+                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${paymentMethod === method.id ? 'border-accent' : 'border-slate-300'}`}>
+                                                    {paymentMethod === method.id && <div className="w-2.5 h-2.5 bg-accent rounded-full" />}
+                                                </div>
+                                            </div>
+                                            <span className={`font-bold text-sm ${paymentMethod === method.id ? 'text-slate-900' : 'text-slate-600'}`}>
+                                                {method.label}
+                                            </span>
                                         </div>
                                     ))}
                                 </div>
-                            </div>
 
-                            {paymentMethod === 'BANK_TRANSFER' && (
-                                <div style={{ padding: '20px', background: '#f8fafc', borderLeft: '4px solid #1b4332', borderRadius: '4px 8px 8px 4px', fontSize: '0.875rem', color: '#475569', lineHeight: '1.6' }}>
-                                    <strong style={{ color: '#0f172a', display: 'block', marginBottom: '8px' }}>Manual Transfer Required</strong>
-                                    Please transfer exactly <b style={{ color: '#1b4332' }}>₹{totalAmount.toLocaleString('en-IN')}</b> to the following account:<br /><br />
-                                    Bank: <b>Sovely National Bank</b><br />
-                                    Account: <b>1234 5678 9012 3456</b><br />
-                                    IFSC: <b>SOVE0001234</b>
-                                </div>
-                            )}
+                                {paymentMethod === 'BANK_TRANSFER' && (
+                                    <div className="p-6 bg-slate-50 border border-slate-200 rounded-2xl animate-[fadeIn_0.3s_ease-out]">
+                                        <h4 className="font-extrabold text-slate-900 mb-2 flex items-center gap-2">
+                                            <Landmark size={18} className="text-slate-500" />
+                                            Manual Transfer Required
+                                        </h4>
+                                        <p className="text-sm font-medium text-slate-600 leading-relaxed mb-4">
+                                            Please transfer exactly <span className="font-extrabold text-slate-900">₹{totalAmount.toLocaleString('en-IN')}</span> to the following account:
+                                        </p>
+                                        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2 text-sm">
+                                            <div className="flex justify-between"><span className="text-slate-400 font-bold">Bank:</span> <span className="font-bold text-slate-900">Sovely National Bank</span></div>
+                                            <div className="flex justify-between"><span className="text-slate-400 font-bold">Account:</span> <span className="font-bold text-slate-900 font-mono tracking-wider">1234 5678 9012 3456</span></div>
+                                            <div className="flex justify-between"><span className="text-slate-400 font-bold">IFSC:</span> <span className="font-bold text-slate-900 font-mono tracking-wider">SOVE0001234</span></div>
+                                        </div>
+                                    </div>
+                                )}
 
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                style={{
-                                    background: '#1b4332', color: '#fff', padding: '16px', borderRadius: '8px',
-                                    fontSize: '1rem', fontWeight: '600', border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-                                    opacity: loading ? 0.8 : 1, marginTop: '16px'
-                                }}
-                            >
-                                {loading ? 'Processing...' : `Pay ₹${totalAmount.toLocaleString('en-IN')}`}
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* Right Column: Order Summary (Simplified for brevity, keeps your old logic) */}
-                    <div style={{ background: '#fff', borderRadius: '16px', padding: '32px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-                        <h3 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '24px', fontWeight: '600' }}>Order Summary</h3>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', paddingTop: '24px', borderTop: '1px dashed #cbd5e1', fontSize: '1.25rem', fontWeight: '700', color: '#1b4332' }}>
-                            <span>Total Due</span>
-                            <span>₹{totalAmount.toLocaleString('en-IN')}</span>
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full py-4 bg-slate-900 text-white rounded-full font-bold tracking-wide hover:bg-accent hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg mt-4"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        `Pay ₹${totalAmount.toLocaleString('en-IN')}`
+                                    )}
+                                </button>
+                                <p className="text-center text-xs font-bold text-slate-400 flex items-center justify-center gap-1">
+                                    <ShieldCheck size={14} /> Payments are secure and encrypted
+                                </p>
+                            </form>
                         </div>
                     </div>
-                </div>
 
+                    {/* Right Column: Order Summary */}
+                    <div className="w-full lg:w-[400px] xl:w-[450px] lg:sticky lg:top-28">
+                        <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100">
+                            <h3 className="text-xl font-extrabold text-slate-900 tracking-tight mb-6">Order Summary</h3>
+                            
+                            {/* Items List */}
+                            <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                                {items.map((item, idx) => {
+                                    // Handle image fallback
+                                    let safeThumb = 'https://images.unsplash.com/photo-1596547609652-9cf5d8d76921?w=200&q=80';
+                                    if (item.product?.image) safeThumb = typeof item.product.image === 'string' ? item.product.image : item.product.image.url;
+                                    else if (item.product?.images?.[0]) safeThumb = typeof item.product.images[0] === 'string' ? item.product.images[0] : item.product.images[0].url;
+
+                                    return (
+                                        <div key={idx} className="flex gap-4 items-center">
+                                            <div className="w-16 h-16 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden flex-shrink-0">
+                                                <img src={safeThumb} alt="Product" className="w-full h-full object-cover" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="text-sm font-bold text-slate-900 truncate">{item.product?.name || 'Product Item'}</h4>
+                                                <p className="text-xs font-medium text-slate-500">Qty: {item.qty}</p>
+                                            </div>
+                                            <div className="text-sm font-extrabold text-slate-900 whitespace-nowrap">
+                                                ₹{((item.product?.price || 0) * item.qty).toLocaleString('en-IN')}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="space-y-3 pb-6 border-b border-slate-100 text-sm font-medium text-slate-500">
+                                <div className="flex justify-between">
+                                    <span>Subtotal</span>
+                                    <span className="text-slate-900 font-bold">₹{totalAmount.toLocaleString('en-IN')}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Shipping</span>
+                                    <span className="text-green-500 font-bold">Free</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Taxes</span>
+                                    <span className="text-slate-900 font-bold">Calculated at payment</span>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center mt-6">
+                                <span className="text-lg font-extrabold text-slate-900">Total Due</span>
+                                <span className="text-2xl font-black text-accent tracking-tight">₹{totalAmount.toLocaleString('en-IN')}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
             </main>
             <Footer />
         </div>

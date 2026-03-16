@@ -35,7 +35,6 @@ const BulkUpload = () => {
             });
             setMessage(`Success! ${res.data.data.total} products processed.`);
             setFile(null);
-            // Reset file input
             document.getElementById('file-upload').value = '';
         } catch (err) {
             setError(err.response?.data?.message || "Failed to upload file.");
@@ -49,52 +48,38 @@ const BulkUpload = () => {
     };
 
     return (
-        <div style={{ maxWidth: '800px', margin: '0 auto', background: '#fff', padding: '32px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-                <div style={{ display: 'inline-flex', padding: '16px', background: '#f0fdf4', borderRadius: '50%', marginBottom: '16px' }}>
-                    <Upload size={32} color="#1b4332" />
+        <div className="max-w-3xl bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-slate-100">
+            <div className="text-center mb-10">
+                <div className="inline-flex p-4 bg-accent/10 rounded-full mb-4">
+                    <Upload size={32} className="text-accent" />
                 </div>
-                <h2 style={{ fontSize: '1.5rem', color: '#0f172a', margin: '0 0 8px 0' }}>Bulk Product Upload</h2>
-                <p style={{ color: '#64748b', fontSize: '0.95rem' }}>Upload your product catalog using a CSV or Excel file.</p>
+                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-2">Bulk Product Upload</h2>
+                <p className="text-slate-500 font-medium">Upload your product catalog using a CSV or Excel file.</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
                 <div
                     onClick={handleDownloadTemplate}
-                    style={{
-                        padding: '24px', border: '2px dashed #e2e8f0', borderRadius: '12px', cursor: 'pointer',
-                        textAlign: 'center', transition: 'all 0.2s ease', backgroundColor: '#f8fafc'
-                    }}
-                    onMouseOver={e => { e.currentTarget.style.borderColor = '#1b4332'; e.currentTarget.style.backgroundColor = '#f0fdf4'; }}
-                    onMouseOut={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                    className="p-8 border-2 border-dashed border-slate-200 rounded-[2rem] cursor-pointer text-center transition-all bg-slate-50 hover:bg-accent/5 hover:border-accent group"
                 >
-                    <Download size={24} color="#64748b" style={{ marginBottom: '12px' }} />
-                    <h4 style={{ margin: '0 0 4px 0', color: '#0f172a' }}>Step 1: Get Template</h4>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Download our empty sample CSV to ensure correct formatting.</p>
+                    <Download size={28} className="mx-auto mb-4 text-slate-400 group-hover:text-accent transition-colors" />
+                    <h4 className="font-extrabold text-slate-900 mb-2">Step 1: Get Template</h4>
+                    <p className="text-sm font-medium text-slate-500 leading-relaxed">Download our empty sample CSV to ensure correct formatting.</p>
                 </div>
 
-                <div
-                    style={{
-                        padding: '24px', border: '2px solid #e2e8f0', borderRadius: '12px',
-                        textAlign: 'center', backgroundColor: '#fff'
-                    }}
-                >
-                    <FileText size={24} color="#64748b" style={{ marginBottom: '12px' }} />
-                    <h4 style={{ margin: '0 0 4px 0', color: '#0f172a' }}>Step 2: Fill & Upload</h4>
+                <div className="p-8 border-2 border-slate-100 rounded-[2rem] text-center bg-white shadow-sm flex flex-col items-center justify-center">
+                    <FileText size={28} className="mx-auto mb-4 text-slate-400" />
+                    <h4 className="font-extrabold text-slate-900 mb-4">Step 2: Fill & Upload</h4>
                     <input
                         type="file"
                         id="file-upload"
                         accept=".csv, .xlsx, .xls"
                         onChange={handleFileChange}
-                        style={{ display: 'none' }}
+                        className="hidden"
                     />
                     <label
                         htmlFor="file-upload"
-                        style={{
-                            display: 'inline-block', padding: '8px 16px', background: '#f1f5f9',
-                            color: '#475569', borderRadius: '6px', fontSize: '0.85rem', fontWeight: '500',
-                            cursor: 'pointer', marginTop: '8px', border: '1px solid #e2e8f0'
-                        }}
+                        className="inline-block px-6 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl cursor-pointer hover:bg-slate-200 transition-colors text-sm w-full truncate"
                     >
                         {file ? file.name : "Choose File"}
                     </label>
@@ -102,44 +87,41 @@ const BulkUpload = () => {
             </div>
 
             {error && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: '#fef2f2', borderRadius: '8px', marginBottom: '24px', color: '#991b1b' }}>
-                    <AlertCircle size={20} />
-                    <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>{error}</span>
+                <div className="flex items-center gap-3 p-4 bg-danger/10 border border-danger/20 rounded-2xl mb-8 text-danger animate-[fadeIn_0.3s_ease-out]">
+                    <AlertCircle size={20} className="flex-shrink-0" />
+                    <span className="text-sm font-bold">{error}</span>
                 </div>
             )}
 
             {message && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: '#f0fdf4', borderRadius: '8px', marginBottom: '24px', color: '#166534' }}>
-                    <CheckCircle size={20} />
-                    <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>{message}</span>
+                <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-2xl mb-8 text-green-700 animate-[fadeIn_0.3s_ease-out]">
+                    <CheckCircle size={20} className="flex-shrink-0" />
+                    <span className="text-sm font-bold">{message}</span>
                 </div>
             )}
 
             <button
                 onClick={handleUpload}
                 disabled={uploading || !file}
-                style={{
-                    width: '100%', padding: '14px', background: (uploading || !file) ? '#94a3b8' : '#1b4332',
-                    color: '#fff', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: '600',
-                    cursor: (uploading || !file) ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'
-                }}
+                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold tracking-wide hover:bg-accent transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-accent/30"
             >
                 {uploading ? (
                     <>
                         <Loader2 size={20} className="animate-spin" />
                         Processing...
                     </>
-                ) : "Upload and Sync Catalog"}
+                ) : (
+                    "Upload and Sync Catalog"
+                )}
             </button>
 
-            <div style={{ marginTop: '24px', padding: '16px', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fef3c7' }}>
-                <h5 style={{ margin: '0 0 8px 0', color: '#92400e', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <AlertCircle size={16} /> Data Tips:
+            <div className="mt-8 p-6 bg-amber-50 border border-amber-200 rounded-2xl">
+                <h5 className="font-extrabold text-amber-900 flex items-center gap-2 mb-3">
+                    <AlertCircle size={18} /> Data Formatting Tips
                 </h5>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.85rem', color: '#b45309', lineHeight: '1.6' }}>
-                    <li>The <b>SKU</b> is used to identify products; existing SKUs will be updated.</li>
-                    <li>For categories, use <b>Level 1 &gt; Level 2</b> format (e.g., Electronics &gt; Phones).</li>
+                <ul className="list-disc list-outside pl-5 text-sm font-medium text-amber-800 leading-relaxed space-y-1">
+                    <li>The <strong className="font-black">SKU</strong> is used to identify products; existing SKUs will be updated.</li>
+                    <li>For categories, use <strong className="font-black">Level 1 {">"} Level 2</strong> format (e.g., Electronics {">"} Phones).</li>
                     <li>Multiple images can be added by using the same Handle across multiple rows.</li>
                 </ul>
             </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Package, Download, Clock, CheckCircle2, XCircle, ArrowLeft } from 'lucide-react';
+import { Package, Download, Clock, CheckCircle2, ArrowLeft, Box } from 'lucide-react';
 import api from '../utils/api.js';
-import './Auth.css';
+import Navbar from './Navbar';
+import Footer from './Footer';
 
 const Orders = () => {
     const [invoices, setInvoices] = useState([]);
@@ -27,34 +28,35 @@ const Orders = () => {
     }, [navigate]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#fafafa' }}>
-            <main style={{ flex: 1, padding: '40px 20px', maxWidth: '900px', margin: '0 auto', width: '100%' }}>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                    <h2 style={{ fontSize: '1.8rem', color: '#0f172a', fontWeight: '700', margin: 0 }}>My Orders & Invoices</h2>
-                    <Link to="/my-account" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: '#64748b', fontWeight: '500' }}>
+        <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-accent/30">
+            <Navbar />
+            <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
+                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">My Orders & Invoices</h1>
+                    <Link to="/my-account" className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-900 transition-colors">
                         <ArrowLeft size={16} /> Back to Account
                     </Link>
                 </div>
 
                 {loading ? (
-                    <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
-                        <div style={{ width: '40px', height: '40px', border: '3px solid #e2e8f0', borderTopColor: '#1b4332', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }}></div>
-                        Loading your history...
+                    <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                        <div className="w-12 h-12 border-4 border-slate-200 border-t-accent rounded-full animate-spin mb-4"></div>
+                        <p className="font-medium">Loading your history...</p>
                     </div>
                 ) : invoices.length === 0 ? (
-                    <div style={{ background: '#fff', padding: '60px 40px', borderRadius: '16px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-                            <Package size={64} color="#cbd5e1" />
+                    <div className="bg-white rounded-[2.5rem] p-12 text-center shadow-sm border border-slate-100 flex flex-col items-center">
+                        <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-6">
+                            <Box size={48} strokeWidth={1.5} />
                         </div>
-                        <h3 style={{ fontSize: '1.5rem', color: '#0f172a', marginBottom: '8px' }}>No Orders Found</h3>
-                        <p style={{ color: '#64748b', marginBottom: '24px' }}>You haven't placed any orders or topped up your wallet yet.</p>
-                        <Link to="/" style={{ display: 'inline-block', background: '#1b4332', color: '#fff', padding: '12px 24px', borderRadius: '8px', textDecoration: 'none', fontWeight: '600' }}>
+                        <h3 className="text-2xl font-extrabold text-slate-900 mb-2">No Orders Found</h3>
+                        <p className="text-slate-500 font-medium mb-8">You haven't placed any orders or topped up your wallet yet.</p>
+                        <Link to="/" className="px-8 py-4 bg-slate-900 text-white rounded-full font-bold tracking-wide hover:bg-accent transition-all shadow-md hover:shadow-accent/30">
                             Start Shopping
                         </Link>
                     </div>
                 ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div className="space-y-6">
                         {invoices.map(inv => {
                             const isPaid = inv.status === 'PAID';
                             const isOrder = inv.invoiceType === 'ORDER_BILL';
@@ -62,93 +64,71 @@ const Orders = () => {
                             const isPendingTransfer = inv.status === 'UNPAID' && inv.paymentMethod === 'BANK_TRANSFER';
 
                             return (
-                                <div key={inv._id} style={{
-                                    background: '#fff', padding: '24px 32px', borderRadius: '16px',
-                                    boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9',
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px'
-                                }}>
-
-                                    <div style={{ flex: '1 1 300px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                                            <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: '600' }}>
+                                <div key={inv._id} className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:shadow-md transition-shadow">
+                                    
+                                    <div className="flex-1 w-full">
+                                        <div className="flex flex-wrap items-center gap-3 mb-4">
+                                            <h3 className="text-xl font-extrabold text-slate-900">
                                                 {isOrder ? `Order #${inv.orderId?.orderId || 'N/A'}` : 'Wallet Top-up'}
                                             </h3>
-                                            <span style={{
-                                                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                                background: isPaid ? '#dcfce7' : '#fef9c3',
-                                                color: isPaid ? '#166534' : '#854d0e',
-                                                padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700'
-                                            }}>
-                                                {isPaid ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                                                {inv.status}
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold tracking-wider uppercase ${isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                {isPaid ? <CheckCircle2 size={12} /> : <Clock size={12} />} {inv.status}
                                             </span>
                                             {isOrder && orderStatus && (
-                                                <span style={{ fontSize: '0.8rem', color: '#64748b', background: '#f1f5f9', padding: '4px 10px', borderRadius: '20px', fontWeight: '500' }}>
+                                                <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase">
                                                     {orderStatus}
                                                 </span>
                                             )}
                                         </div>
 
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', color: '#475569', fontSize: '0.875rem' }}>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
                                             <div>
-                                                <span style={{ block: 'block', fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amount</span><br />
-                                                <strong style={{ color: '#0f172a', fontSize: '1rem' }}>₹{inv.totalAmount.toLocaleString('en-IN')}</strong>
+                                                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Amount</span>
+                                                <strong className="text-lg font-extrabold text-slate-900">₹{inv.totalAmount.toLocaleString('en-IN')}</strong>
                                             </div>
                                             <div>
-                                                <span style={{ block: 'block', fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Date Issued</span><br />
-                                                {new Date(inv.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Date Issued</span>
+                                                <span className="font-semibold text-slate-700">{new Date(inv.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                             </div>
-                                            <div>
-                                                <span style={{ block: 'block', fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Payment Terms</span><br />
-                                                {inv.paymentTerms.replace('_', ' ')}
+                                            <div className="col-span-2 sm:col-span-1">
+                                                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Payment Terms</span>
+                                                <span className="font-semibold text-slate-700">{inv.paymentTerms.replace('_', ' ')}</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+                                    <div className="flex flex-col sm:flex-row md:flex-col items-stretch md:items-end w-full md:w-auto gap-3">
                                         <a
                                             href={`${import.meta.env.VITE_API_BASE_URL || '/api/v1'}/invoices/${inv._id}/pdf`}
                                             target="_blank"
                                             rel="noreferrer"
-                                            style={{
-                                                display: 'inline-flex', alignItems: 'center', gap: '8px',
-                                                background: '#fff', color: '#1b4332', padding: '10px 20px',
-                                                borderRadius: '8px', textDecoration: 'none', fontWeight: '600',
-                                                border: '1px solid #1b4332', transition: 'all 0.2s', cursor: 'pointer'
-                                            }}
-                                            onMouseOver={(e) => { e.currentTarget.style.background = '#f0fdf4'; }}
-                                            onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; }}
+                                            className="flex items-center justify-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm"
                                         >
-                                            <Download size={18} /> Download PDF
+                                            <Download size={16} /> Download PDF
                                         </a>
 
                                         {isOrder && (
                                             <Link 
                                                 to={`/orders/${inv.orderId._id}/track`}
-                                                style={{
-                                                    display: 'inline-flex', alignItems: 'center', gap: '8px',
-                                                    background: '#1b4332', color: '#fff', padding: '10px 20px',
-                                                    borderRadius: '8px', textDecoration: 'none', fontWeight: '600',
-                                                    border: '1px solid #1b4332', transition: 'all 0.2s', cursor: 'pointer'
-                                                }}
+                                                className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-accent transition-colors shadow-sm"
                                             >
-                                                <Package size={18} /> Track Order
+                                                <Package size={16} /> Track Order
                                             </Link>
                                         )}
 
                                         {isPendingTransfer && (
-                                            <div style={{ fontSize: '0.8rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '500' }}>
+                                            <div className="text-xs font-bold text-danger flex items-center justify-center md:justify-end gap-1.5 mt-2 bg-danger/10 px-3 py-2 rounded-lg">
                                                 <Clock size={14} /> Action Required: Transfer Funds
                                             </div>
                                         )}
                                     </div>
-
                                 </div>
                             );
                         })}
                     </div>
                 )}
             </main>
+            <Footer />
         </div>
     );
 };

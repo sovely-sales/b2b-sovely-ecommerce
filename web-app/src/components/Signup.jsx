@@ -1,7 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../AuthContext';
-import './Auth.css';
 
 const Signup = () => {
     const [contactMethod, setContactMethod] = useState('email');
@@ -44,7 +43,7 @@ const Signup = () => {
     };
 
     const handleSendOtp = async (e) => {
-        e.preventDefault(); // CRITICAL: Prevents accidental form submission
+        e.preventDefault(); 
         if (!phoneNumber || phoneNumber.length < 10) return setError("Please enter a valid phone number");
         setError('');
         setIsLoading(true);
@@ -83,87 +82,170 @@ const Signup = () => {
             }
         } catch (err) {
             setError(err.message);
-            setIsLoading(false); // Only stop loading if there's an error, otherwise let it navigate!
+            setIsLoading(false); 
         }
     };
 
     return (
-        <div className="auth-container">
-            <div className="auth-card">
-                <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '20px', padding: 0 }}>
-                    ← Back
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-accent/30 py-12">
+            {/* Decorative Background Elements */}
+            <div className="absolute top-[10%] right-[-10%] w-96 h-96 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+            <div className="absolute bottom-[10%] left-[-10%] w-96 h-96 bg-pink-300/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+
+            <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl border border-white relative z-10 my-8">
+                <button 
+                    onClick={() => navigate(-1)} 
+                    className="flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold text-sm mb-8 transition-colors"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Back
                 </button>
                 
-                <div className="auth-header">
-                    <h1 className="auth-title">Create Account</h1>
-                    <p className="auth-subtitle">Join us and start shopping</p>
+                <div className="mb-8">
+                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Create Account</h1>
+                    <p className="text-slate-500 font-medium">Join us and start shopping premium collections.</p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                    <button type="button" onClick={() => handleTabSwitch('email')} style={{ flex: 1, padding: '10px', border: '1px solid #ccc', borderRadius: '6px', background: contactMethod === 'email' ? '#000' : '#fff', color: contactMethod === 'email' ? '#fff' : '#000', cursor: 'pointer' }}>
+                <div className="flex bg-slate-100 p-1 rounded-2xl mb-8">
+                    <button 
+                        type="button" 
+                        onClick={() => handleTabSwitch('email')} 
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${contactMethod === 'email' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
                         Use Email
                     </button>
-                    <button type="button" onClick={() => handleTabSwitch('phone')} style={{ flex: 1, padding: '10px', border: '1px solid #ccc', borderRadius: '6px', background: contactMethod === 'phone' ? '#000' : '#fff', color: contactMethod === 'phone' ? '#fff' : '#000', cursor: 'pointer' }}>
+                    <button 
+                        type="button" 
+                        onClick={() => handleTabSwitch('phone')} 
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${contactMethod === 'phone' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
                         Use Mobile
                     </button>   
                 </div>
 
-                {error && <div style={{ color: '#ef4444', backgroundColor: '#fee2e2', padding: '10px', borderRadius: '6px', marginBottom: '16px', textAlign: 'center', fontSize: '0.875rem' }}>{error}</div>}
+                {error && (
+                    <div className="bg-danger/10 border border-danger/20 text-danger text-sm font-bold p-4 rounded-2xl mb-6 text-center animate-[fadeIn_0.3s_ease-out]">
+                        {error}
+                    </div>
+                )}
 
-                <form className="auth-form" onSubmit={handleSignup} autoComplete="off">
-                    <div className="form-group">
-                        <label>Full Name *</label>
-                        <input type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} required />
+                <form onSubmit={handleSignup} autoComplete="off" className="space-y-5">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Full Name *</label>
+                        <input 
+                            type="text" 
+                            placeholder="John Doe" 
+                            value={name} 
+                            onChange={(e) => setName(e.target.value)} 
+                            required 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-medium text-slate-900 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all placeholder:text-slate-400"
+                        />
                     </div>
 
                     {contactMethod === 'email' ? (
-                        <div className="form-group">
-                            <label>Email Address *</label>
-                            <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                        <div className="space-y-2 animate-[fadeIn_0.3s_ease-out]">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Email Address *</label>
+                            <input 
+                                type="email" 
+                                placeholder="you@example.com" 
+                                value={email} 
+                                onChange={(e) => setEmail(e.target.value)} 
+                                required 
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-medium text-slate-900 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all placeholder:text-slate-400"
+                            />
                         </div>
                     ) : (
-                        <>
-                            <div className="form-group">
-                                <label>Mobile Number *</label>
-                                <div style={{ display: 'flex', gap: '10px' }}>
-                                    <input type="tel" inputMode="numeric" placeholder="Enter 10 digit number" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))} disabled={otpSent && cooldown > 0} required />
-                                    <button type="button" onClick={handleSendOtp} disabled={cooldown > 0 || isLoading} style={{ padding: '0 15px', borderRadius: '6px', cursor: cooldown > 0 ? 'not-allowed' : 'pointer', minWidth: '110px', border: '1px solid #ccc', background: '#f9fafb' }}>
+                        <div className="animate-[fadeIn_0.3s_ease-out] space-y-5">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Mobile Number *</label>
+                                <div className="flex gap-3">
+                                    <div className="relative flex-1">
+                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">+91</span>
+                                        <input 
+                                            type="tel" 
+                                            inputMode="numeric" 
+                                            placeholder="10 digit number" 
+                                            value={phoneNumber} 
+                                            onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))} 
+                                            disabled={otpSent && cooldown > 0} 
+                                            required 
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-14 pr-5 py-3.5 text-sm font-bold text-slate-900 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all placeholder:text-slate-400 disabled:opacity-60 disabled:bg-slate-100"
+                                        />
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        onClick={handleSendOtp} 
+                                        disabled={cooldown > 0 || isLoading} 
+                                        className="px-5 bg-white border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap min-w-[110px]"
+                                    >
                                         {cooldown > 0 ? `Resend (${cooldown}s)` : (otpSent ? 'Resend' : 'Get OTP')}
                                     </button>
                                 </div>
                             </div>
                             {otpSent && (
-                                <div className="form-group">
-                                    <label>Enter 4-Digit OTP *</label>
-                                    <input type="text" inputMode="numeric" maxLength="4" placeholder="1234" value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} autoFocus required />
+                                <div className="space-y-2 animate-[fadeIn_0.3s_ease-out]">
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Enter 4-Digit OTP *</label>
+                                    <input 
+                                        type="text" 
+                                        inputMode="numeric" 
+                                        maxLength="4" 
+                                        placeholder="1234" 
+                                        value={otpCode} 
+                                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} 
+                                        autoFocus 
+                                        required 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-center text-lg font-extrabold tracking-widest text-slate-900 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all placeholder:font-medium placeholder:text-slate-300"
+                                    />
                                 </div>
                             )}
-                        </>
+                        </div>
                     )}
 
-                    <div className="form-group">
-                        <label>Password *</label>
-                        <input type="password" placeholder="Create a strong password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Password *</label>
+                        <input 
+                            type="password" 
+                            placeholder="Create a strong password" 
+                            value={password} 
+                            onChange={(e) => setPassword(e.target.value)} 
+                            autoComplete="new-password" 
+                            required 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-medium text-slate-900 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all placeholder:text-slate-400 tracking-widest"
+                        />
                         
                         {password.length > 0 && (
-                            <div style={{ marginTop: '8px' }}>
-                                <div style={{ height: '4px', width: '100%', background: '#e5e7eb', borderRadius: '2px', overflow: 'hidden' }}>
-                                    <div style={{ height: '100%', borderRadius: '2px', transition: 'all 0.3s', width: strength.width, backgroundColor: strength.color }}></div>
+                            <div className="pt-2 px-1">
+                                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full rounded-full transition-all duration-500 ease-out" 
+                                        style={{ width: strength.width, backgroundColor: strength.color }}
+                                    ></div>
                                 </div>
-                                <span style={{ fontSize: '0.75rem', color: strength.color, fontWeight: 'bold', display: 'block', marginTop: '4px', textAlign: 'right' }}>
+                                <span 
+                                    className="text-[10px] font-extrabold uppercase tracking-widest block mt-1.5 text-right"
+                                    style={{ color: strength.color }}
+                                >
                                     {strength.label}
                                 </span>
                             </div>
                         )}
                     </div>
 
-                    <button type="submit" className="btn-auth-submit" disabled={isLoading || (contactMethod === 'phone' && !otpSent)} style={{ background: '#000', color: '#fff', border: 'none', padding: '12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', marginTop: '10px' }}>
-                        {isLoading ? 'Creating Account...' : 'Create Account'}
-                    </button>
+                    <div className="pt-4">
+                        <button 
+                            type="submit" 
+                            disabled={isLoading || (contactMethod === 'phone' && !otpSent)} 
+                            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold tracking-wide hover:bg-accent hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isLoading ? 'Creating Account...' : 'Create Account'}
+                        </button>
+                    </div>
                 </form>
 
-                <div className="auth-footer" style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.875rem' }}>
-                    Already have an account? <Link to="/login" style={{ fontWeight: 'bold', color: '#000' }}>Sign in</Link>
+                <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+                    <p className="text-sm font-medium text-slate-500">
+                        Already have an account? <Link to="/login" className="font-bold text-slate-900 hover:text-accent transition-colors">Sign in</Link>
+                    </p>
                 </div>
             </div>
         </div>

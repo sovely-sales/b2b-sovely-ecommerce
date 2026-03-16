@@ -27,171 +27,96 @@ function Sidebar({ isOpen, onClose }) {
     }, [isOpen]);
 
     return (
-        <>
+        <div className="relative z-[100]">
+            {/* Overlay */}
             <div
-                className={`sidebar-overlay ${isOpen ? 'active' : ''}`}
+                className={`fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
                 onClick={onClose}
                 aria-hidden="true"
             ></div>
 
-            <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-                <div className="sidebar-header">
-                    <div className="sidebar-logo">
-                        <img src="https://m.media-amazon.com/images/X/bxt1/M/Bbxt1BI1cNpD5ln._SL160_QL95_FMwebp_.png" alt="Sovely Logo" className="logo-image" />
-                        <span className="logo-text">Sovely</span>
+            {/* Sidebar */}
+            <aside className={`fixed inset-y-0 left-0 w-[85vw] max-w-sm bg-white/90 backdrop-blur-xl border-r border-white/50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-slate-50 p-1.5 rounded-lg shadow-sm border border-slate-100">
+                            <img src="https://m.media-amazon.com/images/X/bxt1/M/Bbxt1BI1cNpD5ln._SL160_QL95_FMwebp_.png" alt="Sovely Logo" className="h-6 w-auto" />
+                        </div>
+                        <span className="font-extrabold text-xl tracking-tight text-slate-900">Sovely</span>
                     </div>
-                    <button className="sidebar-close-btn" onClick={onClose} aria-label="Close sidebar">
+                    <button className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors" onClick={onClose} aria-label="Close sidebar">
                         ✕
                     </button>
                 </div>
 
-                <div className="sidebar-content">
-                    <div className="sidebar-section">
-                        <h3 className="sidebar-heading">Main Menu</h3>
-                        <ul className="sidebar-nav">
-                            <li>
-                                <a href="#" className="sidebar-link active">
-                                    <span className="sidebar-icon">🏠</span>
-                                    Home
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="sidebar-link">
-                                    <span className="sidebar-icon">📦</span>
-                                    Manage NDR
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="sidebar-link">
-                                    <span className="sidebar-icon">🛍️</span>
-                                    Cart
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="sidebar-link">
-                                    <span className="sidebar-icon">🚚</span>
-                                    Order Track
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="sidebar-link">
-                                    <span className="sidebar-icon">📋</span>
-                                    Inventory
-                                </a>
-                            </li>
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar space-y-8">
+                    
+                    <div>
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Main Menu</h3>
+                        <ul className="space-y-1">
+                            <li><a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-100 text-accent font-bold"><span className="text-lg">🏠</span> Home</a></li>
+                            <li><a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold transition-colors"><span className="text-lg">📦</span> Manage NDR</a></li>
+                            <li><a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold transition-colors"><span className="text-lg">🛍️</span> Cart</a></li>
+                            <li><a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold transition-colors"><span className="text-lg">🚚</span> Order Track</a></li>
+                            <li><a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold transition-colors"><span className="text-lg">📋</span> Inventory</a></li>
                         </ul>
                     </div>
 
-                    <div className="sidebar-section">
-                        <h3 className="sidebar-heading">Discover</h3>
-                        <ul className="sidebar-nav">
-                            <li>
-                                <a href="#deals" className="sidebar-link" onClick={onClose}>
-                                    <span className="sidebar-icon">🔥</span>
-                                    Today's Deals
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#categories" className="sidebar-link" onClick={onClose}>
-                                    <span className="sidebar-icon">🏷️</span>
-                                    All Categories
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#services" className="sidebar-link" onClick={onClose}>
-                                    <span className="sidebar-icon">🛡️</span>
-                                    Our Services
-                                </a>
-                            </li>
+                    <div>
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Discover</h3>
+                        <ul className="space-y-1">
+                            <li><a href="#deals" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold transition-colors"><span className="text-lg">🔥</span> Today's Deals</a></li>
+                            <li><a href="#categories" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold transition-colors"><span className="text-lg">🏷️</span> All Categories</a></li>
+                            <li><a href="#services" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold transition-colors"><span className="text-lg">💳</span> Our Services</a></li>
                         </ul>
                     </div>
 
-                    <div className="sidebar-section">
-                        <h3 className="sidebar-heading">Settings</h3>
-                        <ul className="sidebar-nav">
-                            <li>
-                                <Link to="/my-account" className="sidebar-link" onClick={onClose}>
-                                    <span className="sidebar-icon">👤</span>
-                                    My Account
-                                </Link>
-                            </li>
-                            <li>
-                                <a href="#" className="sidebar-link">
-                                    <span className="sidebar-icon">⚙️</span>
-                                    Preferences
-                                </a>
-                            </li>
+                    <div>
+                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Settings</h3>
+                        <ul className="space-y-1">
+                            <li><Link to="/my-account" onClick={onClose} className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold transition-colors"><span className="text-lg">👤</span> My Account</Link></li>
+                            <li><a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-bold transition-colors"><span className="text-lg">⚙️</span> Preferences</a></li>
                         </ul>
                     </div>
                 </div>
 
-                {/* Auth CTA / Logout at the bottom */}
-                <div className="sidebar-footer">
+                {/* Footer / Auth */}
+                <div className="p-6 border-t border-slate-100 bg-slate-50/50">
                     {user ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', paddingTop: '10px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '16px', textAlign: 'center' }}>
-                                {/* User Avatar */}
-                                <div style={{
-                                    width: '56px',
-                                    height: '56px',
-                                    borderRadius: '50%',
-                                    backgroundColor: '#e2e8f0',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    overflow: 'hidden',
-                                    marginBottom: '4px',
-                                    border: '2px solid #ffffff',
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                                }}>
+                        <div className="flex flex-col items-center w-full">
+                            <div className="flex flex-col items-center text-center mb-5">
+                                <div className="w-16 h-16 rounded-full bg-white border-4 border-white shadow-md flex items-center justify-center overflow-hidden mb-3">
                                     {user?.avatar ? (
-                                        <img src={user.avatar} alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={user.avatar} alt="User Avatar" className="w-full h-full object-cover" />
                                     ) : (
-                                        <span style={{ fontSize: '1.5rem', color: '#64748b', fontWeight: '600' }}>
-                                            {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                                        </span>
+                                        <span className="text-2xl text-slate-400 font-bold">{user.name ? user.name.charAt(0).toUpperCase() : 'U'}</span>
                                     )}
                                 </div>
-
-                                <p className="sidebar-auth-label" style={{ margin: 0, color: '#0f172a' }}>
-                                    Logged in as <b style={{ fontWeight: '600' }}>{user.name || "User"}</b>
-                                </p>
-                                <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0, wordBreak: 'break-all' }}>
-                                    {user.email}
-                                </p>
+                                <p className="text-sm text-slate-500 font-medium">Logged in as <span className="font-bold text-slate-900">{user.name || "User"}</span></p>
+                                <p className="text-xs text-slate-400 mt-0.5 truncate w-48">{user.email}</p>
                             </div>
-                            <button
+                            <button 
                                 onClick={handleLogout}
-                                style={{
-                                    width: '100%',
-                                    padding: '12px',
-                                    backgroundColor: '#fee2e2',
-                                    color: '#b91c1c',
-                                    border: 'none',
-                                    borderRadius: '50px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    transition: 'background-color 0.2s',
-                                    fontSize: '0.95rem'
-                                }}
-                                onMouseOver={e => e.currentTarget.style.backgroundColor = '#fecaca'}
-                                onMouseOut={e => e.currentTarget.style.backgroundColor = '#fee2e2'}
+                                className="w-full py-3 bg-danger/10 text-danger font-bold rounded-full hover:bg-danger hover:text-white transition-colors shadow-sm"
                             >
                                 Log Out
                             </button>
                         </div>
                     ) : (
-                        <>
-                            <p className="sidebar-auth-label" style={{ textAlign: 'center', width: '100%', display: 'block' }}>Ready to start selling?</p>
-                            <div className="sidebar-auth-btns">
-                                <Link to="/login" className="btn-sidebar-login" onClick={onClose}>Log In</Link>
-                                <Link to="/signup" className="btn-sidebar-signup" onClick={onClose}>Sign Up Free</Link>
+                        <div className="w-full text-center">
+                            <p className="text-sm font-bold text-slate-600 mb-4">Ready to start selling?</p>
+                            <div className="flex flex-col gap-3">
+                                <Link to="/login" onClick={onClose} className="w-full py-3 border-2 border-slate-200 text-slate-700 font-bold rounded-full hover:border-slate-300 hover:bg-white transition-all">Log In</Link>
+                                <Link to="/signup" onClick={onClose} className="w-full py-3 bg-slate-900 text-white font-bold rounded-full hover:bg-accent hover:shadow-lg hover:shadow-accent/30 transition-all">Sign Up Free</Link>
                             </div>
-                        </>
+                        </div>
                     )}
                 </div>
             </aside>
-        </>
+        </div>
     );
 }
 

@@ -24,3 +24,17 @@ export const upload = multer({
         cb(new Error("Error: File upload only supports CSV or Excel files!"));
     }
 });
+
+export const uploadImages = multer({
+    storage,
+    fileFilter: (req, file, cb) => {
+        const filetypes = /jpeg|jpg|png|webp/;
+        const mimetype = filetypes.test(file.mimetype);
+        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+
+        if (mimetype || extname) {
+            return cb(null, true);
+        }
+        cb(new Error("Error: Only images (jpeg, jpg, png, webp) are allowed!"));
+    }
+});

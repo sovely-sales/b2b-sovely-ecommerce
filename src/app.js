@@ -14,6 +14,7 @@ import invoiceRouter from "./routes/invoice.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
 import walletRouter from "./routes/wallet.routes.js";
 import wishlistRouter from "./routes/wishlist.routes.js";
+import analyticsRouter from './routes/analytics.routes.js';
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use("/api/v1/invoices", invoiceRouter);
 app.use("/api/v1/payments", paymentRouter);
 app.use("/api/v1/wallet", walletRouter);
 app.use("/api/v1/wishlist", wishlistRouter);
+app.use('/api/v1/analytics', analyticsRouter);
 
 // 4. Global Error Handler
 app.use((err, req, res, next) => {

@@ -72,8 +72,53 @@ export class ProductService {
             .populate("categoryId", "name");
     }
 
-    static async getAdminProducts() {
-        return await Product.find().sort({ createdAt: -1 }).limit(50);
+    static async getAdminProducts(queryParams = {}) {
+        const page = parseInt(queryParams.page, 10) || 1;
+        const limit = parseInt(queryParams.limit, 10) || 10;
+        const skip = (page - 1) * limit;
+
+        const search = queryParams.search || '';
+        const status = queryParams.status || 'ALL';
+        const price = queryParams.price || 'ALL';
+        const stock = queryParams.stock || 'ALL';
+
+        const filter = {};
+
+        // 1. Status Filter
+        if (status !== 'ALL') filter.status = status;
+
+        // 2. Search Filter
+        if (search) {
+            filter['$or'] = [
+                { title: { $regex: search, $options: 'i' } },
+                { sku: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // 3. Price Filter
+        if (price === 'UNDER_500') filter.platformSellPrice = { $lt: 500 };
+        if (price === 'OVER_1000') filter.platformSellPrice = { $gte: 1000 };
+
+        // 4. Stock Filter
+        if (stock === 'OUT_OF_STOCK') filter['inventory.stock'] = 0;
+        if (stock === 'LOW_STOCK') filter['inventory.stock'] = { $gt: 0, $lte: 10 };
+        if (stock === 'IN_STOCK') filter['inventory.stock'] = { $gt: 10 };
+
+        const total = await Product.countDocuments(filter);
+        const products = await Product.find(filter)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        return {
+            data: products,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit) || 1
+            }
+        };
     }
 
     static async updateProduct(productId, updateData) {
@@ -94,7 +139,23 @@ export class ProductService {
         return product;
     }
 
-    // Note: I kept the bulk upload helper functions inside the service to keep it self-contained
+    static async createProduct(productData, files) {
+        // Map uploaded files to your product's image schema
+        const images = files ? files.map((file, index) => ({
+            url: `/temp/${file.filename}`, // Assuming you are serving the public folder statically
+            position: index + 1,
+            altText: productData.title
+        })) : [];
+
+        const newProduct = await Product.create({
+            ...productData,
+            images,
+            inventory: { stock: productData.stock || 0 }
+        });
+
+        return newProduct;
+    }
+
     static async processBulkUpload(file) {
         if (!file) throw new ApiError(400, "No file uploaded");
 

@@ -1,7 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../AuthContext';
-import './Auth.css';
 
 const Login = () => {
     const [loginMethod, setLoginMethod] = useState('email'); 
@@ -83,85 +82,159 @@ const Login = () => {
     };
 
     return (
-        <div className="auth-container">
-            <div className="auth-card">
-                <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '20px', padding: 0 }}>
-                    ← Back
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-accent/30">
+            {/* Decorative Background Elements */}
+            <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-pink-300/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
+
+            <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl border border-white relative z-10">
+                <button 
+                    onClick={() => navigate(-1)} 
+                    className="flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold text-sm mb-8 transition-colors"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Back
                 </button>
 
-                <div className="auth-header">
-                    <h1 className="auth-title">Welcome Back</h1>
-                    <p className="auth-subtitle">Sign in to your account</p>
+                <div className="mb-8">
+                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Welcome Back</h1>
+                    <p className="text-slate-500 font-medium">Sign in to access your curated collection.</p>
                 </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                {/* Tab Switcher */}
+                <div className="flex bg-slate-100 p-1 rounded-2xl mb-8">
                     <button 
                         type="button" 
                         onClick={() => handleTabSwitch('email')} 
-                        style={{ flex: 1, padding: '10px', border: '1px solid #ccc', borderRadius: '6px', background: loginMethod === 'email' ? '#000' : '#fff', color: loginMethod === 'email' ? '#fff' : '#000', cursor: 'pointer' }}
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${loginMethod === 'email' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         Email
                     </button>
                     <button 
                         type="button" 
                         onClick={() => handleTabSwitch('phone')} 
-                        style={{ flex: 1, padding: '10px', border: '1px solid #ccc', borderRadius: '6px', background: loginMethod === 'phone' ? '#000' : '#fff', color: loginMethod === 'phone' ? '#fff' : '#000', cursor: 'pointer' }}
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${loginMethod === 'phone' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         Mobile Number
                     </button>
                 </div>
 
-                {error && <div style={{ color: 'red', marginBottom: '16px', textAlign: 'center' }}>{error}</div>}
+                {error && (
+                    <div className="bg-danger/10 border border-danger/20 text-danger text-sm font-bold p-4 rounded-2xl mb-6 text-center animate-[fadeIn_0.3s_ease-out]">
+                        {error}
+                    </div>
+                )}
 
                 {/* EMAIL LOGIN FORM */}
                 {loginMethod === 'email' && (
-                    <form className="auth-form" onSubmit={handleEmailLogin} autoComplete="off">
-                        <div className="form-group">
-                            <label>Email Address</label>
-                            <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off" required />
+                    <form onSubmit={handleEmailLogin} autoComplete="off" className="space-y-5 animate-[fadeIn_0.3s_ease-out]">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Email Address</label>
+                            <input 
+                                type="email" 
+                                placeholder="you@example.com" 
+                                value={email} 
+                                onChange={(e) => setEmail(e.target.value)} 
+                                autoComplete="off" 
+                                required 
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-medium text-slate-900 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all placeholder:text-slate-400"
+                            />
                         </div>
-                        <div className="form-group">
-                            <label>Password</label>
-                            <input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Password</label>
+                            <input 
+                                type="password" 
+                                placeholder="••••••••" 
+                                value={password} 
+                                onChange={(e) => setPassword(e.target.value)} 
+                                autoComplete="new-password" 
+                                required 
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-medium text-slate-900 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all placeholder:text-slate-400 tracking-widest"
+                            />
                         </div>
-                        <div className="auth-options">
-                            <label className="checkbox-label"><input type="checkbox" /> Remember me</label>
-                            <Link to="/forgot-password">Forgot password?</Link>
+                        <div className="flex items-center justify-between pt-2 pb-4">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-accent focus:ring-accent/30 cursor-pointer" />
+                                <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors">Remember me</span>
+                            </label>
+                            <Link to="/forgot-password" className="text-sm font-bold text-accent hover:text-slate-900 transition-colors">Forgot password?</Link>
                         </div>
-                        <button type="submit" className="btn-auth-submit" disabled={isLoading}>{isLoading ? 'Signing In...' : 'Sign In'}</button>
+                        <button 
+                            type="submit" 
+                            disabled={isLoading}
+                            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold tracking-wide hover:bg-accent hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {isLoading ? 'Signing In...' : 'Sign In'}
+                        </button>
                     </form>
                 )}
 
                 {/* MOBILE OTP LOGIN FORM */}
                 {loginMethod === 'phone' && (
-                    <form className="auth-form" onSubmit={otpSent ? handleOtpLogin : (e) => { e.preventDefault(); handleSendOtp(); }} autoComplete="off">
-                        <div className="form-group">
-                            <label>Mobile Number</label>
-                            <input type="tel" inputMode="numeric" placeholder="Enter 10 digit number" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))} disabled={otpSent && cooldown > 0} autoComplete="off" required />
+                    <form onSubmit={otpSent ? handleOtpLogin : (e) => { e.preventDefault(); handleSendOtp(); }} autoComplete="off" className="space-y-5 animate-[fadeIn_0.3s_ease-out]">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Mobile Number</label>
+                            <div className="relative">
+                                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">+91</span>
+                                <input 
+                                    type="tel" 
+                                    inputMode="numeric" 
+                                    placeholder="Enter 10 digit number" 
+                                    value={phoneNumber} 
+                                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))} 
+                                    disabled={otpSent && cooldown > 0} 
+                                    autoComplete="off" 
+                                    required 
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-14 pr-5 py-3.5 text-sm font-bold text-slate-900 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all placeholder:text-slate-400 disabled:opacity-60 disabled:bg-slate-100"
+                                />
+                            </div>
                         </div>
                         
                         {otpSent && (
-                            <div className="form-group">
-                                <label>Enter 4-Digit OTP</label>
-                                <div style={{ display: 'flex', gap: '10px' }}>
-                                    <input type="text" inputMode="numeric" maxLength="4" placeholder="1234" value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} autoFocus required />
-                                    <button type="button" onClick={handleSendOtp} disabled={cooldown > 0 || isLoading} style={{ padding: '0 15px', borderRadius: '6px', cursor: cooldown > 0 ? 'not-allowed' : 'pointer', minWidth: '110px' }}>
+                            <div className="space-y-2 animate-[fadeIn_0.3s_ease-out]">
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Enter 4-Digit OTP</label>
+                                <div className="flex gap-3">
+                                    <input 
+                                        type="text" 
+                                        inputMode="numeric" 
+                                        maxLength="4" 
+                                        placeholder="1234" 
+                                        value={otpCode} 
+                                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))} 
+                                        autoFocus 
+                                        required 
+                                        className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-center text-lg font-extrabold tracking-widest text-slate-900 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all placeholder:font-medium placeholder:text-slate-300"
+                                    />
+                                    <button 
+                                        type="button" 
+                                        onClick={handleSendOtp} 
+                                        disabled={cooldown > 0 || isLoading} 
+                                        className="px-5 bg-white border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap min-w-[120px]"
+                                    >
                                         {cooldown > 0 ? `Resend (${cooldown}s)` : 'Resend'}
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        {!otpSent ? (
-                            <button type="submit" className="btn-auth-submit" style={{ background: '#333' }} disabled={isLoading}>{isLoading ? 'Sending...' : 'Get OTP'}</button>
-                        ) : (
-                            <button type="submit" className="btn-auth-submit" disabled={isLoading || otpCode.length < 4}>{isLoading ? 'Verifying...' : 'Verify & Login'}</button>
-                        )}
+                        <div className="pt-4">
+                            {!otpSent ? (
+                                <button type="submit" disabled={isLoading} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold tracking-wide hover:bg-accent hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed">
+                                    {isLoading ? 'Sending...' : 'Get OTP'}
+                                </button>
+                            ) : (
+                                <button type="submit" disabled={isLoading || otpCode.length < 4} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold tracking-wide hover:bg-accent hover:shadow-lg hover:shadow-accent/30 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed">
+                                    {isLoading ? 'Verifying...' : 'Verify & Login'}
+                                </button>
+                            )}
+                        </div>
                     </form>
                 )}
 
-                <div className="auth-footer">
-                    Don't have an account? <Link to="/signup">Sign up</Link>
+                <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+                    <p className="text-sm font-medium text-slate-500">
+                        Don't have an account? <Link to="/signup" className="font-bold text-slate-900 hover:text-accent transition-colors">Sign up</Link>
+                    </p>
                 </div>
             </div>
         </div>

@@ -1,13 +1,17 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import Navbar from '../components/Navbar'; // or from '../components/Navbar'
+import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import Sidebar from '../components/Sidebar'; // Added import
 
 const MainLayout = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Added state
+
   return (
-    <div className="app-container">
-      <Navbar />
-      {/* <Outlet /> is where the child routes (like LandingPage) will be injected */}
-      <main>
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-accent/30">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Navbar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <main className="flex-grow w-full relative z-0">
         <Outlet /> 
       </main>
       <Footer />

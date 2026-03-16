@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { User, Mail, Shield, Calendar, LogOut, Wallet, Plus, Package, ArrowLeft } from 'lucide-react';
 import api from '../utils/api.js';
 import { AuthContext } from '../AuthContext';
-import './Auth.css';
+import Navbar from './Navbar';
+import Footer from './Footer';
 
 const MyAccount = () => {
     const { user, loading, logout } = useContext(AuthContext);
@@ -52,11 +53,9 @@ const MyAccount = () => {
         }
 
         try {
-            // 1. Create order on backend
             const orderRes = await api.post('/wallet/add-money', { amount: amt });
             const { razorpayOrderId, amount, currency, keyId, invoiceId } = orderRes.data.data;
 
-            // 1.b IF MOCKING (i.e. keyId is the dummy one), auto-resolve to simulate checkout success
             if (keyId === 'rzp_test_dummy') {
                 console.warn("[MOCK MODE] Simulating successful user payment in Razorpay window");
                 await api.post('/payments/verify', {
@@ -71,7 +70,6 @@ const MyAccount = () => {
                 return;
             }
 
-            // 2. Open Razorpay Checkout widget for real
             const options = {
                 key: keyId,
                 amount: amount,
@@ -81,7 +79,6 @@ const MyAccount = () => {
                 order_id: razorpayOrderId,
                 handler: async function (response) {
                     try {
-                        // 3. Verify Payment Signature
                         await api.post('/payments/verify', {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
@@ -95,7 +92,7 @@ const MyAccount = () => {
                         alert("Payment verification failed.");
                     }
                 },
-                theme: { color: "#1B4332" }
+                theme: { color: "#8b5cf6" }
             };
             const rzp = new window.Razorpay(options);
             rzp.open();
@@ -111,151 +108,115 @@ const MyAccount = () => {
         navigate('/login');
     };
 
-    if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
+    if (loading) return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-slate-200 border-t-accent rounded-full animate-spin"></div>
+        </div>
+    );
     if (!user) return null;
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#fafafa', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 20px' }}>
-            <div style={{ background: '#fff', borderRadius: '24px', boxShadow: '0 10px 40px rgba(0,0,0,0.04)', maxWidth: '800px', width: '100%', overflow: 'hidden' }}>
+        <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-accent/30">
+            <Navbar />
+            
+            <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+                <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-900 mb-8 transition-colors">
+                    <ArrowLeft size={16} /> Return to Store
+                </Link>
 
-                {/* Header Banner */}
-                <div style={{ background: 'linear-gradient(135deg, #1b4332, #065f46)', padding: '40px', position: 'relative', overflow: 'hidden' }}>
-                    {/* Decorative Circles */}
-                    <div style={{ position: 'absolute', top: '-10%', right: '-5%', width: '200px', height: '200px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }}></div>
-                    <div style={{ position: 'absolute', bottom: '-20%', right: '10%', width: '150px', height: '150px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }}></div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '24px', position: 'relative', zIndex: 1 }}>
-                        <div style={{
-                            width: '80px', height: '80px', borderRadius: '50%',
-                            background: '#fff', color: '#1B4332',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '2.5rem', fontWeight: '700', boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
-                        }}>
-                            {user.name?.charAt(0).toUpperCase() || '?'}
-                        </div>
-                        <div style={{ color: '#fff' }}>
-                            <h2 style={{ margin: '0 0 8px 0', fontSize: '1.8rem', fontWeight: '600' }}>Hello, {user.name}</h2>
-                            <p style={{ margin: 0, opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px' }}><Mail size={16} /> {user.email}</p>
+                <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+                    {/* Header Banner */}
+                    <div className="bg-slate-900 px-8 py-10 relative overflow-hidden">
+                        <div className="absolute -top-24 -right-12 w-64 h-64 bg-accent/20 rounded-full blur-3xl mix-blend-screen"></div>
+                        <div className="absolute -bottom-24 left-10 w-48 h-48 bg-pink-500/20 rounded-full blur-3xl mix-blend-screen"></div>
+                        
+                        <div className="relative z-10 flex items-center gap-6">
+                            <div className="w-24 h-24 rounded-full bg-white text-slate-900 flex items-center justify-center text-4xl font-black shadow-xl border-4 border-white/20">
+                                {user?.avatar ? (
+                                    <img src={user.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                                ) : (
+                                    user.name?.charAt(0).toUpperCase() || 'U'
+                                )}
+                            </div>
+                            <div className="text-white">
+                                <h1 className="text-3xl font-extrabold tracking-tight mb-1">Hello, {user.name}</h1>
+                                <p className="flex items-center gap-2 text-slate-300 font-medium"><Mail size={16} /> {user.email}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Dashboard Grid */}
-                <div style={{ padding: '40px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
-
-                    {/* Left: Account Details */}
-                    <div>
-                        <h3 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '20px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <User size={20} color="#1b4332" /> My Profile
-                        </h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                                <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '600' }}>Role Access</span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontWeight: '500' }}>
-                                    <Shield size={16} color="#059669" /> {user.role || 'Customer'}
+                    {/* Dashboard Grid */}
+                    <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Left: Account Details */}
+                        <div className="space-y-6">
+                            <h3 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                                <User size={24} className="text-accent" /> My Profile
+                            </h3>
+                            
+                            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex items-center gap-4">
+                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-green-500 shadow-sm"><Shield size={20} /></div>
+                                <div>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-1">Role Access</span>
+                                    <span className="font-bold text-slate-900">{user.role || 'Customer'}</span>
                                 </div>
                             </div>
-                            <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                                <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px', fontWeight: '600' }}>Member Since</span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', fontWeight: '500' }}>
-                                    <Calendar size={16} color="#475569" /> {new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                            
+                            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex items-center gap-4">
+                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-500 shadow-sm"><Calendar size={20} /></div>
+                                <div>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-1">Member Since</span>
+                                    <span className="font-bold text-slate-900">{new Date(user.createdAt || Date.now()).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</span>
                                 </div>
                             </div>
 
-                            <Link
-                                to="/orders"
-                                style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                    background: '#fff', border: '1px solid #1b4332', color: '#1b4332',
-                                    padding: '16px', borderRadius: '12px', textDecoration: 'none', fontWeight: '600',
-                                    transition: 'all 0.2s', marginTop: '10px'
-                                }}
-                                onMouseOver={(e) => { e.currentTarget.style.background = '#f0fdf4'; }}
-                                onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; }}
-                            >
+                            <Link to="/orders" className="flex items-center justify-center gap-2 w-full py-4 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl font-bold tracking-wide hover:bg-slate-900 hover:text-white transition-all">
                                 <Package size={18} /> View My Orders
                             </Link>
                         </div>
-                    </div>
 
-                    {/* Right: Wallet Details */}
-                    <div>
-                        <h3 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '20px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Wallet size={20} color="#1b4332" /> Sovely Wallet
-                        </h3>
+                        {/* Right: Wallet Details */}
+                        <div className="space-y-6">
+                            <h3 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                                <Wallet size={24} className="text-accent" /> Sovely Wallet
+                            </h3>
 
-                        <div style={{
-                            background: 'linear-gradient(to right bottom, #ffffff, #f0fdf4)',
-                            padding: '32px 24px', borderRadius: '16px', border: '1px solid #dcfce7',
-                            boxShadow: '0 4px 14px rgba(22, 163, 74, 0.05)', textAlign: 'center',
-                            marginBottom: '20px'
-                        }}>
-                            <span style={{ display: 'block', fontSize: '0.875rem', color: '#065f46', fontWeight: '500', marginBottom: '8px' }}>Available Balance</span>
-                            <div style={{ fontSize: '2.5rem', fontWeight: '700', color: '#0f172a' }}>
-                                ₹{walletBalance.toLocaleString('en-IN')}
+                            <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-8 rounded-2xl shadow-lg text-center relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
+                                <span className="text-xs font-bold uppercase tracking-widest text-slate-300 block mb-2 relative z-10">Available Balance</span>
+                                <div className="text-4xl font-black text-white relative z-10">
+                                    ₹{walletBalance.toLocaleString('en-IN')}
+                                </div>
                             </div>
+
+                            <form onSubmit={handleAddMoney} className="space-y-4">
+                                <div className="relative">
+                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                                    <input
+                                        type="number"
+                                        placeholder="Enter amount to add"
+                                        value={amountToAdd}
+                                        onChange={e => setAmountToAdd(e.target.value)}
+                                        min="1"
+                                        required
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-5 py-4 text-sm font-bold text-slate-900 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all placeholder:text-slate-400 placeholder:font-medium"
+                                    />
+                                </div>
+                                <button type="submit" className="w-full py-4 bg-accent text-white rounded-2xl font-bold tracking-wide hover:bg-accent-glow hover:shadow-lg hover:shadow-accent/30 transition-all flex items-center justify-center gap-2">
+                                    <Plus size={18} strokeWidth={3} /> Add Money
+                                </button>
+                            </form>
                         </div>
+                    </div>
 
-                        <form onSubmit={handleAddMoney} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <div style={{ position: 'relative' }}>
-                                <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontWeight: '600' }}>₹</span>
-                                <input
-                                    type="number"
-                                    style={{
-                                        width: '100%', padding: '16px 16px 16px 36px',
-                                        borderRadius: '12px', border: '1px solid #e2e8f0',
-                                        outline: 'none', fontSize: '1rem',
-                                        transition: 'border-color 0.2s',
-                                        boxSizing: 'border-box'
-                                    }}
-                                    onFocus={(e) => e.target.style.borderColor = '#1b4332'}
-                                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                                    placeholder="Enter amount to add"
-                                    value={amountToAdd}
-                                    onChange={e => setAmountToAdd(e.target.value)}
-                                    min="1"
-                                    required
-                                />
-                            </div>
-                            <button
-                                type="submit"
-                                style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                    background: '#059669', color: '#fff', padding: '16px',
-                                    borderRadius: '12px', border: 'none', fontWeight: '600', fontSize: '1rem',
-                                    cursor: 'pointer', transition: 'background 0.2s',
-                                    boxShadow: '0 4px 10px rgba(5, 150, 105, 0.2)'
-                                }}
-                                onMouseOver={(e) => { e.currentTarget.style.background = '#047857'; }}
-                                onMouseOut={(e) => { e.currentTarget.style.background = '#059669'; }}
-                            >
-                                <Plus size={18} /> Add Money with Razorpay
-                            </button>
-                        </form>
-
+                    {/* Footer / Logout */}
+                    <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-center">
+                        <button onClick={handleLogout} className="flex items-center gap-2 text-danger hover:text-white bg-white border border-danger/20 hover:bg-danger px-8 py-3 rounded-full font-bold transition-all shadow-sm">
+                            <LogOut size={16} /> Log Out
+                        </button>
                     </div>
                 </div>
-
-                <div style={{ padding: '24px 40px', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
-                    <button
-                        onClick={handleLogout}
-                        style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                            background: '#fff', color: '#dc2626', padding: '12px 24px', border: '1px solid #fecaca',
-                            borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', margin: '0 auto', width: '200px'
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = '#fef2f2'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = '#fff'; }}
-                    >
-                        <LogOut size={16} /> Log Out
-                    </button>
-                </div>
-
-            </div>
-
-            <Link to="/" style={{ position: 'absolute', top: '30px', left: '40px', display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: '#64748b', fontWeight: '500', transition: 'color 0.2s' }}>
-                <ArrowLeft size={16} /> Return to Store
-            </Link>
+            </main>
+            <Footer />
         </div>
     );
 };

@@ -104,8 +104,42 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
 });
 
 export const getAllUsers = asyncHandler(async (req, res) => {
-    const users = await User.find().select('-passwordHash').sort({ createdAt: -1 });
-    return res.status(200).json(new ApiResponse(200, users, "Users fetched successfully"));
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+    
+    const search = req.query.search || '';
+    const role = req.query.role || 'ALL';
+
+    const query = {};
+
+    if (search) {
+        query['$or'] = [
+            { name: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } }
+        ];
+    }
+
+    if (role !== 'ALL') {
+        query.role = role;
+    }
+
+    const total = await User.countDocuments(query);
+    const users = await User.find(query)
+        .select('-passwordHash')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+    return res.status(200).json(new ApiResponse(200, {
+        data: users,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        }
+    }, "Users fetched successfully"));
 });
 
 export const updateUserRole = asyncHandler(async (req, res) => {

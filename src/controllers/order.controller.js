@@ -183,6 +183,52 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 });
 
 export const getAllOrders = asyncHandler(async (req, res) => {
-    const orders = await Order.find().populate('userId', 'name email').sort({ createdAt: -1 });
-    return res.status(200).json(new ApiResponse(200, orders, "All orders fetched successfully"));
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+    
+    const search = req.query.search || '';
+    const status = req.query.status || 'ALL';
+
+    const query = {};
+
+    // Filter by Status
+    if (status !== 'ALL') {
+        query.status = status;
+    }
+
+    // Search by Order ID or Customer Name
+    if (search) {
+        // First, find users matching the search term to get their IDs
+        const matchingUsers = await User.find({ 
+            $or: [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ]
+        }).select('_id');
+        
+        const userIds = matchingUsers.map(u => u._id);
+
+        query['$or'] = [
+            { orderId: { $regex: search, $options: 'i' } },
+            { userId: { $in: userIds } } // Match orders belonging to those users
+        ];
+    }
+
+    const total = await Order.countDocuments(query);
+    const orders = await Order.find(query)
+        .populate('userId', 'name email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+    return res.status(200).json(new ApiResponse(200, {
+        data: orders,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        }
+    }, "All orders fetched successfully"));
 });
