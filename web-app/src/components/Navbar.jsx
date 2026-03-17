@@ -263,6 +263,10 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                                                                   <p className="truncate text-sm font-bold text-slate-900">
                                                                       {prod.title}
                                                                   </p>
+                                                                  {}
+                                                                  <p className="mb-1 font-mono text-xs text-slate-500">
+                                                                      SKU: {prod.sku}
+                                                                  </p>
                                                                   <p className="text-xs text-slate-500">
                                                                       MOQ: {prod.moq || 10} units •
                                                                       ₹

@@ -17,6 +17,7 @@ import {
 import { productApi } from '../features/products/api/productApi.js';
 import { useCartStore } from '../store/cartStore';
 import { WishlistContext } from '../WishlistContext.jsx';
+import B2BFilterBar from './B2BFilterBar';
 
 const SORT_OPTIONS = [
     { value: 'default', label: 'Recommended Suppliers' },
@@ -44,6 +45,16 @@ function DropshipProducts({
     const [maxPrice, setMaxPrice] = useState('');
     const [minRating, setMinRating] = useState(0);
     const [addedIds, setAddedIds] = useState([]);
+
+    const [b2bFilters, setB2bFilters] = useState({
+        moq: filters.moq || 'all',
+        margin: filters.margin || 'all',
+        readyToShip: filters.readyToShip || false,
+    });
+
+    const handleFilterChange = (key, value) => {
+        setB2bFilters((prev) => ({ ...prev, [key]: value }));
+    };
 
     useEffect(() => {
         if (initialCategory) {
@@ -127,7 +138,9 @@ function DropshipProducts({
 
                 return {
                     id: p._id,
-                    skuId: p.sku,
+                    skuId: p.sku || 'N/A',
+                    vendor: p.vendor || 'Verified Supplier',
+                    stock: p.inventory?.stock ?? 'In Stock',
                     name: p.title,
                     category: p.categoryId?.name || p.productType || 'Uncategorized',
                     price: wholesalePrice,
@@ -448,10 +461,28 @@ function DropshipProducts({
                                                 </div>
 
                                                 <Link to={`/product/${product.id}`}>
-                                                    <h3 className="group-hover:text-primary mb-3 line-clamp-2 text-sm leading-snug font-bold text-slate-900 transition-colors">
+                                                    <h3 className="group-hover:text-primary mb-1 line-clamp-2 text-sm leading-snug font-bold text-slate-900 transition-colors">
                                                         {product.name}
                                                     </h3>
                                                 </Link>
+
+                                                {}
+                                                <div className="mb-3 flex items-center justify-between text-[10px] text-slate-500">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-slate-600">
+                                                            SKU: {product.skuId}
+                                                        </span>
+                                                        {product.stock > 0 &&
+                                                            product.stock <= 50 && (
+                                                                <span className="text-danger font-bold">
+                                                                    Only {product.stock} left
+                                                                </span>
+                                                            )}
+                                                    </div>
+                                                    <span className="max-w-[45%] truncate font-medium">
+                                                        By {product.vendor}
+                                                    </span>
+                                                </div>
 
                                                 <div className="mb-3 grid grid-cols-3 gap-2 divide-x divide-slate-200 rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs">
                                                     <div className="pl-1">

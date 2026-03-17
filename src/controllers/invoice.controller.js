@@ -65,18 +65,16 @@ export const getAllInvoices = asyncHandler(async (req, res) => {
         .skip(skip)
         .limit(limit);
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                {
-                    data: invoices,
-                    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
-                },
-                'All invoices fetched'
-            )
-        );
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                data: invoices,
+                pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+            },
+            'All invoices fetched'
+        )
+    );
 });
 
 export const markAsPaidManual = asyncHandler(async (req, res) => {
@@ -143,21 +141,27 @@ export const generateInvoicePDF = async (req, res, next) => {
             try {
                 doc.image(logoPath, 40, 30, { width: 100 });
             } catch (imgError) {
-                console.warn('⚠️ PDFKit rejected the logo image. Falling back to text logo.', imgError.message);
+                console.warn(
+                    '⚠️ PDFKit rejected the logo image. Falling back to text logo.',
+                    imgError.message
+                );
                 doc.fontSize(24).font('Helvetica-Bold').fillColor('#0f172a').text('SOVELY', 40, 35);
             }
         } else {
             doc.fontSize(24).font('Helvetica-Bold').fillColor('#0f172a').text('SOVELY', 40, 35);
         }
 
-        doc.fillColor('#0f172a').fontSize(18).font('Helvetica-Bold').text('TAX INVOICE', 0, 35, { align: 'right', width: 555 });
-        doc.fontSize(9).font('Helvetica').fillColor('#64748b').text('(Original for Recipient)', 0, 55, { align: 'right', width: 555 });
-        
-        // Force the layout to move completely below the logo and header.
-        // This guarantees a clean separation and proper white space.
-        const topY = 160; 
+        doc.fillColor('#0f172a')
+            .fontSize(18)
+            .font('Helvetica-Bold')
+            .text('TAX INVOICE', 0, 35, { align: 'right', width: 555 });
+        doc.fontSize(9)
+            .font('Helvetica')
+            .fillColor('#64748b')
+            .text('(Original for Recipient)', 0, 55, { align: 'right', width: 555 });
 
-        // --- 2. COMPANY & BUYER DETAILS ---
+        const topY = 160;
+
         doc.fillColor('#0f172a');
 
         doc.fontSize(10).font('Helvetica-Bold').text('Sold By:', 40, topY);

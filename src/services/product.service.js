@@ -24,6 +24,10 @@ export class ProductService {
             shipping,
             minRating,
             sort,
+
+            moqTier,
+            marginFilter,
+            inStock,
         } = queryParams;
 
         const safePage = Math.max(1, parseInt(page, 10) || 1);
@@ -31,7 +35,22 @@ export class ProductService {
 
         const filter = {};
 
-        if (query) filter.$text = { $search: query };
+        if (query) {
+            const safeSearch = escapeRegex(query);
+
+            filter.$or = [
+                { sku: { $regex: safeSearch, $options: 'i' } },
+
+                { title: { $regex: safeSearch, $options: 'i' } },
+
+                { vendor: { $regex: safeSearch, $options: 'i' } },
+
+                { tags: { $regex: safeSearch, $options: 'i' } },
+
+                { productType: { $regex: safeSearch, $options: 'i' } },
+            ];
+        }
+
         if (categoryId && categoryId !== 'All')
             filter.categoryId = new mongoose.Types.ObjectId(categoryId);
         if (saleOnly === 'true') filter.discountPercent = { $gt: 0 };
@@ -45,11 +64,30 @@ export class ProductService {
         if (minRating) filter.averageRating = { $gte: Number(minRating) };
         if (shipping) filter.shippingDays = { $in: shipping.split(',') };
 
+        if (inStock === 'true') {
+            filter['inventory.stock'] = { $gt: 0 };
+        }
+
+        if (moqTier && moqTier !== 'all') {
+            if (moqTier === 'under-50') filter.moq = { $lt: 50 };
+            else if (moqTier === '50-500') filter.moq = { $gte: 50, $lte: 500 };
+            else if (moqTier === 'bulk') filter.moq = { $gt: 500 };
+        }
+
+        if (marginFilter === 'high-margin') {
+            filter.$expr = {
+                $gte: ['$compareAtPrice', { $divide: ['$platformSellPrice', 0.6] }],
+            };
+        }
+
         let sortOption = { createdAt: -1 };
-        if (sort === 'price-asc') sortOption = { platformSellPrice: 1 };
-        if (sort === 'price-desc') sortOption = { platformSellPrice: -1 };
-        if (sort === 'rating') sortOption = { averageRating: -1 };
-        if (sort === 'reviews') sortOption = { reviewCount: -1 };
+
+        if (sort) {
+            if (sort === 'price-asc') sortOption = { platformSellPrice: 1 };
+            if (sort === 'price-desc') sortOption = { platformSellPrice: -1 };
+            if (sort === 'rating') sortOption = { averageRating: -1 };
+            if (sort === 'margin') sortOption = { discountPercent: -1 };
+        }
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
 

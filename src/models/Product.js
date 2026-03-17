@@ -45,7 +45,27 @@ const productSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-productSchema.index({ title: 'text', tags: 'text' });
+productSchema.index(
+    {
+        sku: 'text',
+        title: 'text',
+        tags: 'text',
+        vendor: 'text',
+        productType: 'text',
+        descriptionHTML: 'text',
+    },
+    {
+        weights: {
+            sku: 10,
+            title: 8,
+            tags: 5,
+            productType: 3,
+            vendor: 3,
+            descriptionHTML: 1,
+        },
+        name: 'B2B_Search_Index',
+    }
+);
 
 productSchema.index({ categoryId: 1 });
 

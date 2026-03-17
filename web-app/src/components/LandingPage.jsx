@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Hero from './Hero';
 import DropshipProducts from './DropshipProducts';
+import B2BFilterBar from './B2BFilterBar';
 import {
     FileText,
     Truck,
@@ -125,52 +126,10 @@ function LandingPage() {
                                 </p>
                             </div>
 
-                            {}
-                            <div className="flex flex-wrap items-center gap-3">
-                                {}
-                                <select
-                                    className="focus:ring-primary focus:border-primary block cursor-pointer rounded-lg border border-slate-300 bg-white p-2.5 text-sm font-medium text-slate-700 shadow-sm outline-none"
-                                    value={b2bFilters.moq}
-                                    onChange={(e) => handleFilterChange('moq', e.target.value)}
-                                >
-                                    <option value="all">Any MOQ</option>
-                                    <option value="under-50">Low MOQ (&lt; 50 units)</option>
-                                    <option value="50-500">Medium (50 - 500 units)</option>
-                                    <option value="bulk">True Bulk (500+ units)</option>
-                                </select>
-
-                                {}
-                                <select
-                                    className="focus:ring-primary focus:border-primary block cursor-pointer rounded-lg border border-slate-300 bg-white p-2.5 text-sm font-medium text-slate-700 shadow-sm outline-none"
-                                    value={b2bFilters.margin}
-                                    onChange={(e) => handleFilterChange('margin', e.target.value)}
-                                >
-                                    <option value="all">All Profit Margins</option>
-                                    <option value="high-margin">High Margin (40%+)</option>
-                                </select>
-
-                                {}
-                                <button
-                                    onClick={() =>
-                                        handleFilterChange('readyToShip', !b2bFilters.readyToShip)
-                                    }
-                                    className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold shadow-sm transition-all duration-200 ${
-                                        b2bFilters.readyToShip
-                                            ? 'border-amber-300 bg-amber-100 text-amber-800'
-                                            : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
-                                    }`}
-                                >
-                                    <Zap
-                                        size={16}
-                                        className={
-                                            b2bFilters.readyToShip
-                                                ? 'fill-amber-600 text-amber-600'
-                                                : 'text-slate-400'
-                                        }
-                                    />
-                                    Ready to Dispatch
-                                </button>
-                            </div>
+                            <B2BFilterBar
+                                filters={b2bFilters}
+                                onFilterChange={handleFilterChange}
+                            />
                         </div>
                     </div>
                 </div>

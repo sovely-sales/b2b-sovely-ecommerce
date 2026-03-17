@@ -7,7 +7,10 @@ import {
     Download,
     CheckCircle,
     Loader2,
+    Wallet,
+    Package,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import api from '../../utils/api.js';
 
 const AdminInvoices = () => {
@@ -50,7 +53,11 @@ const AdminInvoices = () => {
     }, [page, debouncedSearch, filterOption]);
 
     const markAsPaid = async (id) => {
-        if (!window.confirm('Mark this invoice as PAID? This will also update the Order status.'))
+        if (
+            !window.confirm(
+                'Mark this invoice as PAID? This will also update the associated Order status to COMPLETED.'
+            )
+        )
             return;
         try {
             await api.put(`/invoices/${id}/manual-payment`);
@@ -72,7 +79,7 @@ const AdminInvoices = () => {
             link.click();
             link.remove();
         } catch (err) {
-            alert('Failed to download PDF');
+            alert('Failed to download PDF. Please try again.');
         } finally {
             setDownloadingId(null);
         }
@@ -80,44 +87,46 @@ const AdminInvoices = () => {
 
     return (
         <>
+            {}
             <div className="mb-6 flex flex-col gap-4 md:flex-row">
-                <div className="focus-within:border-accent focus-within:ring-accent flex flex-1 items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm transition-all focus-within:ring-1">
+                <div className="focus-within:border-primary focus-within:ring-primary flex flex-1 items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm transition-all focus-within:ring-1">
                     <Search size={18} className="text-slate-400" />
                     <input
                         type="text"
-                        placeholder="Search Invoice #, Company, or GSTIN..."
+                        placeholder="Search Invoice #, Company Name, or GSTIN..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="ml-3 w-full border-none text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400"
                     />
                 </div>
-                <div className="focus-within:border-accent focus-within:ring-accent flex items-center rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition-all focus-within:ring-1">
+                <div className="focus-within:border-primary focus-within:ring-primary flex items-center rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition-all focus-within:ring-1">
                     <Filter size={18} className="mr-2 text-slate-400" />
                     <select
                         value={filterOption}
                         onChange={(e) => setFilterOption(e.target.value)}
                         className="cursor-pointer border-none bg-transparent py-2.5 text-sm font-bold text-slate-700 outline-none"
                     >
-                        <option value="ALL">All Invoices</option>
-                        <option value="UNPAID">Unpaid</option>
-                        <option value="PAID">Paid</option>
-                        <option value="OVERDUE">Overdue</option>
+                        <option value="ALL">All Ledger Entries</option>
+                        <option value="UNPAID">Unpaid / Outstanding</option>
+                        <option value="PAID">Paid / Settled</option>
+                        <option value="OVERDUE">Overdue (Net-30 etc.)</option>
                     </select>
                 </div>
             </div>
 
+            {}
             <div className="mb-6 overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-sm">
                 <div className="relative min-h-[300px] overflow-x-auto">
                     {loading && (
                         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 text-slate-400 backdrop-blur-sm">
-                            <div className="border-t-accent mb-2 h-8 w-8 animate-spin rounded-full border-4 border-slate-200"></div>
+                            <div className="border-t-primary mb-2 h-8 w-8 animate-spin rounded-full border-4 border-slate-200"></div>
                         </div>
                     )}
                     <table className="w-full border-collapse text-left">
                         <thead>
                             <tr className="border-b border-slate-200 bg-slate-50">
                                 <th className="p-4 text-xs font-bold tracking-wider whitespace-nowrap text-slate-400 uppercase">
-                                    Invoice Details
+                                    Invoice & Type
                                 </th>
                                 <th className="p-4 text-xs font-bold tracking-wider whitespace-nowrap text-slate-400 uppercase">
                                     B2B Client
@@ -126,7 +135,7 @@ const AdminInvoices = () => {
                                     Amount
                                 </th>
                                 <th className="p-4 text-xs font-bold tracking-wider whitespace-nowrap text-slate-400 uppercase">
-                                    Terms
+                                    Terms & Due Date
                                 </th>
                                 <th className="p-4 text-xs font-bold tracking-wider whitespace-nowrap text-slate-400 uppercase">
                                     Status
@@ -137,28 +146,61 @@ const AdminInvoices = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {invoices.map((inv) => {
+                            {!loading && invoices.length === 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan="6"
+                                        className="p-8 text-center font-medium text-slate-500"
+                                    >
+                                        No invoices found matching your criteria.
+                                    </td>
+                                </tr>
+                            ) : null}
+                            {invoices.map((inv, index) => {
                                 const isOverdue =
                                     new Date(inv.dueDate) < new Date() && inv.status === 'UNPAID';
+                                const isWallet = inv.invoiceType === 'WALLET_TOPUP';
+
                                 return (
-                                    <tr
+                                    <motion.tr
                                         key={inv._id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.05 }}
                                         className="transition-colors hover:bg-slate-50/50"
                                     >
                                         <td className="p-4 whitespace-nowrap">
-                                            <div className="font-bold text-slate-900">
-                                                {inv.invoiceNumber}
-                                            </div>
-                                            <div className="text-[10px] font-bold tracking-wider text-slate-400">
-                                                {new Date(inv.createdAt).toLocaleDateString()}
+                                            <div className="flex items-center gap-3">
+                                                <div
+                                                    className={`rounded-lg p-2 ${isWallet ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}
+                                                >
+                                                    {isWallet ? (
+                                                        <Wallet size={16} />
+                                                    ) : (
+                                                        <Package size={16} />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="font-mono font-bold text-slate-900">
+                                                        {inv.invoiceNumber}
+                                                    </div>
+                                                    <div className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                                                        {new Date(inv.createdAt).toLocaleDateString(
+                                                            'en-IN'
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="p-4 whitespace-nowrap">
-                                            <div className="font-bold text-slate-800">
-                                                {inv.buyerDetails?.companyName}
+                                        <td className="p-4">
+                                            <div className="line-clamp-1 font-bold text-slate-800">
+                                                {inv.buyerDetails?.companyName || 'Unknown Entity'}
                                             </div>
                                             <div className="text-[11px] font-bold text-slate-500">
-                                                GSTIN: {inv.buyerDetails?.gstin}
+                                                GSTIN:{' '}
+                                                <span className="font-mono text-slate-600">
+                                                    {inv.buyerDetails?.gstin || 'N/A'}
+                                                </span>
                                             </div>
                                         </td>
                                         <td className="p-4 whitespace-nowrap">
@@ -166,17 +208,23 @@ const AdminInvoices = () => {
                                                 ₹
                                                 {(
                                                     inv.grandTotal || inv.totalAmount
-                                                )?.toLocaleString('en-IN')}
+                                                )?.toLocaleString('en-IN', {
+                                                    minimumFractionDigits: 2,
+                                                })}
                                             </div>
                                         </td>
                                         <td className="p-4 whitespace-nowrap">
                                             <div className="text-xs font-bold text-slate-700">
-                                                {inv.paymentTerms?.replace('_', ' ')}
+                                                {(inv.paymentTerms || 'DUE_ON_RECEIPT').replace(
+                                                    /_/g,
+                                                    ' '
+                                                )}
                                             </div>
                                             <div
-                                                className={`text-[10px] font-bold ${isOverdue ? 'text-danger' : 'text-slate-400'}`}
+                                                className={`mt-0.5 text-[10px] font-bold ${isOverdue ? 'text-red-600' : 'text-slate-400'}`}
                                             >
-                                                Due: {new Date(inv.dueDate).toLocaleDateString()}
+                                                Due:{' '}
+                                                {new Date(inv.dueDate).toLocaleDateString('en-IN')}
                                             </div>
                                         </td>
                                         <td className="p-4">
@@ -187,7 +235,7 @@ const AdminInvoices = () => {
                                                         : inv.status === 'CANCELLED'
                                                           ? 'bg-red-100 text-red-700'
                                                           : isOverdue
-                                                            ? 'bg-red-100 text-red-700'
+                                                            ? 'bg-red-100 text-red-700 ring-1 ring-red-400'
                                                             : 'bg-amber-100 text-amber-700'
                                                 }`}
                                             >
@@ -206,30 +254,31 @@ const AdminInvoices = () => {
                                                     }
                                                     disabled={downloadingId === inv._id}
                                                     title="Download Tax Invoice PDF"
-                                                    className="text-accent bg-accent/10 hover:bg-accent rounded-lg p-2 transition-colors hover:text-white disabled:opacity-50"
+                                                    className="text-primary bg-primary/10 hover:bg-primary flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-colors hover:text-white disabled:opacity-50"
                                                 >
                                                     {downloadingId === inv._id ? (
                                                         <Loader2
-                                                            size={16}
+                                                            size={14}
                                                             className="animate-spin"
                                                         />
                                                     ) : (
-                                                        <Download size={16} />
+                                                        <Download size={14} />
                                                     )}
+                                                    PDF
                                                 </button>
 
                                                 {inv.status === 'UNPAID' && (
                                                     <button
                                                         onClick={() => markAsPaid(inv._id)}
-                                                        title="Mark as Paid"
-                                                        className="rounded-lg bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-green-100 hover:text-green-700"
+                                                        title="Mark as Paid (Bank Transfer/Offline Settlement)"
+                                                        className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm transition-colors hover:border-green-200 hover:bg-green-50 hover:text-green-700"
                                                     >
-                                                        <CheckCircle size={16} />
+                                                        <CheckCircle size={14} /> Settle
                                                     </button>
                                                 )}
                                             </div>
                                         </td>
-                                    </tr>
+                                    </motion.tr>
                                 );
                             })}
                         </tbody>
@@ -237,6 +286,7 @@ const AdminInvoices = () => {
                 </div>
             </div>
 
+            {}
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -246,7 +296,8 @@ const AdminInvoices = () => {
                     <ChevronLeft size={16} /> Prev
                 </button>
                 <span className="text-sm font-bold text-slate-500">
-                    Page <span className="text-slate-900">{page}</span> of {totalPages || 1}
+                    Page <span className="text-slate-900">{page}</span> of{' '}
+                    <span className="text-slate-900">{totalPages || 1}</span>
                 </span>
                 <button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
