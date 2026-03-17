@@ -11,7 +11,6 @@ export class AuthService {
             throw new ApiError(409, 'User with this email already exists');
         }
 
-        // Cleaned up using your existing model method!
         const sequenceDoc = await Counter.getNextSequenceValue('customerId');
         const seq = sequenceDoc.toString().padStart(5, '0');
 
@@ -36,7 +35,6 @@ export class AuthService {
 
         const user = await User.findOne({ email });
 
-        // SECURITY FIX: Generic error message to prevent User Enumeration attacks
         if (!user) throw new ApiError(401, 'Invalid email or password');
 
         const isPasswordValid = await user.isPasswordCorrect(password);

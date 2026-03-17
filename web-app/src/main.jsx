@@ -24,7 +24,7 @@ createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter> 
-          {/* Router is now outside, so inner contexts can use useNavigate! */}
+          {}
           <AuthProvider>
             <WishlistProvider>
               <CartProvider>

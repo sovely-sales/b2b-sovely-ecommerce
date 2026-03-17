@@ -2,8 +2,8 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { Payment } from '../models/Payment.js';
 import { Invoice } from '../models/Invoice.js';
-import { Order } from '../models/Order.js'; // Added Order import
-import { User } from '../models/User.js'; // Added User import
+import { Order } from '../models/Order.js';
+import { User } from '../models/User.js';
 import { WalletTransaction } from '../models/WalletTransaction.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
@@ -65,7 +65,6 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
     if (!invoice) throw new ApiError(404, 'Invoice not found');
     if (invoice.status === 'PAID') throw new ApiError(400, 'Invoice already marked as PAID');
 
-    // Ensure the Razorpay Order ID matches the one saved to this specific invoice
     if (invoice.razorpayOrderId !== razorpay_order_id) {
         throw new ApiError(
             400,
@@ -80,7 +79,6 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
             .json(new ApiResponse(200, existingPayment, 'Payment already processed'));
     }
 
-    // Process Payment Data
     const payment = await Payment.create({
         userId,
         invoiceId,
@@ -89,20 +87,16 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
         referenceId: razorpay_payment_id,
     });
 
-    // 1. Mark Invoice as Paid
     invoice.status = 'PAID';
     await invoice.save();
 
-    // 2. Business Logic Router based on Invoice Type
     if (invoice.invoiceType === 'ORDER_BILL' && invoice.orderId) {
-        // FIX: Update the actual order status so it can be fulfilled!
         const order = await Order.findById(invoice.orderId);
         if (order) {
-            order.status = 'PROCESSING'; // Move from PENDING to PROCESSING
-            await order.save(); // This will trigger the pre('save') hook to log the history
+            order.status = 'PROCESSING';
+            await order.save();
         }
     } else if (invoice.invoiceType === 'WALLET_TOPUP') {
-        // Create ledger entry
         await WalletTransaction.create({
             userId,
             paymentId: payment._id,
@@ -111,7 +105,6 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
             description: `Wallet top-up via Razorpay (${razorpay_payment_id})`,
         });
 
-        // FIX: Actually update the user's wallet balance!
         await User.findByIdAndUpdate(userId, {
             $inc: { walletBalance: invoice.totalAmount },
         });
@@ -124,13 +117,12 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
 
 export const createRazorpayOrder = asyncHandler(async (req, res) => {
     const { invoiceId } = req.body;
-    const userId = req.user._id; // Changed to match schema
+    const userId = req.user._id;
 
     if (!invoiceId) {
         throw new ApiError(400, 'invoiceId is required');
     }
 
-    // FIX: Changed customerId to userId to match your Invoice/User schema
     const invoice = await Invoice.findOne({ _id: invoiceId, userId });
 
     if (!invoice) throw new ApiError(404, 'Invoice not found or does not belong to user');

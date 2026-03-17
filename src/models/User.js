@@ -15,7 +15,6 @@ const addressSchema = new mongoose.Schema(
 
 const userSchema = new mongoose.Schema(
     {
-        // Auth & Profile
         name: { type: String, required: true },
         email: { type: String, unique: true, sparse: true },
         phoneNumber: { type: String, unique: true, sparse: true },
@@ -24,8 +23,7 @@ const userSchema = new mongoose.Schema(
         role: { type: String, enum: ['ADMIN', 'CUSTOMER'], default: 'CUSTOMER' },
         refreshToken: { type: String },
 
-        // E-commerce Specifics
-        customerId: { type: String, sparse: true }, // Populated via Counter for B2B/Invoicing
+        customerId: { type: String, sparse: true },
         accountType: { type: String, enum: ['B2B', 'B2C'], default: 'B2C' },
         walletBalance: { type: Number, default: 0 },
         addresses: [addressSchema],
@@ -34,11 +32,8 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre('save', async function () {
-    // 1. Remove 'next' from the parameters
     if (!this.isModified('passwordHash')) return;
 
-    // 2. Just await your hash. Mongoose will automatically move on when the Promise resolves.
-    // If bcrypt throws an error, Express 5 and your global handler will catch it automatically!
     this.passwordHash = await bcrypt.hash(this.passwordHash, 10);
 });
 

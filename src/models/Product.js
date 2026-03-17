@@ -38,7 +38,6 @@ const productSchema = new mongoose.Schema(
         moq: { type: Number, default: 1 },
         inventory: inventorySchema,
 
-        // NEW: Added fields to support frontend filtering
         shippingDays: { type: String, default: '3-5' },
         averageRating: { type: Number, default: 0, min: 0, max: 5 },
         reviewCount: { type: Number, default: 0 },
@@ -46,20 +45,17 @@ const productSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// --- INDEXES FOR PERFORMANCE ---
-// Text index for fast search queries
 productSchema.index({ title: 'text', tags: 'text' });
-// Index for category filtering
+
 productSchema.index({ categoryId: 1 });
-// Compound index for the getBestDeals controller
+
 productSchema.index({ status: 1, discountPercent: -1 });
-// Indexes for sorting/filtering
+
 productSchema.index({ platformSellPrice: 1 });
 productSchema.index({ averageRating: -1 });
-// Helpful for finding out-of-stock items quickly
+
 productSchema.index({ 'inventory.stock': 1 });
 
-// Update the Product pre-save hook:
 productSchema.pre('save', function (next) {
     if (
         this.compareAtPrice &&

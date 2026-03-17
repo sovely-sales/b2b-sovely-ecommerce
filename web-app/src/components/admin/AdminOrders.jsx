@@ -147,7 +147,7 @@ const AdminOrders = () => {
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
                                             onClick={() => { 
-                                                // This opens the drawer we added at the bottom!
+
                                                 setSelectedOrder(order); 
                                                 setEditForm({ status: order.status, courierName: order.tracking?.courierName, trackingNumber: order.tracking?.trackingNumber }); 
                                             }} 
@@ -174,11 +174,11 @@ const AdminOrders = () => {
                     Next <ChevronRight size={16} />
                 </button>
             </div>
-            {/* --- SLIDE OUT DRAWER --- */}
+            {}
             <AnimatePresence>
                 {selectedOrder && (
                     <>
-                        {/* Frosted Backdrop */}
+                        {}
                         <motion.div 
                             initial={{ opacity: 0 }} 
                             animate={{ opacity: 1 }} 
@@ -186,8 +186,8 @@ const AdminOrders = () => {
                             onClick={() => setSelectedOrder(null)}
                             className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
                         />
-                        
-                        {/* The Drawer Panel */}
+
+                        {}
                         <motion.div 
                             initial={{ x: '100%', opacity: 0.5 }}
                             animate={{ x: 0, opacity: 1 }}

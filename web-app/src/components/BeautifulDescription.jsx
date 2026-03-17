@@ -5,13 +5,11 @@ const BeautifulDescription = ({ rawHtml }) => {
     const parsedData = useMemo(() => {
         if (!rawHtml) return null;
 
-        // 1. Strip raw HTML tags if the DB saved it as HTML from the CSV
         const cleanText = rawHtml
             .replace(/<br\s*\/?>/gi, '\n')
             .replace(/<[^>]*>?/gm, '')
             .replace(/&amp;/g, '&');
 
-        // 2. Regex extractors for each section
         const extract = (regex) => {
             const match = cleanText.match(regex);
             return match ? match[1].trim() : '';
@@ -24,7 +22,6 @@ const BeautifulDescription = ({ rawHtml }) => {
         const keywordsRaw = extract(/Keywords\s*:-([\s\S]*?)(?=Dimension\s*:-|$)/i);
         const dimensionsRaw = extract(/Dimension\s*:-([\s\S]*?)(?=SKU:|$)/i);
 
-        // 3. Clean up the extracted strings into Arrays and Objects
         const features = featuresRaw.split('\n').map(s => s.trim()).filter(Boolean);
         const idealFor = idealForRaw.split('\n').map(s => s.trim()).filter(Boolean);
         const keywords = keywordsRaw.split(',').map(s => s.trim()).filter(Boolean);
@@ -38,7 +35,7 @@ const BeautifulDescription = ({ rawHtml }) => {
             }).filter(s => s.key && s.value);
 
         const dimensions = [];
-        // Extract dimensions which are inline like "Length (Cm) :- 7"
+
         const dimMatches = dimensionsRaw.matchAll(/([A-Za-z. ()\n]+?):-\s*([\d.]+)/g);
         for (const match of dimMatches) {
             dimensions.push({ key: match[1].replace(/\n/g, '').trim(), value: match[2].trim() });
@@ -51,8 +48,8 @@ const BeautifulDescription = ({ rawHtml }) => {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', marginTop: '20px', color: '#334155' }}>
-            
-            {/* Description Section */}
+
+            {}
             {parsedData.description && (
                 <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', borderLeft: '4px solid #1b4332' }}>
                     <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', margin: '0 0 12px 0', fontSize: '1.2rem' }}>
@@ -63,7 +60,7 @@ const BeautifulDescription = ({ rawHtml }) => {
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-                {/* Key Features */}
+                {}
                 {parsedData.features.length > 0 && (
                     <div style={{ background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', margin: '0 0 16px 0', fontSize: '1.1rem' }}>
@@ -80,7 +77,7 @@ const BeautifulDescription = ({ rawHtml }) => {
                     </div>
                 )}
 
-                {/* Ideal For */}
+                {}
                 {parsedData.idealFor.length > 0 && (
                     <div style={{ background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', margin: '0 0 16px 0', fontSize: '1.1rem' }}>
@@ -97,21 +94,21 @@ const BeautifulDescription = ({ rawHtml }) => {
                 )}
             </div>
 
-            {/* Specifications & Dimensions Grid */}
+            {}
             {(parsedData.specs.length > 0 || parsedData.dimensions.length > 0) && (
                 <div style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
                     <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0f172a', margin: 0, padding: '20px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: '1.1rem' }}>
                         <Ruler size={20} color="#475569" /> Specifications & Dimensions
                     </h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', padding: '20px 24px', gap: '16px' }}>
-                        {/* Specs */}
+                        {}
                         {parsedData.specs.map((spec, i) => (
                             <div key={`spec-${i}`} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px' }}>
                                 <span style={{ color: '#64748b', fontSize: '0.9rem' }}>{spec.key}</span>
                                 <span style={{ color: '#0f172a', fontWeight: '500', fontSize: '0.9rem', textAlign: 'right' }}>{spec.value}</span>
                             </div>
                         ))}
-                        {/* Dimensions */}
+                        {}
                         {parsedData.dimensions.map((dim, i) => (
                             <div key={`dim-${i}`} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #cbd5e1', paddingBottom: '8px' }}>
                                 <span style={{ color: '#64748b', fontSize: '0.9rem' }}>{dim.key}</span>
@@ -122,7 +119,7 @@ const BeautifulDescription = ({ rawHtml }) => {
                 </div>
             )}
 
-            {/* Keywords as Tags */}
+            {}
             {parsedData.keywords.length > 0 && (
                 <div>
                     <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '0.9rem', margin: '0 0 12px 0' }}>

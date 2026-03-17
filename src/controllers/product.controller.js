@@ -18,7 +18,6 @@ const getBestDeals = asyncHandler(async (req, res) => {
 });
 
 const getAdminProducts = asyncHandler(async (req, res) => {
-    // Pass req.query down to the service so it knows about page, limit, etc.
     const result = await ProductService.getAdminProducts(req.query);
     return res.status(200).json(new ApiResponse(200, result, 'Admin products fetched'));
 });
@@ -49,7 +48,6 @@ const generateSampleTemplate = asyncHandler(async (req, res) => {
 });
 
 const createProduct = asyncHandler(async (req, res) => {
-    // req.body contains text fields, req.files contains the images
     const newProduct = await ProductService.createProduct(req.body, req.files);
     return res.status(201).json(new ApiResponse(201, newProduct, 'Product created successfully'));
 });

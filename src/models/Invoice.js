@@ -1,5 +1,3 @@
-// Inside src/models/Invoice.js
-
 import mongoose from 'mongoose';
 
 const invoiceSchema = new mongoose.Schema(
@@ -9,7 +7,6 @@ const invoiceSchema = new mongoose.Schema(
         orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', default: null },
         invoiceType: { type: String, enum: ['ORDER_BILL', 'WALLET_TOPUP'], required: true },
 
-        // 🚨 FIX: Added the missing field to store the Razorpay Order ID!
         razorpayOrderId: { type: String, sparse: true },
 
         paymentTerms: {
@@ -28,7 +25,7 @@ const invoiceSchema = new mongoose.Schema(
             type: String,
             enum: ['UNPAID', 'PARTIAL', 'PAID', 'CANCELLED'],
             default: 'UNPAID',
-        }, // Added CANCELLED to match your order controller!
+        },
     },
     { timestamps: true }
 );

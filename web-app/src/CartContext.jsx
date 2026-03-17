@@ -12,7 +12,6 @@ export const CartProvider = ({ children }) => {
         localStorage.setItem('sovely_cart', JSON.stringify(cartItems));
     }, [cartItems]);
 
-    // Use _id for MongoDB compatibility
     const addToCart = (product, quantity = 1) => {
         setCartItems(prev => {
             const existing = prev.find(item => item.product._id === product._id);

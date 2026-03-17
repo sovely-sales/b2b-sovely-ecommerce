@@ -30,18 +30,14 @@ export const placeOrder = asyncHandler(async (req, res) => {
         let totalAmount = 0;
         const orderItems = [];
 
-        // 1. Verify Stock and Deduct
         for (const item of items) {
-            // Attempt to find the product AND ensure it has enough stock in one step
             const product = await Product.findOneAndUpdate(
                 { _id: item.productId, 'inventory.stock': { $gte: item.qty } },
                 { $inc: { 'inventory.stock': -item.qty } },
                 { session, new: true }
             );
 
-            // If it returns null, it either doesn't exist OR doesn't have enough stock
             if (!product) {
-                // Fetch just the title to give a helpful error message
                 const missingProduct = await Product.findById(item.productId).select('title');
                 const title = missingProduct ? missingProduct.title : `ID: ${item.productId}`;
                 throw new Error(`Insufficient stock for ${title}.`);
@@ -56,15 +52,12 @@ export const placeOrder = asyncHandler(async (req, res) => {
             });
         }
 
-        // 2. Generate Sequential IDs safely
-        // Note: Make sure Counter.getNextSequenceValue uses findOneAndUpdate with $inc to prevent race conditions
         const orderIdSeq = await Counter.getNextSequenceValue('orderId');
         const invoiceNumSeq = await Counter.getNextSequenceValue('invoiceNumber');
 
         const orderIdStr = `ORD-${orderIdSeq.toString().padStart(6, '0')}`;
         const invoiceNumStr = `INV-${invoiceNumSeq.toString().padStart(6, '0')}`;
 
-        // 3. Create Order (Using new Model().save() is safer in transactions)
         const newOrder = new Order({
             orderId: orderIdStr,
             userId,
@@ -74,9 +67,8 @@ export const placeOrder = asyncHandler(async (req, res) => {
             paymentMethod,
             paymentTerms,
         });
-        await newOrder.save({ session }); // This will now work because we fixed the pre('save') hook!
+        await newOrder.save({ session });
 
-        // 4. Create Invoice
         const dueDate = calculateDueDate(paymentTerms);
         const newInvoice = new Invoice({
             invoiceNumber: invoiceNumStr,
@@ -98,20 +90,16 @@ export const placeOrder = asyncHandler(async (req, res) => {
                 { session, returnDocument: 'after' }
             );
 
-            // If updatedUser is null, they didn't have enough money in the exact moment of deduction
             if (!updatedUser) {
                 throw new Error('Insufficient wallet balance for this purchase.');
             }
 
-            // 2. Deduct the balance from the User model safely
-            // (I also swapped new: true to returnDocument: 'after' here to fix your warning!)
             await User.findByIdAndUpdate(
                 userId,
                 { $inc: { walletBalance: -totalAmount } },
                 { session, returnDocument: 'after' }
             );
 
-            // 3. NEW: Generate a formal Payment receipt for the Wallet transaction
             const walletPayment = new Payment({
                 userId,
                 invoiceId: newInvoice._id,
@@ -121,12 +109,11 @@ export const placeOrder = asyncHandler(async (req, res) => {
             });
             await walletPayment.save({ session });
 
-            // 4. Create the ledger entry for the deduction, linked to the Payment!
             await WalletTransaction.create(
                 [
                     {
                         userId,
-                        paymentId: walletPayment._id, // <-- THIS FIXES THE CRASH
+                        paymentId: walletPayment._id,
                         amount: totalAmount,
                         transactionType: 'DEBIT',
                         description: `Order Payment for ${orderIdStr}`,
@@ -135,7 +122,6 @@ export const placeOrder = asyncHandler(async (req, res) => {
                 { session }
             );
 
-            // 5. Instantly mark Order and Invoice as paid!
             newOrder.status = 'PROCESSING';
             await newOrder.save({ session });
 
@@ -143,7 +129,6 @@ export const placeOrder = asyncHandler(async (req, res) => {
             await newInvoice.save({ session });
         }
 
-        // 5. Commit Transaction
         await session.commitTransaction();
         session.endSession();
 
@@ -159,7 +144,7 @@ export const placeOrder = asyncHandler(async (req, res) => {
     } catch (error) {
         await session.abortTransaction();
         session.endSession();
-        // Send a 400 with the exact error message so the frontend knows if it was a stock issue
+
         throw new ApiError(400, error.message || 'Failed to place order');
     }
 });
@@ -197,7 +182,6 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
     if (status) order.status = status.toUpperCase();
     if (courierName || trackingNumber) {
-        // DEFENSIVE FIX: Spread existing tracking data so we don't delete other fields!
         order.tracking = {
             ...order.tracking,
             courierName: courierName || order.tracking?.courierName,
@@ -222,14 +206,11 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 
     const query = {};
 
-    // Filter by Status
     if (status !== 'ALL') {
         query.status = status;
     }
 
-    // Search by Order ID or Customer Name
     if (search) {
-        // First, find users matching the search term to get their IDs
         const matchingUsers = await User.find({
             $or: [
                 { name: { $regex: search, $options: 'i' } },
@@ -241,7 +222,7 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 
         query['$or'] = [
             { orderId: { $regex: search, $options: 'i' } },
-            { userId: { $in: userIds } }, // Match orders belonging to those users
+            { userId: { $in: userIds } },
         ];
     }
 

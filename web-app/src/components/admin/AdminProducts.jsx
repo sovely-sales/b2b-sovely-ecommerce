@@ -8,30 +8,25 @@ const AdminProducts = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Pagination State
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    // Search & Filter States
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterOption, setFilterOption] = useState('ALL');
     const [priceFilter, setPriceFilter] = useState('ALL');
     const [stockFilter, setStockFilter] = useState('ALL');
 
-    // Inline Editing States
     const [updatingId, setUpdatingId] = useState(null);
     const [editForm, setEditForm] = useState({});
     const [isSaving, setIsSaving] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    // Debounce the search input
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // Reset to page 1 when filters change
     useEffect(() => {
         setPage(1);
     }, [debouncedSearch, filterOption, priceFilter, stockFilter]);
@@ -50,7 +45,7 @@ const AdminProducts = () => {
                         stock: stockFilter
                     }
                 });
-                // The data is now nested because of our backend update!
+
                 setProducts(res.data.data.data);
                 setTotalPages(res.data.data.pagination.totalPages);
             } catch (err) {
@@ -70,7 +65,7 @@ const AdminProducts = () => {
                 stock: Number(editForm.stock), 
                 status: editForm.status 
             });
-            // Update the specific product in our local state
+
             setProducts(prev => prev.map(p => p._id === id ? res.data.data : p));
             setUpdatingId(null);
         } catch (err) {
@@ -180,7 +175,7 @@ const AdminProducts = () => {
                 </div>
             </div>
 
-            {/* Pagination Controls */}
+            {}
             <div className="flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm">
                 <button 
                     onClick={() => setPage(p => Math.max(1, p - 1))} 
@@ -204,9 +199,8 @@ const AdminProducts = () => {
                 isOpen={isCreateModalOpen} 
                 onClose={() => setIsCreateModalOpen(false)} 
                 onSuccess={() => {
-                    setPage(1); // Reset to page 1 to see the new product
-                    // Note: You might want to extract your fetchProducts logic into a separate function 
-                    // outside of useEffect so you can call it here, or just let changing the page trigger the refetch!
+                    setPage(1); 
+
                 }} 
             />
         </>

@@ -8,7 +8,7 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // ATTACH INTERCEPTOR TO GLOBAL API
+
         const interceptor = api.interceptors.response.use(
             (response) => response,
             (error) => {
@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }) => {
 
         const fetchUser = async () => {
             try {
-                // FIXED: Changed from /users/current-user to /auth/me
+
                 const response = await api.get('/auth/me');
                 if (response.data?.data) setUser(response.data.data);
             } catch (error) {
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
 
     const sendOtp = async (phoneNumber, isLogin = false) => {
         try {
-            // These are correctly mapped in user.routes.js
+
             const endpoint = isLogin ? '/users/send-login-otp' : '/users/send-otp';
             await api.post(endpoint, { phoneNumber });
             return { success: true };
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            // FIXED: Changed from /users/login to /auth/login
+
             const response = await api.post('/auth/login', { email, password });
             setUser(response.data.data.user);
             return { success: true };
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
 
     const loginWithOtpReq = async (phoneNumber, otpCode) => {
         try {
-            // This is correctly mapped in user.routes.js
+
             const response = await api.post('/users/login-otp', { phoneNumber, otpCode });
             setUser(response.data.data.user);
             return { success: true };
@@ -70,19 +70,19 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (userData) => {
         try {
-            // This is correctly mapped in user.routes.js
+
             const response = await api.post('/users/register', userData);
-            
+
             if (userData.email) {
                 return await login(userData.email, userData.password);
             }
-            
+
             if (response.data?.data?.user) {
                 setUser(response.data.data.user);
             }
-            
+
             return { success: true }; 
-            
+
         } catch (error) {
             return { success: false, message: error.response?.data?.message || "Registration failed" };
         }
@@ -90,7 +90,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
-            // FIXED: Changed from /users/logout to /auth/logout
+
             await api.post('/auth/logout'); 
             setUser(null);
         } catch (error) {

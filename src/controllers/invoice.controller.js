@@ -26,8 +26,6 @@ export const listMyInvoices = asyncHandler(async (req, res) => {
 });
 
 export const markAsPaidManual = asyncHandler(async (req, res) => {
-    // SECURITY FIX: Ensure the admin who is calling this is actually authorized!
-    // Assuming your routes handle the authorization, but it's good to be aware.
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) throw new ApiError(404, 'Invoice not found');
 
@@ -49,8 +47,6 @@ const amountToWords = (amount) => {
     return `Rupees ${Math.floor(amount)} Only`;
 };
 
-// NOTE: We don't use asyncHandler here because we are streaming a file, not returning JSON.
-// Using try/catch directly allows us to handle stream errors cleanly.
 export const generateInvoicePDF = async (req, res, next) => {
     try {
         const invoice = await Invoice.findOne({
@@ -68,7 +64,6 @@ export const generateInvoicePDF = async (req, res, next) => {
             `attachment; filename=Tax_Invoice_${invoice.invoiceNumber}.pdf`
         );
 
-        // STREAM HANDLING FIX: Listen for stream errors
         doc.pipe(res);
         doc.on('error', (err) => {
             console.error('PDF Generation Error:', err);
@@ -77,14 +72,11 @@ export const generateInvoicePDF = async (req, res, next) => {
             }
         });
 
-        // --- 1. HEADER & TITLE ---
         doc.fontSize(16).font('Helvetica-Bold').text('TAX INVOICE', { align: 'center' });
         doc.moveDown(1.5);
 
-        // --- 2. SUPPLIER & BUYER DETAILS ---
         const topY = doc.y;
 
-        // Supplier
         doc.fontSize(10).font('Helvetica-Bold').text('Sold By:', 40, topY);
         doc.font('Helvetica').text('Sovely E-Commerce Pvt. Ltd.');
         doc.text('123 Commerce St., Indiranagar');
@@ -99,7 +91,6 @@ export const generateInvoicePDF = async (req, res, next) => {
             .text('ABCDE1234F');
         doc.text('State Code: 29 (Karnataka)');
 
-        // Buyer
         doc.font('Helvetica-Bold').text('Billed To:', 320, topY);
         doc.font('Helvetica').text(req.user.name || 'Valued Customer');
         doc.text(req.user.email);
@@ -109,7 +100,6 @@ export const generateInvoicePDF = async (req, res, next) => {
 
         doc.moveDown(2);
 
-        // --- 3. INVOICE META DATA ---
         const metaY = doc.y;
         doc.rect(40, metaY - 5, 515, 45).stroke('#cccccc');
 
@@ -142,11 +132,9 @@ export const generateInvoicePDF = async (req, res, next) => {
 
         doc.moveDown(3);
 
-        // --- 4. PRODUCT TABLE ---
         if (invoice.invoiceType === 'ORDER_BILL' && invoice.orderId) {
             let y = doc.y;
 
-            // Helper function to draw table headers
             const drawHeaders = (currentY) => {
                 doc.font('Helvetica-Bold').fontSize(8);
                 doc.rect(40, currentY - 5, 515, 20).fillAndStroke('#f0f0f0', '#cccccc');
@@ -170,18 +158,15 @@ export const generateInvoicePDF = async (req, res, next) => {
             let index = 1;
 
             for (const item of invoice.orderId.items) {
-                // 🚨 PAGE BREAK LOGIC FIX 🚨
-                // 750 is close to the bottom margin. If we cross it, add a new page.
                 if (y > 750) {
                     doc.addPage();
-                    y = 50; // Reset to top margin
-                    y = drawHeaders(y); // Redraw the headers on the new page
+                    y = 50;
+                    y = drawHeaders(y);
                 }
 
                 const qty = item.qty;
                 const finalTotal = item.price * qty;
 
-                // TODO: Replace hardcoded 18% with actual product tax rate in the future
                 const baseTotal = finalTotal / 1.18;
                 const taxAmount = finalTotal - baseTotal;
                 const cgst = taxAmount / 2;
@@ -206,7 +191,6 @@ export const generateInvoicePDF = async (req, res, next) => {
                 index++;
             }
 
-            // Also check page break before drawing totals if it's too tight!
             if (y > 720) {
                 doc.addPage();
                 y = 50;
@@ -217,7 +201,6 @@ export const generateInvoicePDF = async (req, res, next) => {
                 .stroke('#cccccc');
             y += 5;
 
-            // --- 5. TOTALS SUMMARY ---
             doc.font('Helvetica-Bold').fontSize(9);
             doc.text('Total Taxable Value:', 360, y);
             doc.text(`Rs. ${totalBase.toFixed(2)}`, 480, y);
@@ -236,7 +219,6 @@ export const generateInvoicePDF = async (req, res, next) => {
 
         doc.moveDown(2);
 
-        // --- 6. UPI QR CODE & FOOTER ---
         const footerY = doc.y;
 
         try {
@@ -269,10 +251,8 @@ export const generateInvoicePDF = async (req, res, next) => {
                 { width: 515, align: 'justify' }
             );
 
-        // Finalize the PDF and end the stream
         doc.end();
     } catch (error) {
-        // If it fails before the stream starts, we pass to global handler
         next(error);
     }
 };

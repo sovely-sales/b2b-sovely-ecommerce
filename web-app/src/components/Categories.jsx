@@ -24,7 +24,6 @@ function Categories({ onSelectCategory }) {
         };
     });
 
-    // We duplicate the array to create a seamless infinite loop train!
     const duplicatedCategories = [...categories, ...categories];
 
     return (
@@ -35,7 +34,7 @@ function Categories({ onSelectCategory }) {
                     <p className="section-subtitle">Discover products across all major niches</p>
                 </div>
 
-                {/* Infinite Marquee Wrapper */}
+                {}
                 <div className="categories-marquee-wrapper">
                     <div className="categories-marquee-track">
                         {duplicatedCategories.map((cat, index) => (

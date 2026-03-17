@@ -2,12 +2,10 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-// Robust absolute path
 const __dirname = import.meta.dirname;
-// Move up two directories from /src/middlewares to root, then into public/temp
+
 const tempDir = path.join(__dirname, '../../public/temp');
 
-// Ensure the directory exists when the server starts
 if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
 }
@@ -24,7 +22,7 @@ const storage = multer.diskStorage({
 
 export const upload = multer({
     storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // Limit CSV/Excel to 10MB
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const filetypes =
             /csv|xlsx|xls|vnd.openxmlformats-officedocument.spreadsheetml.sheet|vnd.ms-excel/;
@@ -40,7 +38,7 @@ export const upload = multer({
 
 export const uploadImages = multer({
     storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // Limit Images to 5MB
+    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const filetypes = /jpeg|jpg|png|webp/;
         const mimetype = filetypes.test(file.mimetype);

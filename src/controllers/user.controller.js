@@ -4,19 +4,16 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-// Import the standardized cookie options from where you defined them,
-// or redefine them here to keep things consistent.
 const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: true, 
+    sameSite: 'none', 
 };
 
 const escapeRegex = (string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-// --- Signup OTP ---
 export const sendSignupOtp = asyncHandler(async (req, res) => {
     const { phoneNumber } = req.body;
     if (!phoneNumber) throw new ApiError(400, 'Phone number is required');
@@ -36,7 +33,6 @@ export const sendSignupOtp = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, null, 'OTP sent successfully'));
 });
 
-// --- Login OTP ---
 export const sendLoginOtp = asyncHandler(async (req, res) => {
     const { phoneNumber } = req.body;
     if (!phoneNumber) throw new ApiError(400, 'Phone number is required');
@@ -56,14 +52,12 @@ export const sendLoginOtp = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, null, 'Login OTP sent successfully'));
 });
 
-// --- Register (Fixed logic order & Race conditions) ---
 export const registerUser = asyncHandler(async (req, res) => {
     const { name, email, phoneNumber, password, otpCode } = req.body;
 
     if (!name || !password) throw new ApiError(400, 'Name and password are required');
     if (!email && !phoneNumber) throw new ApiError(400, 'Either Email or Phone Number is required');
 
-    // 1. Check if user already exists FIRST!
     const query = [];
     if (email) query.push({ email });
     if (phoneNumber) query.push({ phoneNumber });
@@ -73,7 +67,6 @@ export const registerUser = asyncHandler(async (req, res) => {
         if (existedUser) throw new ApiError(409, 'User already exists with this contact method');
     }
 
-    // 2. Validate and consume OTP atomically
     if (phoneNumber) {
         if (!otpCode) throw new ApiError(400, 'OTP is required for phone registration');
 
@@ -82,7 +75,7 @@ export const registerUser = asyncHandler(async (req, res) => {
                 identifier: phoneNumber,
                 otpCode,
                 isUsed: false,
-                expiresAt: { $gt: new Date() }, // Checks expiry inside the DB query directly
+                expiresAt: { $gt: new Date() },
             },
             { isUsed: true },
             { new: true }
@@ -91,14 +84,12 @@ export const registerUser = asyncHandler(async (req, res) => {
         if (!validOtp) throw new ApiError(400, 'Invalid or expired OTP');
     }
 
-    // 3. Create User
     const user = await User.create({ name, email, phoneNumber, passwordHash: password });
     const createdUser = await User.findById(user._id).select('-passwordHash');
 
     return res.status(201).json(new ApiResponse(201, createdUser, 'User registered successfully'));
 });
 
-// --- Passwordless Login via OTP (Fixed race conditions) ---
 export const loginWithOtp = asyncHandler(async (req, res) => {
     const { phoneNumber, otpCode } = req.body;
     if (!phoneNumber || !otpCode) throw new ApiError(400, 'Phone and OTP required');
@@ -106,7 +97,6 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
     const user = await User.findOne({ phoneNumber });
     if (!user) throw new ApiError(404, 'User not found');
 
-    // Atomic OTP validation and consumption
     const validOtp = await OtpToken.findOneAndUpdate(
         {
             identifier: phoneNumber,
@@ -129,7 +119,6 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, { user: loggedInUser, accessToken }, 'Logged in successfully'));
 });
 
-// --- Get All Users (Fixed ReDoS vulnerability) ---
 export const getAllUsers = asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
@@ -141,7 +130,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     const query = {};
 
     if (search) {
-        const safeSearch = escapeRegex(search); // Securing the search!
+        const safeSearch = escapeRegex(search);
         query['$or'] = [
             { name: { $regex: safeSearch, $options: 'i' } },
             { email: { $regex: safeSearch, $options: 'i' } },
@@ -178,6 +167,3 @@ export const updateUserRole = asyncHandler(async (req, res) => {
     );
     return res.status(200).json(new ApiResponse(200, user, 'User role updated'));
 });
-
-// NOTE: I removed the duplicate 'loginUser' function from here.
-// You should use the one we fixed in auth.controller.js for standard email/password logins.

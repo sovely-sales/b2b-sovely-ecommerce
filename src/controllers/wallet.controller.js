@@ -7,18 +7,15 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { razorpayInstance } from './payment.controller.js';
 
 export const getBalance = asyncHandler(async (req, res) => {
-    // MASSIVE OPTIMIZATION: Read from the User document directly.
-    // We already maintain this balance in the DB when payments succeed.
     const balance = req.user.walletBalance || 0;
 
     return res.status(200).json(new ApiResponse(200, { balance }, 'Wallet balance fetched'));
 });
 
 export const getTransactionHistory = asyncHandler(async (req, res) => {
-    // Good practice: You might want to add pagination here eventually using .skip() and .limit()
     const transactions = await WalletTransaction.find({ userId: req.user._id })
         .sort({ createdAt: -1 })
-        .limit(50); // Added a reasonable limit so massive histories don't crash the frontend
+        .limit(50);
 
     return res.status(200).json(new ApiResponse(200, transactions, 'Transaction history fetched'));
 });
@@ -31,7 +28,6 @@ export const addMoney = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Valid amount is required to add money');
     }
 
-    // 1. Generate Invoice representation for the Top-up
     const invoiceNumSeq = await Counter.getNextSequenceValue('invoiceNumber');
     const invoiceNumStr = `INV-${invoiceNumSeq.toString().padStart(6, '0')}`;
 
@@ -45,7 +41,6 @@ export const addMoney = asyncHandler(async (req, res) => {
         status: 'UNPAID',
     });
 
-    // 2. Create Razorpay Order
     const options = {
         amount: Math.round(amount * 100),
         currency: 'INR',

@@ -118,18 +118,18 @@ const MyAccount = () => {
     return (
         <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-accent/30">
             <Navbar />
-            
+
             <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
                 <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-900 mb-8 transition-colors">
                     <ArrowLeft size={16} /> Return to Store
                 </Link>
 
                 <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-                    {/* Header Banner */}
+                    {}
                     <div className="bg-slate-900 px-8 py-10 relative overflow-hidden">
                         <div className="absolute -top-24 -right-12 w-64 h-64 bg-accent/20 rounded-full blur-3xl mix-blend-screen"></div>
                         <div className="absolute -bottom-24 left-10 w-48 h-48 bg-pink-500/20 rounded-full blur-3xl mix-blend-screen"></div>
-                        
+
                         <div className="relative z-10 flex items-center gap-6">
                             <div className="w-24 h-24 rounded-full bg-white text-slate-900 flex items-center justify-center text-4xl font-black shadow-xl border-4 border-white/20">
                                 {user?.avatar ? (
@@ -145,14 +145,14 @@ const MyAccount = () => {
                         </div>
                     </div>
 
-                    {/* Dashboard Grid */}
+                    {}
                     <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Left: Account Details */}
+                        {}
                         <div className="space-y-6">
                             <h3 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
                                 <User size={24} className="text-accent" /> My Profile
                             </h3>
-                            
+
                             <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex items-center gap-4">
                                 <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-green-500 shadow-sm"><Shield size={20} /></div>
                                 <div>
@@ -160,7 +160,7 @@ const MyAccount = () => {
                                     <span className="font-bold text-slate-900">{user.role || 'Customer'}</span>
                                 </div>
                             </div>
-                            
+
                             <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex items-center gap-4">
                                 <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-500 shadow-sm"><Calendar size={20} /></div>
                                 <div>
@@ -174,7 +174,7 @@ const MyAccount = () => {
                             </Link>
                         </div>
 
-                        {/* Right: Wallet Details */}
+                        {}
                         <div className="space-y-6">
                             <h3 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
                                 <Wallet size={24} className="text-accent" /> Sovely Wallet
@@ -208,7 +208,7 @@ const MyAccount = () => {
                         </div>
                     </div>
 
-                    {/* Footer / Logout */}
+                    {}
                     <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-center">
                         <button onClick={handleLogout} className="flex items-center gap-2 text-danger hover:text-white bg-white border border-danger/20 hover:bg-danger px-8 py-3 rounded-full font-bold transition-all shadow-sm">
                             <LogOut size={16} /> Log Out

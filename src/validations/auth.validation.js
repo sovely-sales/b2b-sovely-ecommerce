@@ -15,7 +15,7 @@ export const authValidation = {
             })
             .refine((data) => data.email || data.phoneNumber, {
                 message: 'Either Email or Phone Number is required',
-                path: ['email'], // Attach error to email field
+                path: ['email'],
             })
             .refine((data) => !(data.phoneNumber && !data.otpCode), {
                 message: 'OTP is required when registering with a phone number',

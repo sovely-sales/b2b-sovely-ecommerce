@@ -58,18 +58,18 @@ function WishlistDrawer({ isOpen, onClose }) {
 
     return (
         <div className="fixed inset-0 z-[100] flex justify-end">
-            {/* Backdrop */}
+            {}
             <div 
                 className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity animate-[fadeIn_0.2s_ease-out]" 
                 onClick={onClose}
             ></div>
 
-            {/* Drawer */}
+            {}
             <div 
                 className="relative w-full max-w-md h-full bg-white shadow-2xl flex flex-col animate-[slideInRight_0.3s_ease-out]" 
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
+                {}
                 <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white/80 backdrop-blur-md">
                     <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
                         Your Wishlist 
@@ -85,7 +85,7 @@ function WishlistDrawer({ isOpen, onClose }) {
                     </button>
                 </div>
 
-                {/* Body */}
+                {}
                 <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50 custom-scrollbar">
                     {!wishlistItems || wishlistItems.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
@@ -123,7 +123,7 @@ function WishlistDrawer({ isOpen, onClose }) {
                                         <div className="w-24 h-28 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0">
                                             <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                         </div>
-                                        
+
                                         <div className="flex flex-col flex-1 py-1">
                                             <h4 className="text-sm font-bold text-slate-900 line-clamp-2 leading-snug mb-1 group-hover:text-accent transition-colors">
                                                 {item.name}
@@ -131,7 +131,7 @@ function WishlistDrawer({ isOpen, onClose }) {
                                             <div className="text-sm font-extrabold text-slate-900 mb-3">
                                                 {formatPrice(item.price)}
                                             </div>
-                                            
+
                                             <div className="mt-auto flex items-center gap-2">
                                                 <button
                                                     className="flex-1 py-2 px-3 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-accent hover:shadow-md hover:shadow-accent/20 transition-all flex items-center justify-center gap-1.5"

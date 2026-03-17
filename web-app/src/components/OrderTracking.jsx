@@ -65,7 +65,7 @@ const OrderTracking = () => {
         <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-accent/30">
             <Navbar />
             <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-                
+
                 <Link to="/orders" className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-900 mb-8 transition-colors">
                     <ArrowLeft size={16} /> Back to Orders
                 </Link>
@@ -115,7 +115,7 @@ const OrderTracking = () => {
                                         {!isLast && (
                                             <div className={`absolute top-12 left-[1.35rem] w-0.5 h-[calc(100%-1rem)] z-0 transition-colors duration-500 ${index < currentStepIndex ? 'bg-accent' : 'bg-slate-100'}`}></div>
                                         )}
-                                        
+
                                         <div className={`w-12 h-12 rounded-full border-4 flex items-center justify-center z-10 flex-shrink-0 transition-all duration-500 ${
                                             isCurrent ? 'bg-accent border-accent text-white shadow-lg shadow-accent/30 scale-110' 
                                             : isCompleted ? 'bg-accent border-accent text-white' 
@@ -123,13 +123,13 @@ const OrderTracking = () => {
                                         }`}>
                                             <step.icon size={20} strokeWidth={isCurrent || isCompleted ? 3 : 2} />
                                         </div>
-                                        
+
                                         <div className="pb-12 pt-2">
                                             <h4 className={`text-lg font-bold mb-1 transition-colors ${isCompleted ? 'text-slate-900' : 'text-slate-400'}`}>
                                                 {step.label}
                                             </h4>
                                             <p className="text-sm font-medium text-slate-500 mb-2">{step.description}</p>
-                                            
+
                                             {isCompleted && order.statusHistory?.find(h => h.status === step.id) && (
                                                 <span className="inline-block px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg text-xs font-bold text-slate-400">
                                                     {new Date(order.statusHistory.find(h => h.status === step.id).date).toLocaleString('en-IN')}

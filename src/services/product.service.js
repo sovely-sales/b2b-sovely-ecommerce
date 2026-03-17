@@ -25,7 +25,6 @@ export class ProductService {
             sort,
         } = queryParams;
 
-        // Safely parse numbers to prevent NaN crashes
         const safePage = Math.max(1, parseInt(page, 10) || 1);
         const safeLimit = Math.max(1, parseInt(limit, 10) || 24);
 
@@ -100,10 +99,8 @@ export class ProductService {
 
         const filter = {};
 
-        // 1. Status Filter
         if (status !== 'ALL') filter.status = status;
 
-        // 2. Search Filter
         if (search) {
             const safeSearch = escapeRegex(search);
             filter['$or'] = [
@@ -112,11 +109,9 @@ export class ProductService {
             ];
         }
 
-        // 3. Price Filter
         if (price === 'UNDER_500') filter.platformSellPrice = { $lt: 500 };
         if (price === 'OVER_1000') filter.platformSellPrice = { $gte: 1000 };
 
-        // 4. Stock Filter
         if (stock === 'OUT_OF_STOCK') filter['inventory.stock'] = 0;
         if (stock === 'LOW_STOCK') filter['inventory.stock'] = { $gt: 0, $lte: 10 };
         if (stock === 'IN_STOCK') filter['inventory.stock'] = { $gt: 10 };
@@ -154,10 +149,9 @@ export class ProductService {
     }
 
     static async createProduct(productData, files) {
-        // Map uploaded files to your product's image schema
         const images = files
             ? files.map((file, index) => ({
-                  url: `/temp/${file.filename}`, // Assuming you are serving the public folder statically
+                  url: `/temp/${file.filename}`,
                   position: index + 1,
                   altText: productData.title,
               }))
@@ -179,7 +173,6 @@ export class ProductService {
         const productsMap = new Map();
         const localCategoryCache = new Map();
 
-        // Helper function moved here
         const parseCategories = async (categoryString) => {
             if (!categoryString) return null;
             const parts = categoryString

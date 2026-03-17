@@ -14,30 +14,30 @@ const ForgotPassword = () => {
 
     const handleVerifyOTP = (e) => {
         e.preventDefault();
-        // Simulate verification
+
         setStep(3);
     };
 
     const handleResetPassword = (e) => {
         e.preventDefault();
-        // Simulate reset
+
         alert("Password reset successfully! You can now log in.");
         window.location.href = '/login';
     };
 
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-accent/30">
-            {/* Decorative Background Elements */}
+            {}
             <div className="absolute top-[10%] right-[10%] w-96 h-96 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
             <div className="absolute bottom-[10%] left-[10%] w-96 h-96 bg-pink-300/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
 
             <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 w-full max-w-md shadow-2xl border border-white relative z-10 text-center">
-                
+
                 <Link to="/" className="inline-flex items-center gap-2 mb-8 group">
                     <span className="text-3xl group-hover:scale-110 transition-transform">🛒</span>
                     <span className="font-extrabold text-2xl tracking-tight text-slate-900">Sovely</span>
                 </Link>
-                
+
                 <div className="mb-8">
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Reset Password</h1>
                     <p className="text-slate-500 font-medium">

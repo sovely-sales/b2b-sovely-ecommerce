@@ -11,12 +11,12 @@ const walletTransactionSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Payment',
             default: null,
-        }, // Path A
+        },
         adminUserId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             default: null,
-        }, // Path B
+        },
         amount: { type: Number, required: true },
         transactionType: { type: String, enum: ['CREDIT', 'DEBIT'], required: true },
         description: { type: String, required: true },
@@ -24,7 +24,6 @@ const walletTransactionSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// The Dual-Path Integrity Enforcer
 walletTransactionSchema.pre('validate', function () {
     if (!this.paymentId && !this.adminUserId) {
         throw new Error('Transaction must link to either a Payment or an Admin.');

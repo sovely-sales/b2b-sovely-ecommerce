@@ -4,7 +4,6 @@ import { AuthContext } from './AuthContext';
 
 export const WishlistContext = createContext();
 
-
 export const WishlistProvider = ({ children }) => {
     const { user } = useContext(AuthContext);
     const [wishlistItems, setWishlistItems] = useState([]);
@@ -41,7 +40,6 @@ export const WishlistProvider = ({ children }) => {
         const productId = product.id || product._id;
         if (!productId) return;
 
-        // Optimistic UI update
         const exists = wishlistItems.some(i => {
             const currentId = (i?._id || i?.id || i)?.toString();
             return currentId === productId?.toString();
@@ -60,13 +58,13 @@ export const WishlistProvider = ({ children }) => {
 
         try {
             const res = await api.post('/wishlist/toggle', { productId });
-            // Sync with server state
+
             if (res.data?.success) {
                 setWishlistItems(res.data.data.wishlist.items.map(i => i.productId));
             }
         } catch (error) {
             console.error("Failed to toggle wishlist:", error);
-            // Revert on failure
+
             fetchWishlist();
         }
     };

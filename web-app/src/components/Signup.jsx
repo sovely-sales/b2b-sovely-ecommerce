@@ -9,12 +9,12 @@ const Signup = () => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [otpCode, setOtpCode] = useState('');
     const [password, setPassword] = useState('');
-    
+
     const [otpSent, setOtpSent] = useState(false);
     const [cooldown, setCooldown] = useState(0);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    
+
     const navigate = useNavigate();
     const { register, sendOtp } = useContext(AuthContext);
 
@@ -33,7 +33,7 @@ const Signup = () => {
     };
 
     const strength = getPasswordStrength(password);
-    
+
     const handleTabSwitch = (method) => {
         setContactMethod(method); 
         setError('');
@@ -49,7 +49,7 @@ const Signup = () => {
         setIsLoading(true);
         const res = await sendOtp(phoneNumber, false); 
         setIsLoading(false);
-        
+
         if (res.success) {
             setOtpSent(true);
             setCooldown(30);
@@ -88,7 +88,7 @@ const Signup = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-accent/30 py-12">
-            {/* Decorative Background Elements */}
+            {}
             <div className="absolute top-[10%] right-[-10%] w-96 h-96 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
             <div className="absolute bottom-[10%] left-[-10%] w-96 h-96 bg-pink-300/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
 
@@ -100,7 +100,7 @@ const Signup = () => {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                     Back
                 </button>
-                
+
                 <div className="mb-8">
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">Create Account</h1>
                     <p className="text-slate-500 font-medium">Join us and start shopping premium collections.</p>
@@ -212,7 +212,7 @@ const Signup = () => {
                             required 
                             className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-sm font-medium text-slate-900 outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all placeholder:text-slate-400 tracking-widest"
                         />
-                        
+
                         {password.length > 0 && (
                             <div className="pt-2 px-1">
                                 <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Helper to validate MongoDB ObjectIds
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid MongoDB ObjectId');
 
 export const productValidation = {
@@ -44,6 +43,6 @@ export const productValidation = {
                 stock: z.number().int().nonnegative().optional(),
                 status: z.enum(['active', 'draft', 'archived']).optional(),
             })
-            .strict(), // .strict() prevents the user from sending extra random fields
+            .strict(),
     }),
 };

@@ -14,7 +14,6 @@ function Sidebar({ isOpen, onClose }) {
         navigate('/login');
     };
 
-    // Prevent body scroll when sidebar is open
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
@@ -28,17 +27,17 @@ function Sidebar({ isOpen, onClose }) {
 
     return (
         <div className="relative z-[100]">
-            {/* Overlay */}
+            {}
             <div
                 className={`fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
                 onClick={onClose}
                 aria-hidden="true"
             ></div>
 
-            {/* Sidebar */}
+            {}
             <aside className={`fixed inset-y-0 left-0 w-[85vw] max-w-sm bg-white/90 backdrop-blur-xl border-r border-white/50 shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                
-                {/* Header */}
+
+                {}
                 <div className="flex items-center justify-between p-6 border-b border-slate-100">
                     <div className="flex items-center gap-3">
                         <div className="bg-slate-50 p-1.5 rounded-lg shadow-sm border border-slate-100">
@@ -51,9 +50,9 @@ function Sidebar({ isOpen, onClose }) {
                     </button>
                 </div>
 
-                {/* Content */}
+                {}
                 <div className="flex-1 overflow-y-auto py-6 px-4 custom-scrollbar space-y-8">
-                    
+
                     <div>
                         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-2">Main Menu</h3>
                         <ul className="space-y-1">
@@ -83,7 +82,7 @@ function Sidebar({ isOpen, onClose }) {
                     </div>
                 </div>
 
-                {/* Footer / Auth */}
+                {}
                 <div className="p-6 border-t border-slate-100 bg-slate-50/50">
                     {user ? (
                         <div className="flex flex-col items-center w-full">

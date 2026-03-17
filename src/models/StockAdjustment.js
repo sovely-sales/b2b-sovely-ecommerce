@@ -15,13 +15,13 @@ const stockAdjustmentSchema = new mongoose.Schema(
         adjustedAmount: {
             type: Number,
             required: true,
-        }, // Can be positive or negative
+        },
         reason: {
             type: String,
             required: true,
         },
     },
     { timestamps: { createdAt: true, updatedAt: false } }
-); // ER diagram specifies just createdAt
+);
 
 export const StockAdjustment = mongoose.model('StockAdjustment', stockAdjustmentSchema);

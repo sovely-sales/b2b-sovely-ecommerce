@@ -6,14 +6,12 @@ export const productApi = {
         minPrice, maxPrice, saleOnly, shipping, minRating, sort
     } = {}) => {
         const params = new URLSearchParams();
-        
-        // Base params
+
         if (page) params.append('page', page);
         if (limit) params.append('limit', limit);
         if (query) params.append('query', query);
         if (categoryId && categoryId !== 'All') params.append('categoryId', categoryId);
-        
-        // New Filter Params
+
         if (minPrice) params.append('minPrice', minPrice);
         if (maxPrice) params.append('maxPrice', maxPrice);
         if (saleOnly) params.append('saleOnly', 'true');

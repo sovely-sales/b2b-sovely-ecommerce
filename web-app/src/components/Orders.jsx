@@ -31,7 +31,7 @@ const Orders = () => {
         <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-accent/30">
             <Navbar />
             <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-                
+
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">My Orders & Invoices</h1>
                     <Link to="/my-account" className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-900 transition-colors">
@@ -65,7 +65,7 @@ const Orders = () => {
 
                             return (
                                 <div key={inv._id} className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 hover:shadow-md transition-shadow">
-                                    
+
                                     <div className="flex-1 w-full">
                                         <div className="flex flex-wrap items-center gap-3 mb-4">
                                             <h3 className="text-xl font-extrabold text-slate-900">

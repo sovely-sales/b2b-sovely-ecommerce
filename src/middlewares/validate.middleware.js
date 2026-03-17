@@ -9,7 +9,6 @@ export const validate = (schema) => async (req, res, next) => {
         });
         return next();
     } catch (error) {
-        // Safely check if this is specifically a Zod validation error
         if (error.name === 'ZodError') {
             const errorDetails = error.issues.map((issue) => ({
                 field: issue.path.join('.'),
@@ -18,7 +17,6 @@ export const validate = (schema) => async (req, res, next) => {
             return next(new ApiError(400, 'Validation Failed', errorDetails));
         }
 
-        // If it's a different kind of error, pass it along safely
         return next(error);
     }
 };

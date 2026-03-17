@@ -20,7 +20,6 @@ const userPricingSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Prevent duplicate pricing rules for the same customer-product pair
 userPricingSchema.index({ userId: 1, productId: 1 }, { unique: true });
 
 export const UserPricing = mongoose.model('UserPricing', userPricingSchema);

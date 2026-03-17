@@ -1,10 +1,11 @@
-import { Suspense, lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Suspense, lazy, useContext } from 'react'; 
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthContext } from './AuthContext'; 
 import LoadingScreen from './components/LoadingScreen';
 import AdminRoute from './components/AdminRoute';
-import MainLayout from './layouts/MainLayout'; // Import our new layout
+import MainLayout from './layouts/MainLayout'; 
+import ErrorBoundary from './ErrorBoundary';
 
-// Lazy load pages
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const ProductPage = lazy(() => import('./components/ProductPage'));
 const Login = lazy(() => import('./components/Login'));
@@ -17,37 +18,65 @@ const OrderTracking = lazy(() => import('./components/OrderTracking'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const SearchResults = lazy(() => import('./components/SearchResults'));
 
+const ProtectedRoute = ({ children }) => {
+  const location = useLocation();
+  const { user, loading } = useContext(AuthContext); 
+
+  if (loading) return <LoadingScreen />;
+
+  if (!user) {
+
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
+
 function App() {
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <Routes>
-        {/* ROUTES WITH STANDARD NAVBAR & FOOTER */}
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/product/:productId" element={<ProductPage />} />
-          <Route path="/my-account" element={<MyAccount />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/orders/:id/track" element={<OrderTracking />} />
-          <Route path="/search" element={<SearchResults />} />
-        </Route>
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingScreen />}>
+        <Routes>
 
-        {/* ROUTES WITHOUT THE NAVBAR (Clean slate) */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+          {}
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/product/:productId" element={<ProductPage />} />
+            <Route path="/search" element={<SearchResults />} />
 
-        {/* ADMIN ROUTES (Will have their own Admin Layout inside the component) */}
-        <Route 
-          path="/admin" 
-          element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
-          } 
-        />
-      </Routes>
-    </Suspense>
+            {}
+            <Route path="/my-account" element={
+              <ProtectedRoute><MyAccount /></ProtectedRoute>
+            } />
+            <Route path="/checkout" element={
+              <ProtectedRoute><Checkout /></ProtectedRoute>
+            } />
+            <Route path="/orders" element={
+              <ProtectedRoute><Orders /></ProtectedRoute>
+            } />
+            <Route path="/orders/:id/track" element={
+              <ProtectedRoute><OrderTracking /></ProtectedRoute>
+            } />
+          </Route>
+
+          {}
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+
+          {}
+          <Route 
+            path="/admin/*" 
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } 
+          />
+
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 

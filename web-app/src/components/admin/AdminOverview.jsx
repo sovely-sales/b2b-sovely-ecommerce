@@ -13,7 +13,7 @@ const AdminOverview = ({ setActiveTab }) => {
         const fetchAnalytics = async () => {
             setLoading(true);
             try {
-                // Hitting our new blazing-fast aggregation endpoint!
+
                 const res = await api.get('/analytics/admin');
                 setAnalytics(res.data.data);
             } catch (err) {
@@ -36,14 +36,13 @@ const AdminOverview = ({ setActiveTab }) => {
 
     const { kpis, revenueTrend, orderStatus, inventoryHealth } = analytics;
 
-    // Find the low stock count safely from our new payload
     const lowStockData = inventoryHealth.find(item => item.name === 'Low Stock');
     const outOfStockData = inventoryHealth.find(item => item.name === 'Out of Stock');
     const totalAlerts = (lowStockData?.value || 0) + (outOfStockData?.value || 0);
 
     return (
         <div className="flex flex-col gap-6">
-            {/* KPI Cards (Now we have 4!) */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
                     <div className="bg-green-50 p-4 rounded-2xl"><DollarSign size={24} className="text-green-600" /></div>
@@ -78,10 +77,10 @@ const AdminOverview = ({ setActiveTab }) => {
                 </div>
             </div>
 
-            {/* Main Charts Area */}
+            {}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Revenue Line Chart */}
+
+                {}
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 lg:col-span-2">
                     <h3 className="text-sm font-bold text-slate-900 mb-6 uppercase tracking-wider">30-Day Revenue Trend</h3>
                     <div className="h-[300px] w-full">
@@ -103,7 +102,7 @@ const AdminOverview = ({ setActiveTab }) => {
                     </div>
                 </div>
 
-                {/* Order Status Pie Chart */}
+                {}
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
                     <h3 className="text-sm font-bold text-slate-900 mb-6 uppercase tracking-wider">Lifetime Order Status</h3>
                     <div className="h-[300px] w-full flex flex-col items-center justify-center">
@@ -121,7 +120,7 @@ const AdminOverview = ({ setActiveTab }) => {
                     </div>
                 </div>
 
-                {/* Inventory Health Bar Chart */}
+                {}
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 lg:col-span-3">
                     <h3 className="text-sm font-bold text-slate-900 mb-6 uppercase tracking-wider">Inventory Health Snapshot</h3>
                     <div className="h-[250px] w-full">

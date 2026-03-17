@@ -4,12 +4,10 @@ import { AuthContext } from '../AuthContext';
 
 const Login = () => {
     const [loginMethod, setLoginMethod] = useState('email'); 
-    
-    // Email State
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    
-    // Mobile State
+
     const [phoneNumber, setPhoneNumber] = useState('');
     const [otpCode, setOtpCode] = useState('');
     const [otpSent, setOtpSent] = useState(false);
@@ -17,7 +15,7 @@ const Login = () => {
 
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    
+
     const navigate = useNavigate();
     const { login, loginWithOtpReq, sendOtp } = useContext(AuthContext);
 
@@ -32,9 +30,9 @@ const Login = () => {
         if (!phoneNumber || phoneNumber.length < 10) return setError("Please enter a valid phone number");
         setError('');
         setIsLoading(true);
-        const res = await sendOtp(phoneNumber, true); // true = Login OTP
+        const res = await sendOtp(phoneNumber, true); 
         setIsLoading(false);
-        
+
         if (res.success) {
             setOtpSent(true);
             setCooldown(30);
@@ -83,7 +81,7 @@ const Login = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden font-sans selection:bg-accent/30">
-            {/* Decorative Background Elements */}
+            {}
             <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-accent/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob"></div>
             <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-pink-300/20 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000"></div>
 
@@ -101,7 +99,7 @@ const Login = () => {
                     <p className="text-slate-500 font-medium">Sign in to access your curated collection.</p>
                 </div>
 
-                {/* Tab Switcher */}
+                {}
                 <div className="flex bg-slate-100 p-1 rounded-2xl mb-8">
                     <button 
                         type="button" 
@@ -125,7 +123,7 @@ const Login = () => {
                     </div>
                 )}
 
-                {/* EMAIL LOGIN FORM */}
+                {}
                 {loginMethod === 'email' && (
                     <form onSubmit={handleEmailLogin} autoComplete="off" className="space-y-5 animate-[fadeIn_0.3s_ease-out]">
                         <div className="space-y-2">
@@ -169,7 +167,7 @@ const Login = () => {
                     </form>
                 )}
 
-                {/* MOBILE OTP LOGIN FORM */}
+                {}
                 {loginMethod === 'phone' && (
                     <form onSubmit={otpSent ? handleOtpLogin : (e) => { e.preventDefault(); handleSendOtp(); }} autoComplete="off" className="space-y-5 animate-[fadeIn_0.3s_ease-out]">
                         <div className="space-y-2">
@@ -189,7 +187,7 @@ const Login = () => {
                                 />
                             </div>
                         </div>
-                        
+
                         {otpSent && (
                             <div className="space-y-2 animate-[fadeIn_0.3s_ease-out]">
                                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">Enter 4-Digit OTP</label>

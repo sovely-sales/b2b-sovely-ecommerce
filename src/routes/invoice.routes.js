@@ -5,19 +5,16 @@ import {
     markAsPaidManual,
     generateInvoicePDF,
 } from '../controllers/invoice.controller.js';
-import { verifyJWT, authorize } from '../middlewares/auth.middleware.js'; // Imported authorize!
+import { verifyJWT, authorize } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// Protect all routes
 router.use(verifyJWT);
 
-// Customer routes
 router.get('/', listMyInvoices);
 router.get('/:id', getInvoice);
 router.get('/:id/pdf', generateInvoicePDF);
 
-// Admin routes (Properly secured!)
 router.put('/:id/manual-payment', authorize('ADMIN'), markAsPaidManual);
 
 export default router;

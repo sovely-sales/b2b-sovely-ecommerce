@@ -4,8 +4,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 
 const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: true, 
+    sameSite: 'none',
 };
 
 export const registerUser = asyncHandler(async (req, res) => {
@@ -31,7 +31,6 @@ export const logoutUser = asyncHandler(async (req, res) => {
 });
 
 export const getCurrentUser = asyncHandler(async (req, res) => {
-    // req.user is set by the verifyJWT middleware
     return res
         .status(200)
         .json(new ApiResponse(200, req.user, 'Current user fetched successfully'));

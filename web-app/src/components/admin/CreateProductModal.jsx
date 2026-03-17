@@ -16,7 +16,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
     };
 
     const handleImageChange = (e) => {
-        // Convert FileList to Array and enforce the 8 image limit on the frontend too
+
         const files = Array.from(e.target.files).slice(0, 8);
         setImages(files);
     };
@@ -25,22 +25,21 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
         e.preventDefault();
         setIsSubmitting(true);
 
-        // We MUST use FormData when sending files + text
         const data = new FormData();
         Object.keys(formData).forEach(key => {
             data.append(key, formData[key]);
         });
-        
+
         images.forEach(image => {
             data.append('images', image);
         });
 
         try {
             await api.post('/products/admin/create', data, {
-                headers: { 'Content-Type': 'multipart/form-data' } // Tell Axios we are sending files
+                headers: { 'Content-Type': 'multipart/form-data' } 
             });
-            onSuccess(); // Refresh the table
-            onClose();   // Close the modal
+            onSuccess(); 
+            onClose();   
         } catch (err) {
             const errorMsg = err.response?.data?.message || err.message;
             alert(`Failed to create product: ${errorMsg}`);

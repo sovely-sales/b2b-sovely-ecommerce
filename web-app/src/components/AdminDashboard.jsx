@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './Navbar';
 import BulkUpload from './BulkUpload';
 
-// We will create these components next!
 import AdminOverview from './admin/AdminOverview';
 import AdminOrders from './admin/AdminOrders';
 import AdminProducts from './admin/AdminProducts';
@@ -27,10 +26,10 @@ const AdminDashboard = () => {
     return (
         <div className="min-h-screen flex flex-col bg-slate-50/50 font-sans selection:bg-accent/30 relative">
             <Navbar />
-            
+
             <div className="flex flex-1 overflow-hidden relative">
-                
-                {/* FLOATING GLASS DOCK (Replaces standard sidebar) */}
+
+                {}
                 <motion.aside 
                     initial={{ x: -100, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
@@ -56,7 +55,7 @@ const AdminDashboard = () => {
                                 : 'text-slate-500 hover:text-slate-900 hover:bg-white/50'
                             }`}
                         >
-                            {/* Animated active background pill */}
+                            {}
                             {activeTab === tab.id && (
                                 <motion.div 
                                     layoutId="activeTabBackground"
@@ -70,8 +69,8 @@ const AdminDashboard = () => {
                     ))}
                 </motion.aside>
 
-                {/* MAIN CONTENT AREA */}
-                {/* Note the left margin (md:ml-72) to make room for the floating dock */}
+                {}
+                {}
                 <main className="flex-1 p-6 lg:p-10 md:ml-72 overflow-y-auto custom-scrollbar">
                     <motion.h2 
                         layoutId="pageTitle"
@@ -80,10 +79,10 @@ const AdminDashboard = () => {
                         {activeTab.replace('-', ' ')}
                     </motion.h2>
 
-                    {/* ANIMATE PRESENCE: Handles the exit/enter animations of components */}
+                    {}
                     <AnimatePresence mode="wait">
                         <motion.div
-                            key={activeTab} // Changing the key triggers the animation
+                            key={activeTab} 
                             initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
                             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                             exit={{ opacity: 0, y: -20, filter: 'blur(10px)' }}

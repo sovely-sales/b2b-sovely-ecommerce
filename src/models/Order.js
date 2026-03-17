@@ -2,10 +2,10 @@ import mongoose from 'mongoose';
 
 const orderItemSnapshotSchema = new mongoose.Schema(
     {
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' }, // Good to have the reference
+        productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
         sku: { type: String, required: true },
-        title: { type: String, required: true }, // Add this!
-        image: { type: String }, // Add this!
+        title: { type: String, required: true },
+        image: { type: String },
         price: { type: Number, required: true },
         tax: { type: Number, default: 0 },
         qty: { type: Number, required: true, min: 1 },
@@ -26,7 +26,6 @@ const orderSchema = new mongoose.Schema(
     {
         orderId: { type: String, required: true, unique: true },
         userId: {
-            // Changed from customerId to userId
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             required: true,
@@ -59,10 +58,8 @@ const orderSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Index for filtering orders by status and user
 orderSchema.index({ userId: 1, status: 1 });
 
-// Bulletproof Order hook:
 orderSchema.pre('save', async function () {
     if (this.isNew) {
         this.statusHistory.push({ status: this.status, comment: 'Order placed successfully' });

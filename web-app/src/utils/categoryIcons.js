@@ -9,7 +9,6 @@ export const getCategoryIcon = (categoryName) => {
 
     const name = categoryName.toLowerCase();
 
-    // ── Exact category matches (ordered by DB categories) ──────────────────
     if (name.includes('electronic')) return { Icon: Laptop, color: '#D1FAE5', iconColor: '#059669' };
     if (name.includes('toy') || name.includes('game')) return { Icon: Gamepad2, color: '#E0E7FF', iconColor: '#4F46E5' };
     if (name.includes('business') || name.includes('industrial')) return { Icon: Factory, color: '#F1F5F9', iconColor: '#475569' };
@@ -32,6 +31,5 @@ export const getCategoryIcon = (categoryName) => {
     if (name.includes('cosmetic')) return { Icon: Sparkles, color: '#F3E8FF', iconColor: '#9333EA' };
     if (name.includes('medical') || name.includes('care')) return { Icon: Pill, color: '#FCE7F3', iconColor: '#DB2777' };
 
-    // Default fallback
     return { Icon: Package, color: '#F1F5F9', iconColor: '#475569' };
 };
