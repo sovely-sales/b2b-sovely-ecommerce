@@ -1,25 +1,30 @@
-import { useContext } from 'react';
+import React, { useContext } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthContext } from '../AuthContext';
-import LoadingScreen from './LoadingScreen';
+import { ROUTES } from '../utils/routes';
 
 const ResellerRoute = () => {
-    const location = useLocation();
     const { user, loading } = useContext(AuthContext);
+    const location = useLocation();
 
-    if (loading) return <LoadingScreen />;
+    // Show nothing while checking auth state to prevent flashing
+    if (loading) return null; 
 
-    // Redirect to login if not authenticated
+    // If not logged in, boot to login
     if (!user) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
+        return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
     }
 
-    // Optional: Add role-based protection if this is strictly for verified resellers/admins
-    // if (user.role !== 'RESELLER' && user.role !== 'ADMIN') {
-    //     return <Navigate to="/" replace />;
-    // }
+    // Allow both ADMIN and normal business users to access these routes.
+    // Adjust 'RESELLER' to match whatever your standard business user role string is.
+    const hasAccess = user.role === 'ADMIN' || user.role === 'RESELLER' || user.role === 'USER';
 
-    // CRITICAL FIX: Return <Outlet /> instead of children or nothing
+    if (!hasAccess) {
+        // If they somehow have a restricted role, send them to the homepage
+        return <Navigate to={ROUTES.HOME} replace />;
+    }
+
+    // CRITICAL FIX: Use Outlet to render the nested child routes (MyAccount, Settings, etc.)
     return <Outlet />;
 };
 
