@@ -408,3 +408,49 @@ export const resellerActionOnNDR = asyncHandler(async (req, res) => {
         .status(200)
         .json(new ApiResponse(200, order, `NDR action '${action}' submitted successfully.`));
 });
+/**
+ * @desc    Get ALL orders across the platform (ADMIN ONLY)
+ * @route   GET /api/orders/all
+ */
+export const getAllAdminOrders = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 20, status, search } = req.query;
+    
+    const query = {};
+
+    // Filter by exact status if provided
+    if (status) {
+        query.status = status;
+    }
+
+    // Basic search by Order ID
+    if (search) {
+        query.$or = [
+            { orderId: { $regex: search, $options: 'i' } }
+        ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const orders = await Order.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .populate('resellerId', 'name companyName email'); // Populate business details for admin
+
+    const total = await Order.countDocuments(query);
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                orders,
+                pagination: { 
+                    total, 
+                    page: Number(page), 
+                    pages: Math.ceil(total / Number(limit)) 
+                },
+            },
+            'All platform orders fetched successfully'
+        )
+    );
+});

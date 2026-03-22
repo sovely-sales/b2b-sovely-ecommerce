@@ -10,10 +10,16 @@ import {
 import { verifyJWT, authorizeRoles, requireKycApproved } from '../middlewares/auth.middleware.js';
 
 const router = Router();
-router.route('/all').get(verifyJWT, authorizeRoles('ADMIN'), getAllAdminOrders);
-// All order routes require authentication
+
+// Apply JWT verification to ALL order routes
 router.use(verifyJWT);
 
+// --- Admin Only Routes ---
+// Must come BEFORE /:id so Express doesn't think "all" is an order ID
+router.get('/all', authorizeRoles('ADMIN'), getAllAdminOrders);
+router.put('/:id/status', authorizeRoles('ADMIN'), updateOrderStatus);
+
+// --- Reseller / User Routes ---
 // Reseller placing an order (Requires Approved KYC)
 router.post('/', requireKycApproved, createOrder);
 
@@ -23,9 +29,7 @@ router.get('/', getMyOrders);
 // Reseller taking action on an NDR (Non-Delivery Report)
 router.post('/:id/ndr-action', resellerActionOnNDR);
 
-router.route('/:id').get(verifyJWT, getOrderById);
-
-// Admin updating tracking, NDRs, and triggering Profit Payouts
-router.put('/:id/status', authorizeRoles('ADMIN'), updateOrderStatus);
+// Fetch specific order details
+router.get('/:id', getOrderById);
 
 export default router;

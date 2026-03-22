@@ -13,21 +13,22 @@ import { productValidation } from '../validations/product.validation.js';
 
 const router = Router();
 
-// Public / Reseller Browsing
+// --- Public / Reseller Browsing ---
 router.get('/', getProducts);
 router.get('/:id', getProductById);
 
-// Admin Only Routes (Platform Management)
-router.post('/', verifyJWT, authorizeRoles('ADMIN'), createProduct);
-router.put('/:id', verifyJWT, authorizeRoles('ADMIN'), updateProduct);
-router.delete('/:id', verifyJWT, authorizeRoles('ADMIN'), deleteProduct);
-router.route('/admin/all').get(verifyJWT, authorizeRoles('ADMIN'), getAllAdminProducts);
+// --- Admin Only Routes (Platform Management) ---
+router.get('/admin/all', verifyJWT, authorizeRoles('ADMIN'), getAllAdminProducts);
+
 router.post(
     '/',
     verifyJWT,
     authorizeRoles('ADMIN'),
-    validate(productValidation.createProduct),
+    validate(productValidation.createProduct), // Validation now correctly applied
     createProduct
 );
+
+router.put('/:id', verifyJWT, authorizeRoles('ADMIN'), updateProduct);
+router.delete('/:id', verifyJWT, authorizeRoles('ADMIN'), deleteProduct);
 
 export default router;

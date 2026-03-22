@@ -232,3 +232,48 @@ export const deleteProduct = asyncHandler(async (req, res) => {
         .status(200)
         .json(new ApiResponse(200, null, 'Product successfully deleted (archived)'));
 });
+/**
+ * @desc    Get ALL products (including inactive/deleted) for Admin Dashboard
+ * @route   GET /api/products/admin/all
+ */
+export const getAllAdminProducts = asyncHandler(async (req, res) => {
+    const { page = 1, limit = 20, search } = req.query;
+    
+    // Admins need to see everything, so we don't filter out deletedAt or inactive status
+    const query = {};
+
+    if (search) {
+        const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const searchRegex = new RegExp(safeSearch, 'i');
+        query.$or = [
+            { title: { $regex: searchRegex } },
+            { sku: { $regex: searchRegex } },
+            { vendor: { $regex: searchRegex } },
+        ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+    
+    const products = await Product.find(query)
+        .sort({ createdAt: -1 }) // Newest first
+        .skip(skip)
+        .limit(Number(limit))
+        .populate('categoryId', 'name');
+
+    const total = await Product.countDocuments(query);
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                products,
+                pagination: {
+                    total,
+                    page: Number(page),
+                    pages: Math.ceil(total / Number(limit)),
+                },
+            },
+            'Admin products fetched successfully'
+        )
+    );
+});

@@ -154,7 +154,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Login Reseller / Admin
+ * @desc    Login Reseller / Admin / Customer
  * @route   POST /api/auth/login
  */
 export const loginUser = asyncHandler(async (req, res) => {
@@ -164,15 +164,26 @@ export const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Email or phone number is required');
     }
 
-    // FIX: Prevent soft-deleted or banned users from logging in
-    const user = await User.findOne({
-        $or: [{ email }, { phoneNumber }],
-        isActive: true,
-        deletedAt: null,
-    });
+    // 1. Clean inputs (fixes issues where frontend sends trailing spaces)
+    const cleanEmail = email ? email.trim().toLowerCase() : undefined;
+    const cleanPhone = phoneNumber ? phoneNumber.trim() : undefined;
 
-    if (!user) {
-        throw new ApiError(404, 'Reseller does not exist or account has been suspended');
+    // 2. Build a safer dynamic query
+    const query = { isActive: true };
+    if (cleanEmail) {
+        query.email = cleanEmail;
+    } else if (cleanPhone) {
+        query.phoneNumber = cleanPhone;
+    }
+
+    // 3. Find the user
+    const user = await User.findOne(query);
+
+    // FIX: Check user existence and soft-delete status in JS memory 
+    // to avoid MongoDB null vs undefined field matching quirks.
+    if (!user || user.deletedAt) {
+        // Updated error message to be generic (since Admins log in here too)
+        throw new ApiError(404, 'Account does not exist or has been suspended');
     }
 
     const isPasswordValid = await user.isPasswordCorrect(password);
