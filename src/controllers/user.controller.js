@@ -4,6 +4,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt'; // <-- Added for password hashing
 
 const cookieOptions = {
     httpOnly: true,
@@ -57,7 +58,6 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
     const { phoneNumber, otpCode } = req.body;
     if (!phoneNumber || !otpCode) throw new ApiError(400, 'Phone and OTP required');
 
-    // FIX: Ensure user isn't banned
     const user = await User.findOne({ phoneNumber, isActive: true, deletedAt: null });
     if (!user) throw new ApiError(404, 'User not found or account suspended');
 
@@ -74,7 +74,6 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
 
     if (!validOtp) throw new ApiError(400, 'Invalid or expired OTP');
 
-    // FIX: Generate both Access and Refresh Tokens to match auth.controller.js
     const accessToken = user.generateAccessToken();
     const refreshToken = jwt.sign(
         { _id: user._id },
@@ -111,10 +110,9 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
     const search = req.query.search || '';
     const role = req.query.role || 'ALL';
-    const kycStatus = req.query.kycStatus || 'ALL'; // FIX: Replaced b2bStatus
-    const isActive = req.query.isActive || 'ALL'; // NEW: Filter by banned users
+    const kycStatus = req.query.kycStatus || 'ALL';
+    const isActive = req.query.isActive || 'ALL';
 
-    // FIX: Hide soft-deleted users from the main table
     const query = { deletedAt: null };
 
     if (search) {
@@ -134,7 +132,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
     const total = await User.countDocuments(query);
     const users = await User.find(query)
-        .select('-passwordHash -refreshToken') // Protect tokens
+        .select('-passwordHash -refreshToken')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
@@ -152,7 +150,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 });
 
 export const updateKycStatus = asyncHandler(async (req, res) => {
-    const { kycStatus } = req.body; // Expects: 'PENDING', 'APPROVED', 'REJECTED'
+    const { kycStatus } = req.body;
 
     if (!['PENDING', 'APPROVED', 'REJECTED'].includes(kycStatus)) {
         throw new ApiError(400, 'Invalid KYC Status. Must be PENDING, APPROVED, or REJECTED.');
@@ -164,9 +162,7 @@ export const updateKycStatus = asyncHandler(async (req, res) => {
 
     if (!user) throw new ApiError(404, 'User not found');
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, user, `User KYC status updated to ${kycStatus}`));
+    return res.status(200).json(new ApiResponse(200, user, `User KYC status updated to ${kycStatus}`));
 });
 
 export const toggleUserStatus = asyncHandler(async (req, res) => {
@@ -176,7 +172,6 @@ export const toggleUserStatus = asyncHandler(async (req, res) => {
         req.params.id,
         {
             isActive,
-            // If banning, destroy their refresh token so they are immediately kicked out
             ...(isActive === false ? { refreshToken: null } : {}),
         },
         { new: true }
@@ -184,28 +179,23 @@ export const toggleUserStatus = asyncHandler(async (req, res) => {
 
     if (!user) throw new ApiError(404, 'User not found');
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                user,
-                `User account has been ${isActive ? 'activated' : 'suspended'}`
-            )
-        );
+    return res.status(200).json(
+        new ApiResponse(200, user, `User account has been ${isActive ? 'activated' : 'suspended'}`)
+    );
 });
 
 // ==========================================
-// RESELLER PROFILE MANAGEMENT
+// RESELLER PROFILE & SECURITY MANAGEMENT
 // ==========================================
 
 export const updateMyProfile = asyncHandler(async (req, res) => {
-    const { companyName, bankDetails, billingAddress } = req.body;
+    const { name, email, companyName, gstin, billingAddress } = req.body;
 
-    // We only allow updating business info here, not critical auth data like email/phone
     const updateData = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
     if (companyName) updateData.companyName = companyName;
-    if (bankDetails) updateData.bankDetails = bankDetails;
+    if (gstin) updateData.gstin = gstin;
     if (billingAddress) updateData.billingAddress = billingAddress;
 
     const user = await User.findByIdAndUpdate(
@@ -215,4 +205,20 @@ export const updateMyProfile = asyncHandler(async (req, res) => {
     ).select('-passwordHash -refreshToken');
 
     return res.status(200).json(new ApiResponse(200, user, 'Profile updated successfully'));
+});
+
+// NEW: Update password logic
+export const updatePassword = asyncHandler(async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) throw new ApiError(400, 'Both passwords are required');
+
+    const user = await User.findById(req.user._id);
+    
+    const isPasswordValid = await user.isPasswordCorrect(oldPassword);
+    if (!isPasswordValid) throw new ApiError(400, 'Invalid current password');
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json(new ApiResponse(200, null, 'Password updated successfully'));
 });

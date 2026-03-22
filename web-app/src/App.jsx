@@ -1,7 +1,8 @@
 import { Suspense, lazy, useContext } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast'; // <-- Added to enable popup notifications
 import { AuthContext } from './AuthContext';
-import { ROUTES } from './utils/routes'; // <-- NEW: Imported Routes
+import { ROUTES } from './utils/routes'; 
 import LoadingScreen from './components/LoadingScreen';
 import AdminRoute from './components/AdminRoute';
 import ResellerRoute from './components/ResellerRoute';
@@ -15,7 +16,7 @@ const Login = lazy(() => import('./components/Login'));
 const Signup = lazy(() => import('./components/Signup'));
 const ForgotPassword = lazy(() => import('./components/ForgotPassword'));
 const MyAccount = lazy(() => import('./components/MyAccount'));
-const AccountSettings = lazy(() => import('./components/AccountSettings')); // <-- NEW: Fix for Flaw #1
+const AccountSettings = lazy(() => import('./components/AccountSettings')); 
 const Invoices = lazy(() => import('./components/Invoices'));
 const QuickOrder = lazy(() => import('./components/QuickOrder'));
 const Checkout = lazy(() => import('./components/Checkout'));
@@ -50,6 +51,9 @@ const ProtectedRoute = ({ children }) => {
 function App() {
     return (
         <ErrorBoundary>
+            {/* Toaster placed high in the tree so notifications render everywhere */}
+            <Toaster position="bottom-right" /> 
+            
             <Suspense fallback={<LoadingScreen />}>
                 <Routes>
                     <Route element={<MainLayout />}>
@@ -59,23 +63,18 @@ function App() {
                         <Route path={ROUTES.SEARCH} element={<SearchResults />} />
 
                         {/* --- PROTECTED (GENERAL USER) ROUTES --- */}
-                        <Route path={ROUTES.CHECKOUT} element={
-                            <ProtectedRoute><Checkout /></ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.ORDERS} element={
-                            <ProtectedRoute><Orders /></ProtectedRoute>
-                        } />
-                        <Route path="/orders/:id/track" element={
-                            <ProtectedRoute><OrderTracking /></ProtectedRoute>
-                        } />
-                        <Route path={ROUTES.WALLET} element={
-                            <ProtectedRoute><Wallet /></ProtectedRoute>
-                        } />
+                        <Route path={ROUTES.CHECKOUT} element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+                        <Route path={ROUTES.ORDERS} element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+                        <Route path="/orders/:id/track" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
+                        <Route path={ROUTES.WALLET} element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
 
                         {/* --- RESELLER ONLY HUB --- */}
                         <Route element={<ResellerRoute />}>
                             <Route path={ROUTES.MY_ACCOUNT} element={<MyAccount />} />
-                            <Route path={ROUTES.ACCOUNT_SETTINGS} element={<AccountSettings />} /> {/* Fix for Flaw #1 */}
+                            
+                            {/* Unified Tabbed Settings Page */}
+                            <Route path={ROUTES.ACCOUNT_SETTINGS} element={<AccountSettings />} /> 
+                            
                             <Route path={ROUTES.INVOICES} element={<Invoices />} />
                             <Route path={ROUTES.QUICK_ORDER} element={<QuickOrder />} />
                         </Route>

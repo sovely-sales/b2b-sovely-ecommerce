@@ -10,7 +10,7 @@ export const ROUTES = {
     ORDER_TRACKING: (id) => `/orders/${id}/track`,
     WALLET: '/wallet',
     MY_ACCOUNT: '/my-account',
-    ACCOUNT_SETTINGS: '/account/settings', // Fix for Flaw #1
+    ACCOUNT_SETTINGS: '/account/settings', // Unified settings page
     INVOICES: '/invoices',
     QUICK_ORDER: '/quick-order',
     ADMIN: '/admin'

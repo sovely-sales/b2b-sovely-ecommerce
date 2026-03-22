@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, ShoppingCart, TrendingDown, PackagePlus, ArrowRight } from 'lucide-react';
-import api from '../utils/api'; // Assuming you have an Axios instance setup
+import { AlertCircle, TrendingDown, PackagePlus, Loader2 } from 'lucide-react';
+import api from '../utils/api'; 
+import { useCartStore } from '../store/cartStore'; // <-- NEW: Imported your cart store
 
 const SmartRestock = () => {
     const [recommendations, setRecommendations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [addingItemId, setAddingItemId] = useState(null); // Tracks which button is loading
 
-    // Simulated API call - you will wire this up to your actual backend endpoint
+    // Pull in the actual addToCart function from your store
+    const addToCart = useCartStore((state) => state.addToCart);
+
     useEffect(() => {
         const fetchPredictions = async () => {
             try {
+                // TODO: Replace with actual API call when ready
                 // const response = await api.get('/analytics/smart-restock');
                 // setRecommendations(response.data.data);
 
-                // MOCK DATA for previewing the UI
                 setTimeout(() => {
                     setRecommendations([
                         {
@@ -49,9 +53,12 @@ const SmartRestock = () => {
         fetchPredictions();
     }, []);
 
-    const handleQuickAdd = (productId, qty) => {
-        // Wire this to your cartStore.js
-        console.log(`Added ${qty} of product ${productId} to cart`);
+    // NEW: Actually triggers the cart store and shows loading state
+    const handleQuickAdd = async (productId, qty) => {
+        setAddingItemId(productId);
+        // Assumes bulk restocks are WHOLESALE.
+        await addToCart(productId, qty, 'WHOLESALE');
+        setAddingItemId(null);
     };
 
     if (isLoading) {
@@ -92,7 +99,8 @@ const SmartRestock = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: index * 0.1 }}
-                            className="group flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:border-amber-300 hover:shadow-md"
+                            // ADDED: hover:-translate-y-1 and hover:shadow-lg for the lift effect
+                            className="group flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-amber-400 hover:shadow-lg"
                         >
                             <div>
                                 <div className="mb-2 flex items-start justify-between gap-2">
@@ -118,12 +126,17 @@ const SmartRestock = () => {
                                     </span>
                                 </div>
                                 <button
-                                    onClick={() =>
-                                        handleQuickAdd(item.productId, item.suggestedQty)
-                                    }
-                                    className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white transition-all hover:scale-105 hover:bg-slate-800 active:scale-95"
+                                    onClick={() => handleQuickAdd(item.productId, item.suggestedQty)}
+                                    disabled={addingItemId === item.productId}
+                                    // ADDED: Better hover transitions and disabled states for the button
+                                    className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    <PackagePlus size={14} /> Add {item.suggestedQty} Units
+                                    {addingItemId === item.productId ? (
+                                        <Loader2 size={14} className="animate-spin" />
+                                    ) : (
+                                        <PackagePlus size={14} />
+                                    )}
+                                    {addingItemId === item.productId ? 'Adding...' : `Add ${item.suggestedQty} Units`}
                                 </button>
                             </div>
                         </motion.div>

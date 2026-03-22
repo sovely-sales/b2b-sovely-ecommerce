@@ -3,19 +3,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { getCategoryIcon } from '../utils/categoryIcons';
-import { ROUTES } from '../utils/routes'; // <-- NEW
+import { ROUTES } from '../utils/routes';
 import api from '../utils/api';
 import CartDrawer from './CartDrawer';
 import { Search, X, Clock, TrendingUp, Wallet, Menu, Shield } from 'lucide-react';
 import { useCartStore } from '../store/cartStore';
 
 function Navbar({ onToggleSidebar, onSelectCategory }) {
-    const { user, logout, loading, isAdmin } = useContext(AuthContext); // <-- Pulled isAdmin from context
-    const cartCount = useCartStore((state) => state.getCartCount());
+    const { user, logout, loading, isAdmin } = useContext(AuthContext);
+    
+    // FIX: Reactively calculate the cart count using the correct 'qty' property!
+    const cartCount = useCartStore((state) => {
+        if (!state.cart?.items) return 0;
+        return state.cart.items.reduce((total, item) => total + item.qty, 0);
+    });
 
     const [catDropOpen, setCatDropOpen] = useState(false);
     const [isCartOpen, setIsCartOpen] = useState(false);
-
     const [searchInput, setSearchInput] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -171,7 +175,6 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                                     </button>
                                 )}
                             </div>
-                            {/* Dropdown search logic left intact as provided */}
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -191,7 +194,7 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                             <button onClick={() => setIsCartOpen(true)} className="relative rounded-full p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900" title="Draft Order / Cart">
                                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                                 {cartCount > 0 && (
-                                    <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-slate-900 text-[10px] font-bold text-white">
+                                    <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-emerald-500 text-[10px] font-bold text-white shadow-sm">
                                         {cartCount}
                                     </span>
                                 )}
@@ -206,7 +209,6 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                                             <Link to={ROUTES.MY_ACCOUNT} className="text-sm font-bold text-slate-900 hover:text-emerald-600">
                                                 {user?.companyName || user?.name?.split(' ')[0]}
                                             </Link>
-                                            {/* --- FIX FOR FLAW #3: Dynamic Role Badge --- */}
                                             <span className="text-[10px] font-medium tracking-wider text-slate-500 uppercase">
                                                 {isAdmin ? 'Platform Admin' : 'Verified Buyer'}
                                             </span>

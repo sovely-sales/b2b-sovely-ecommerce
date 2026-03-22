@@ -62,11 +62,15 @@ const MyAccount = () => {
 
     return (
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 font-sans text-slate-900 sm:px-6 lg:px-8 lg:py-12">
+            {/* UPDATED BACK BUTTON WITH HOVER SLIDE EFFECT */}
             <Link
                 to="/"
-                className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-slate-400 transition-colors hover:text-slate-900"
+                className="group mb-6 inline-flex items-center gap-3 text-sm font-bold text-slate-500 transition-colors hover:text-slate-900"
             >
-                <ArrowLeft size={16} /> Return to Dashboard
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 transition-transform group-hover:-translate-x-1">
+                    <ArrowLeft size={16} />
+                </div>
+                Back to Home
             </Link>
 
             {/* Global Warning for Pending KYC */}
@@ -94,10 +98,14 @@ const MyAccount = () => {
 
                     <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
                         <div className="flex items-center gap-6">
-                            <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-slate-800 bg-slate-700 text-4xl font-black text-white shadow-xl">
-                                {user.companyName?.charAt(0).toUpperCase() ||
-                                    user.name?.charAt(0).toUpperCase() ||
-                                    'B'}
+                            {/* UPDATED AVATAR WITH AMBIENT GLOW */}
+                            <div className="relative">
+                                <div className="absolute -inset-1 animate-pulse rounded-full bg-gradient-to-r from-emerald-400 to-blue-500 opacity-40 blur-sm"></div>
+                                <div className="relative flex h-24 w-24 items-center justify-center rounded-full border-4 border-slate-800 bg-slate-700 text-4xl font-black text-white shadow-xl">
+                                    {user.companyName?.charAt(0).toUpperCase() ||
+                                        user.name?.charAt(0).toUpperCase() ||
+                                        'B'}
+                                </div>
                             </div>
                             <div className="text-white">
                                 <h1 className="mb-1 flex items-center gap-3 text-3xl font-extrabold tracking-tight">
@@ -133,13 +141,12 @@ const MyAccount = () => {
                         <div>
                             <div className="mb-4 flex items-center justify-between">
                                 <h3 className="flex items-center gap-2 text-xl font-extrabold text-slate-900">
-                                    <Building2 size={24} className="text-slate-400" /> Business
-                                    Identity
+                                    <Building2 size={24} className="text-slate-400" /> Business Identity
                                 </h3>
                                 {getKycBadge(user.kycStatus)}
                             </div>
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="flex flex-col gap-1 rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                                <div className="flex flex-col gap-1 rounded-2xl border border-slate-100 bg-slate-50 p-5 transition-transform hover:-translate-y-1 hover:shadow-md">
                                     <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                                         Registered Company
                                     </span>
@@ -147,7 +154,7 @@ const MyAccount = () => {
                                         {user.companyName || 'Not Provided'}
                                     </span>
                                 </div>
-                                <div className="flex flex-col gap-1 rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                                <div className="flex flex-col gap-1 rounded-2xl border border-slate-100 bg-slate-50 p-5 transition-transform hover:-translate-y-1 hover:shadow-md">
                                     <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
                                         Verified GSTIN
                                     </span>
@@ -155,7 +162,7 @@ const MyAccount = () => {
                                         {user.gstin || 'None Provided'}
                                     </span>
                                 </div>
-                                <div className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-5 sm:col-span-2">
+                                <div className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-5 sm:col-span-2 transition-transform hover:-translate-y-1 hover:shadow-md">
                                     <MapPin size={20} className="mt-0.5 shrink-0 text-slate-400" />
                                     <div className="flex flex-col gap-1">
                                         <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
@@ -178,7 +185,7 @@ const MyAccount = () => {
                                 <User size={24} className="text-slate-400" /> Account Contact
                             </h3>
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                                <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md">
                                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
                                         <Phone size={18} />
                                     </div>
@@ -191,7 +198,7 @@ const MyAccount = () => {
                                         </span>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                                <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md">
                                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
                                         <Calendar size={18} />
                                     </div>
@@ -212,6 +219,7 @@ const MyAccount = () => {
                     </div>
 
                     {/* Right Column: Quick Links */}
+                    {/* ADDED hover:-translate-y-1 and shadow-lg to all quick links */}
                     <div className="space-y-4 lg:border-l lg:border-slate-100 lg:pl-8">
                         <h3 className="mb-6 text-xl font-extrabold text-slate-900">
                             Procurement Tools
@@ -219,7 +227,7 @@ const MyAccount = () => {
 
                         <Link
                             to="/wallet"
-                            className="group flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 bg-white p-4 transition-all hover:border-emerald-500 hover:shadow-md"
+                            className="group flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 bg-white p-4 transition-all hover:-translate-y-1 hover:border-emerald-500 hover:shadow-lg"
                         >
                             <div className="flex items-center gap-3">
                                 <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600 transition-colors group-hover:bg-emerald-500 group-hover:text-white">
@@ -237,7 +245,7 @@ const MyAccount = () => {
 
                         <Link
                             to="/orders"
-                            className="group flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 bg-white p-4 transition-all hover:border-slate-900 hover:shadow-md"
+                            className="group flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 bg-white p-4 transition-all hover:-translate-y-1 hover:border-slate-900 hover:shadow-lg"
                         >
                             <div className="flex items-center gap-3">
                                 <div className="rounded-lg bg-slate-100 p-2 text-slate-600 transition-colors group-hover:bg-slate-900 group-hover:text-white">
@@ -254,7 +262,7 @@ const MyAccount = () => {
 
                         <Link
                             to="/invoices"
-                            className="group flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 bg-white p-4 transition-all hover:border-indigo-500 hover:shadow-md"
+                            className="group flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 bg-white p-4 transition-all hover:-translate-y-1 hover:border-indigo-500 hover:shadow-lg"
                         >
                             <div className="flex items-center gap-3">
                                 <div className="rounded-lg bg-indigo-100 p-2 text-indigo-600 transition-colors group-hover:bg-indigo-500 group-hover:text-white">
@@ -272,7 +280,7 @@ const MyAccount = () => {
                         {user.role === 'ADMIN' && (
                             <Link
                                 to="/admin"
-                                className="group mt-8 flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 bg-white p-4 transition-all hover:border-blue-500 hover:shadow-md"
+                                className="group mt-8 flex w-full items-center justify-between rounded-2xl border-2 border-slate-100 bg-white p-4 transition-all hover:-translate-y-1 hover:border-blue-500 hover:shadow-lg"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="rounded-lg bg-blue-100 p-2 text-blue-600 transition-colors group-hover:bg-blue-500 group-hover:text-white">
@@ -290,7 +298,6 @@ const MyAccount = () => {
                     </div>
                 </div>
 
-                {/* --- ADD THE ANALYTICS HUB HERE --- */}
                 {isKycApproved && (
                     <div className="border-t border-slate-100 bg-slate-50/50 p-8">
                         <div className="mb-4">
@@ -303,13 +310,14 @@ const MyAccount = () => {
                     </div>
                 )}
 
-                {/* Footer Action */}
+                {/* UPDATED LOGOUT BUTTON: Smooth transition to solid red background */}
                 <div className="flex justify-center border-t border-slate-100 bg-slate-50 p-6">
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-2 rounded-full border border-red-200 bg-white px-8 py-3 text-sm font-bold text-red-600 shadow-sm transition-all hover:bg-red-50 hover:text-red-700"
+                        className="group flex items-center gap-2 rounded-full border border-red-200 bg-white px-8 py-3 text-sm font-bold text-red-600 shadow-sm transition-all duration-300 hover:border-red-600 hover:bg-red-600 hover:text-white hover:shadow-lg hover:-translate-y-0.5"
                     >
-                        <LogOut size={16} /> Secure Sign Out
+                        <LogOut size={16} className="transition-transform group-hover:scale-110" /> 
+                        Secure Sign Out
                     </button>
                 </div>
             </div>
