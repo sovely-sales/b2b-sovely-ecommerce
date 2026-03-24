@@ -1,5 +1,6 @@
 import React, { useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AuthContext } from '../AuthContext';
 import {
     Home,
@@ -14,7 +15,19 @@ import {
     ShieldCheck,
     Shield,
     Clock,
+    LogOut,
 } from 'lucide-react';
+
+// --- ANIMATION VARIANTS ---
+const sidebarVariants = {
+    hidden: { x: '-100%', transition: { type: 'tween', duration: 0.3, ease: 'easeInOut' } },
+    visible: { x: 0, transition: { type: 'tween', duration: 0.3, ease: 'easeInOut' } },
+};
+
+const overlayVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1 },
+};
 
 function Sidebar({ isOpen, onClose }) {
     const navigate = useNavigate();
@@ -32,10 +45,10 @@ function Sidebar({ isOpen, onClose }) {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
         } else {
-            document.body.style.overflow = 'auto';
+            document.body.style.overflow = '';
         }
         return () => {
-            document.body.style.overflow = 'auto';
+            document.body.style.overflow = '';
         };
     }, [isOpen]);
 
@@ -44,221 +57,267 @@ function Sidebar({ isOpen, onClose }) {
         if (!user) return null;
         if (user.kycStatus === 'APPROVED') {
             return (
-                <p className="mt-1 flex w-fit items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-emerald-700 uppercase">
-                    <ShieldCheck size={12} /> GST Verified
-                </p>
+                <span className="mt-1 flex w-fit items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-emerald-700 uppercase">
+                    <ShieldCheck size={10} /> GST Verified
+                </span>
             );
         }
         if (user.kycStatus === 'PENDING') {
             return (
-                <p className="mt-1 flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-amber-700 uppercase">
-                    <Clock size={12} /> Pending Review
-                </p>
+                <span className="mt-1 flex w-fit items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-amber-700 uppercase">
+                    <Clock size={10} /> Pending Review
+                </span>
             );
         }
         return (
-            <p className="mt-1 flex w-fit items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-red-700 uppercase">
-                <ShieldAlert size={12} /> Action Required
-            </p>
+            <span className="mt-1 flex w-fit items-center gap-1 rounded-md border border-red-200 bg-red-50 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-red-700 uppercase">
+                <ShieldAlert size={10} /> Action Required
+            </span>
         );
     };
 
     return (
-        <div className="relative z-[100]">
-            <div
-                className={`fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'visible opacity-100' : 'invisible opacity-0'}`}
-                onClick={onClose}
-                aria-hidden="true"
-            ></div>
-
-            <aside
-                className={`fixed inset-y-0 left-0 flex w-[85vw] max-w-sm transform flex-col border-r border-white/50 bg-white/90 shadow-2xl backdrop-blur-xl transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
-            >
-                <div className="flex items-center justify-between border-b border-slate-100 p-6">
-                    <div className="flex items-center gap-3">
-                        <div className="rounded-lg border border-slate-100 bg-slate-50 p-1.5 shadow-sm">
-                            <img
-                                src="https://m.media-amazon.com/images/X/bxt1/M/Bbxt1BI1cNpD5ln._SL160_QL95_FMwebp_.png"
-                                alt="Sovely Logo"
-                                className="h-6 w-auto"
-                            />
-                        </div>
-                        <span className="text-xl font-extrabold tracking-tight text-slate-900">
-                            Sovely B2B
-                        </span>
-                    </div>
-                    <button
-                        className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+        <AnimatePresence>
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex font-sans">
+                    {/* Dark Overlay */}
+                    <motion.div
+                        variants={overlayVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="hidden"
+                        className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm"
                         onClick={onClose}
-                        aria-label="Close sidebar"
+                        aria-hidden="true"
+                    />
+
+                    {/* The Sidebar Drawer */}
+                    <motion.aside
+                        variants={sidebarVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="hidden"
+                        className="relative flex w-[85vw] max-w-[320px] flex-col bg-white shadow-2xl"
                     >
-                        <X size={20} />
-                    </button>
-                </div>
-
-                <div className="custom-scrollbar flex-1 space-y-8 overflow-y-auto px-4 py-6">
-                    {/* --- NEW: ADMIN BLOCK --- */}
-                    {user && user.role === 'ADMIN' && (
-                        <div>
-                            <h3 className="mb-3 px-2 text-xs font-bold tracking-wider text-blue-500 uppercase">
-                                Platform Management
-                            </h3>
-                            <ul className="space-y-1">
-                                <li>
-                                    <Link
-                                        to="/admin"
-                                        onClick={onClose}
-                                        className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 font-bold text-blue-700 transition-colors hover:bg-blue-100"
-                                    >
-                                        <Shield size={20} /> Admin Console
-                                    </Link>
-                                </li>
-                            </ul>
-                        </div>
-                    )}
-
-                    <div>
-                        <h3 className="mb-3 px-2 text-xs font-bold tracking-wider text-slate-400 uppercase">
-                            Procurement Portal
-                        </h3>
-                        <ul className="space-y-1">
-                            <li>
-                                <Link
-                                    to="/"
-                                    onClick={onClose}
-                                    className="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-                                >
-                                    <Home size={20} /> Home
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    to="/quick-order"
-                                    onClick={onClose}
-                                    className="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-                                >
-                                    <UploadCloud size={20} /> Quick Order Upload
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    to="/invoices" // FIXED: Removed /my-account/ prefix
-                                    onClick={onClose}
-                                    className="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-                                >
-                                    <FileText size={20} /> My Invoices & Tax
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    to="/orders"
-                                    onClick={onClose}
-                                    className="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-                                >
-                                    <Package size={20} /> Orders & Tracking
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    to="/wallet"
-                                    onClick={onClose}
-                                    className="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-                                >
-                                    <Wallet size={20} /> Wallet & Credit
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h3 className="mb-3 px-2 text-xs font-bold tracking-wider text-slate-400 uppercase">
-                            Business Settings
-                        </h3>
-                        <ul className="space-y-1">
-                            <li>
-                                <Link
-                                    to="/my-account" // FIXED: Changed from /my-account
-                                    onClick={onClose}
-                                    className="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-                                >
-                                    <Building2 size={20} /> Dashboard & Profile
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    to="/account/settings" // Adjusted to match new pattern
-                                    onClick={onClose}
-                                    className="flex items-center gap-3 rounded-xl px-4 py-3 font-bold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-                                >
-                                    <Settings size={20} /> Account Preferences
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div className="border-t border-slate-100 bg-slate-50/50 p-6">
-                    {user ? (
-                        <div className="flex w-full flex-col items-center">
-                            <div className="mb-5 flex flex-col items-center text-center">
-                                <div className="mb-3 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white shadow-md">
-                                    {user?.avatar ? (
-                                        <img
-                                            src={user.avatar}
-                                            alt="User Avatar"
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        <span className="text-2xl font-bold text-slate-400">
-                                            {user.companyName
-                                                ? user.companyName.charAt(0).toUpperCase()
-                                                : 'B'}
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-sm font-medium text-slate-500">
-                                    Purchasing as <br />
-                                    <span className="text-base font-bold text-slate-900">
-                                        {user.companyName || user.name}
+                        {/* HEADER */}
+                        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white p-5">
+                            <div className="flex items-center gap-3">
+                                <img
+                                    src="https://m.media-amazon.com/images/X/bxt1/M/Bbxt1BI1cNpD5ln._SL160_QL95_FMwebp_.png"
+                                    alt="Sovely Logo"
+                                    className="h-6 w-auto"
+                                />
+                                <span className="text-xl font-extrabold tracking-tight text-slate-900">
+                                    Sovely{' '}
+                                    <span className="text-sm font-semibold text-slate-500">
+                                        B2B
                                     </span>
-                                </p>
-
-                                {/* --- NEW: DYNAMIC KYC BADGE --- */}
-                                {getKycBadge()}
+                                </span>
                             </div>
                             <button
-                                onClick={handleLogout}
-                                className="w-full rounded-full bg-red-50 py-3 font-bold text-red-600 shadow-sm transition-colors hover:bg-red-600 hover:text-white"
+                                className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                                onClick={onClose}
+                                aria-label="Close sidebar"
                             >
-                                Secure Log Out
+                                <X size={20} strokeWidth={2.5} />
                             </button>
                         </div>
-                    ) : (
-                        <div className="w-full text-center">
-                            <p className="mb-4 text-sm font-bold text-slate-600">
-                                Ready to scale your sourcing?
-                            </p>
-                            <div className="flex flex-col gap-3">
-                                <Link
-                                    to="/login"
-                                    onClick={onClose}
-                                    className="w-full rounded-full border-2 border-slate-200 py-3 font-bold text-slate-700 transition-all hover:border-slate-300 hover:bg-white"
-                                >
-                                    Business Login
-                                </Link>
-                                <Link
-                                    to="/signup"
-                                    onClick={onClose}
-                                    className="w-full rounded-full bg-slate-900 py-3 font-bold text-white transition-all hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20"
-                                >
-                                    Apply for Wholesale
-                                </Link>
+
+                        {/* NAVIGATION LINKS */}
+                        <div className="custom-scrollbar flex-1 overflow-y-auto px-4 py-6">
+                            {/* Admin Block */}
+                            {user && user.role === 'ADMIN' && (
+                                <div className="mb-8">
+                                    <h3 className="mb-3 px-3 text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                        Platform Management
+                                    </h3>
+                                    <ul className="space-y-1">
+                                        <li>
+                                            <Link
+                                                to="/admin"
+                                                onClick={onClose}
+                                                className="flex items-center gap-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2.5 text-sm font-bold text-blue-700 transition-colors hover:bg-blue-100"
+                                            >
+                                                <Shield size={18} /> Admin Console
+                                            </Link>
+                                        </li>
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* Procurement Portal */}
+                            <div className="mb-8">
+                                <h3 className="mb-3 px-3 text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                    Procurement Portal
+                                </h3>
+                                <ul className="space-y-1">
+                                    <li>
+                                        <Link
+                                            to="/"
+                                            onClick={onClose}
+                                            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                                        >
+                                            <Home
+                                                size={18}
+                                                className="text-slate-400 group-hover:text-slate-700"
+                                            />{' '}
+                                            Home
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            to="/quick-order"
+                                            onClick={onClose}
+                                            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                                        >
+                                            <UploadCloud
+                                                size={18}
+                                                className="text-slate-400 group-hover:text-slate-700"
+                                            />{' '}
+                                            Quick Order Upload
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            to="/invoices"
+                                            onClick={onClose}
+                                            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                                        >
+                                            <FileText
+                                                size={18}
+                                                className="text-slate-400 group-hover:text-slate-700"
+                                            />{' '}
+                                            My Invoices & Tax
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            to="/orders"
+                                            onClick={onClose}
+                                            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                                        >
+                                            <Package
+                                                size={18}
+                                                className="text-slate-400 group-hover:text-slate-700"
+                                            />{' '}
+                                            Orders & Tracking
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            to="/wallet"
+                                            onClick={onClose}
+                                            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                                        >
+                                            <Wallet
+                                                size={18}
+                                                className="text-slate-400 group-hover:text-slate-700"
+                                            />{' '}
+                                            Wallet & Credit
+                                        </Link>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Business Settings */}
+                            <div>
+                                <h3 className="mb-3 px-3 text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                    Business Settings
+                                </h3>
+                                <ul className="space-y-1">
+                                    <li>
+                                        <Link
+                                            to="/my-account"
+                                            onClick={onClose}
+                                            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                                        >
+                                            <Building2
+                                                size={18}
+                                                className="text-slate-400 group-hover:text-slate-700"
+                                            />{' '}
+                                            Dashboard & Profile
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link
+                                            to="/account/settings"
+                                            onClick={onClose}
+                                            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                                        >
+                                            <Settings
+                                                size={18}
+                                                className="text-slate-400 group-hover:text-slate-700"
+                                            />{' '}
+                                            Account Preferences
+                                        </Link>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
-                    )}
+
+                        {/* FOOTER: Profile / Auth Actions */}
+                        <div className="shrink-0 border-t border-slate-200 bg-white p-5">
+                            {user ? (
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-50">
+                                            {user?.avatar ? (
+                                                <img
+                                                    src={user.avatar}
+                                                    alt="Avatar"
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="text-lg font-bold text-slate-400">
+                                                    {user.companyName
+                                                        ? user.companyName.charAt(0).toUpperCase()
+                                                        : 'B'}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col overflow-hidden">
+                                            <span className="truncate text-sm font-bold text-slate-900">
+                                                {user.companyName || user.name}
+                                            </span>
+                                            {getKycBadge()}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="shrink-0 rounded-md p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                                        title="Log Out"
+                                    >
+                                        <LogOut size={18} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="w-full">
+                                    <p className="mb-3 text-center text-xs font-semibold text-slate-500">
+                                        Ready to scale your sourcing?
+                                    </p>
+                                    <div className="flex flex-col gap-2">
+                                        <Link
+                                            to="/login"
+                                            onClick={onClose}
+                                            className="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white py-2.5 text-sm font-bold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50"
+                                        >
+                                            Business Login
+                                        </Link>
+                                        <Link
+                                            to="/signup"
+                                            onClick={onClose}
+                                            className="flex w-full items-center justify-center rounded-lg bg-slate-900 py-2.5 text-sm font-bold text-white transition-all hover:bg-slate-800"
+                                        >
+                                            Apply for Wholesale
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </motion.aside>
                 </div>
-            </aside>
-        </div>
+            )}
+        </AnimatePresence>
     );
 }
 
