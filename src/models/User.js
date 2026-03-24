@@ -69,17 +69,22 @@ const userSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
-
-userSchema.pre('save', async function () {
-    if (!this.isModified('passwordHash')) return;
+// --- Security Hooks ---
+userSchema.pre('save', async function (next) {
+    if (!this.isModified('passwordHash')) return next();
     this.passwordHash = await bcrypt.hash(this.passwordHash, 10);
+    next(); // Added explicit next() for safer middleware execution
 });
 
 userSchema.methods.isPasswordCorrect = async function (password) {
     return await bcrypt.compare(password, this.passwordHash);
 };
 
+// --- Token Generation ---
 userSchema.methods.generateAccessToken = function () {
+    // We use optional chaining (?.) and trim() to strip out any invisible spaces from Render!
+    const expiry = process.env.ACCESS_TOKEN_EXPIRY?.trim() || '1d';
+    
     return jwt.sign(
         {
             _id: this._id,
@@ -88,7 +93,20 @@ userSchema.methods.generateAccessToken = function () {
             kycStatus: this.kycStatus,
         },
         process.env.ACCESS_TOKEN_SECRET || 'fallback_secret',
-        { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '1d' }
+        { expiresIn: expiry }
+    );
+};
+
+// NEW: Added the missing Refresh Token generator!
+userSchema.methods.generateRefreshToken = function () {
+    const expiry = process.env.REFRESH_TOKEN_EXPIRY?.trim() || '10d';
+    
+    return jwt.sign(
+        {
+            _id: this._id,
+        },
+        process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_secret',
+        { expiresIn: expiry }
     );
 };
 

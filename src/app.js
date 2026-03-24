@@ -20,6 +20,7 @@ import analyticsRouter from './routes/analytics.routes.js';
 import webhookRouter from './routes/webhook.routes.js';
 
 const app = express();
+app.set('trust proxy', 1);
 
 // ==========================================
 // 1. Security & Utility Middlewares
