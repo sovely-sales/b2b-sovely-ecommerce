@@ -129,7 +129,10 @@ export const createOrder = asyncHandler(async (req, res) => {
                 0
             );
             const dsShippingTotal = dropshipItems.reduce((acc, item) => acc + item.shippingCost, 0);
-            const dsTotalCost = dsSubTotal + dsTaxTotal + dsShippingTotal;
+
+            // --- NEW: Apply Client's COD Logic ---
+            const codCharge = paymentMethod === 'COD' ? 35 : 0;
+            const dsTotalCost = dsSubTotal + dsTaxTotal + dsShippingTotal + codCharge;
 
             const dsOrderId = `OD-DS-${Math.floor(1000000 + Math.random() * 9000000)}`;
             generatedOrderIds.push(dsOrderId);
@@ -142,6 +145,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                     (acc, item) => acc + item.resellerSellingPrice * item.qty,
                     0
                 );
+                // Profit is what's left after subtracting platform cost, shipping, tax, AND the COD fee
                 resellerProfitMargin = amountToCollect - dsTotalCost;
             }
 
@@ -154,14 +158,19 @@ export const createOrder = asyncHandler(async (req, res) => {
                 subTotal: dsSubTotal,
                 taxTotal: dsTaxTotal,
                 shippingTotal: dsShippingTotal,
+                codCharge, // <-- Save snapshot
                 totalPlatformCost: dsTotalCost,
                 amountToCollect,
                 resellerProfitMargin,
                 items: dropshipItems,
-                statusHistory: [{ status: 'PENDING', comment: 'Dropship order placed via Wallet' }],
+                statusHistory: [
+                    {
+                        status: 'PENDING',
+                        comment: `Dropship order placed via Wallet (${paymentMethod})`,
+                    },
+                ],
             });
         }
-
         const createdOrders = await Order.insertMany(ordersToCreate, { session });
 
         for (const orderDoc of createdOrders) {

@@ -12,6 +12,7 @@ import {
     ShieldCheck,
     ShoppingCart,
     Lock,
+    Info,
     Building2,
     Truck,
 } from 'lucide-react';
@@ -113,6 +114,8 @@ const Checkout = () => {
 
     const hasDropship = cart.items.some((item) => item.orderType === 'DROPSHIP');
     const hasWholesale = cart.items.some((item) => item.orderType === 'WHOLESALE');
+    const codFee = hasDropship && paymentMethod === 'COD' ? 35 : 0;
+    const finalGrandTotal = cart.grandTotalPlatformCost + codFee;
     const isWalletSufficient = user?.walletBalance >= cart.grandTotalPlatformCost;
     const projectedBalance = (user?.walletBalance || 0) - (cart.grandTotalPlatformCost || 0);
 
@@ -504,6 +507,7 @@ const Checkout = () => {
                                 </span>
                             </h3>
 
+                            {/* ITEM LIST (Fixed: Only shows item details, not global totals) */}
                             <div className="custom-scrollbar mb-6 max-h-[250px] space-y-4 overflow-y-auto pr-2">
                                 {cart.items.map((item, idx) => (
                                     <div
@@ -547,7 +551,6 @@ const Checkout = () => {
                                                         )}{' '}
                                                         /ea
                                                     </p>
-                                                    {/* NEW: Explicit Item Freight Display */}
                                                     {item.shippingCost > 0 && (
                                                         <p className="mt-0.5 text-[9px] font-bold tracking-wider text-slate-400 uppercase">
                                                             + ₹
@@ -570,6 +573,7 @@ const Checkout = () => {
                                 ))}
                             </div>
 
+                            {/* TOTALS BREAKDOWN (Fixed: Order-level fees correctly placed here) */}
                             <div className="mb-5 space-y-3 border-y border-slate-100 py-5 text-sm">
                                 <div className="flex justify-between font-bold text-slate-500">
                                     <span>Platform Subtotal</span>
@@ -580,9 +584,9 @@ const Checkout = () => {
                                         })}
                                     </span>
                                 </div>
-                                {/* NEW: Explicit Grand Freight Total */}
+
                                 <div className="flex justify-between font-bold text-slate-500">
-                                    <span>Freight & Logistics</span>
+                                    <span>Freight & Packaging</span>
                                     <span className="text-slate-900">
                                         + ₹
                                         {cart.totalShippingCost?.toLocaleString('en-IN', {
@@ -590,6 +594,14 @@ const Checkout = () => {
                                         })}
                                     </span>
                                 </div>
+
+                                {codFee > 0 && (
+                                    <div className="flex justify-between font-bold text-amber-600">
+                                        <span>Courier COD Fee</span>
+                                        <span>+ ₹35.00</span>
+                                    </div>
+                                )}
+
                                 <div className="-mx-2 flex justify-between rounded-lg bg-emerald-50 px-2 py-1.5 font-bold text-emerald-700">
                                     <span className="flex items-center gap-1.5">
                                         <ShieldCheck size={16} /> GST (ITC Claimable)
@@ -603,6 +615,25 @@ const Checkout = () => {
                                 </div>
                             </div>
 
+                            {/* TRANSPARENCY TOOLTIP */}
+                            <div className="mb-6 rounded-xl border border-sky-100 bg-sky-50/50 p-4">
+                                <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-sky-800">
+                                    <Info size={14} /> How are logistics calculated?
+                                </h4>
+                                <p className="text-[10px] leading-relaxed text-sky-700">
+                                    <strong>Freight & Packaging:</strong> Billed on the higher of{' '}
+                                    <strong>Actual Weight</strong> or{' '}
+                                    <strong>Volumetric Weight</strong> (L × W × H / 5000).
+                                    <br />
+                                    <strong>Base Slabs:</strong> Up to 0.5kg (₹60), 1kg (₹95), 2kg
+                                    (₹120), 3kg (₹155), 5kg (₹190).
+                                    <br />
+                                    <strong>COD:</strong> A flat ₹35 courier collection fee applies
+                                    to Cash on Delivery.
+                                </p>
+                            </div>
+
+                            {/* WALLET DEDUCTION & AUTHORIZATION */}
                             <div
                                 className={`mb-6 rounded-2xl border-2 p-5 ${isWalletSufficient ? 'border-slate-200 bg-slate-50' : 'border-red-200 bg-red-50'}`}
                             >
@@ -612,7 +643,7 @@ const Checkout = () => {
                                     </span>
                                     <span className="text-2xl font-black text-slate-900">
                                         ₹
-                                        {cart.grandTotalPlatformCost?.toLocaleString('en-IN', {
+                                        {finalGrandTotal?.toLocaleString('en-IN', {
                                             minimumFractionDigits: 2,
                                         })}
                                     </span>

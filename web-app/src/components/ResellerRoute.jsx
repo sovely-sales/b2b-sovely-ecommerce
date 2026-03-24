@@ -15,7 +15,6 @@ const ResellerRoute = () => {
         return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
     }
 
-    // FIXED: Changed 'USER' to 'CUSTOMER' to match your backend Mongoose schema!
     const hasAccess = user.role === 'ADMIN' || user.role === 'RESELLER' || user.role === 'CUSTOMER';
 
     if (!hasAccess) {

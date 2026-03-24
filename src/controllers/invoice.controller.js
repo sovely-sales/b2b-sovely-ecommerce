@@ -494,16 +494,16 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
         };
     });
 
-    // 3. Add Shipping as a separate line item if it exists
+    // 3. Add Shipping & COD as separate line items
     if (orderDoc.shippingTotal > 0) {
         invoiceItems.push({
-            sku: 'FRGT-001',
-            title: 'Shipping & Logistics',
+            sku: 'FRGT-PKG-001',
+            title: 'Freight & Packaging Services',
             hsnCode: '996813', // Standard Indian HSN for local freight/delivery
             qty: 1,
             unitBasePrice: orderDoc.shippingTotal,
             totalBaseAmount: orderDoc.shippingTotal,
-            gstSlab: 0, // Since cart math added shipping flat without extra tax
+            gstSlab: 0,
             cgstAmount: 0,
             sgstAmount: 0,
             igstAmount: 0,
@@ -511,7 +511,23 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
         });
     }
 
-    // 4. Calculate Totals directly from the invoice items array to guarantee a perfect match
+    if (orderDoc.codCharge > 0) {
+        invoiceItems.push({
+            sku: 'FEE-COD-001',
+            title: 'Courier Cash on Delivery (COD) Fee',
+            hsnCode: '999799', // Other services
+            qty: 1,
+            unitBasePrice: orderDoc.codCharge,
+            totalBaseAmount: orderDoc.codCharge,
+            gstSlab: 0,
+            cgstAmount: 0,
+            sgstAmount: 0,
+            igstAmount: 0,
+            totalItemAmount: orderDoc.codCharge,
+        });
+    }
+
+    // 4. Calculate Totals directly from the invoice items array
     const totalTaxableValue = invoiceItems.reduce((acc, item) => acc + item.totalBaseAmount, 0);
     const totalCgst = invoiceItems.reduce((acc, item) => acc + item.cgstAmount, 0);
     const totalSgst = invoiceItems.reduce((acc, item) => acc + item.sgstAmount, 0);

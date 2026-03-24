@@ -277,3 +277,41 @@ export const getAllAdminProducts = asyncHandler(async (req, res) => {
         )
     );
 });
+
+/**
+ * @desc    Validate a bulk list of SKUs for B2B Quick Orders
+ * @route   POST /api/products/validate-bulk
+ * @access  Private (B2B/Reseller)
+ */
+export const validateBulkOrder = asyncHandler(async (req, res) => {
+    const { skus } = req.body; // Expects an array of string SKUs
+
+    if (!skus || !Array.isArray(skus) || skus.length === 0) {
+        throw new ApiError(400, 'Please provide an array of SKUs to validate.');
+    }
+
+    // Protect against massive payloads crashing the DB
+    if (skus.length > 500) {
+        throw new ApiError(400, 'Maximum 500 SKUs allowed per bulk validation request.');
+    }
+
+    // Convert all to uppercase/trimmed to match DB format
+    const cleanSkus = skus.map((sku) => sku.trim().toUpperCase());
+
+    // ONE QUERY: Find all matching active products
+    const products = await Product.find({
+        sku: { $in: cleanSkus },
+        status: 'active',
+        deletedAt: null,
+    }).select('sku title inventory.stock moq dropshipBasePrice platformSellPrice'); // Only return what we need for validation!
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                products,
+                `Validated ${products.length} out of ${skus.length} requested SKUs.`
+            )
+        );
+});

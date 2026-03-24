@@ -65,9 +65,9 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
 
     try {
         // Idempotency check up front to save DB reads
-        const existingPayment = await Payment.findOne({ referenceId: razorpay_payment_id }).session(
-            session
-        );
+        const existingPayment = await Payment.findOne({
+            gatewayPaymentId: razorpay_payment_id,
+        }).session(session);
         if (existingPayment) {
             await session.abortTransaction();
             session.endSession();
@@ -109,11 +109,17 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
         const paymentArray = await Payment.create(
             [
                 {
-                    userId: resellerId,
-                    invoiceId,
-                    paymentMethod: 'RAZORPAY',
-                    status: 'SUCCESS',
-                    referenceId: razorpay_payment_id,
+                    resellerId: resellerId,
+                    gatewayOrderId: razorpay_order_id,
+                    gatewayPaymentId: razorpay_payment_id,
+                    gatewaySignature: razorpay_signature,
+                    amount: invoice.grandTotal,
+                    paymentMethod: 'UNKNOWN', // Safe fallback based on your Enums
+                    purpose:
+                        invoice.invoiceType === 'WALLET_TOPUP'
+                            ? 'WALLET_RECHARGE'
+                            : 'DIRECT_ORDER_PAYMENT',
+                    status: 'CAPTURED',
                 },
             ],
             { session }

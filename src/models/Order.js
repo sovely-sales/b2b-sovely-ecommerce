@@ -95,6 +95,7 @@ const orderSchema = new mongoose.Schema(
         subTotal: { type: Number, required: true, default: 0 },
         taxTotal: { type: Number, required: true, default: 0 },
         shippingTotal: { type: Number, required: true, default: 0 },
+        codCharge: { type: Number, required: true, default: 0 },
         totalPlatformCost: { type: Number, required: true },
 
         amountToCollect: { type: Number, required: true },

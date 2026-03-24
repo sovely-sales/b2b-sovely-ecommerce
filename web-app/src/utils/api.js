@@ -35,14 +35,17 @@ api.interceptors.response.use(
 
         // Catch 401 Unauthorized errors
         if (error.response?.status === 401 && !originalRequest._retry) {
-            // Do not intercept 401s that come from auth endpoints
+            // THE FIX: Do not intercept 401s from /auth/me!
+            // This allows guests to visit the site without being violently redirected.
             if (
                 originalRequest.url.includes('/auth/login') ||
                 originalRequest.url.includes('/auth/register') ||
-                originalRequest.url.includes('/auth/refresh-token')
+                originalRequest.url.includes('/auth/refresh-token') ||
+                originalRequest.url.includes('/auth/me') // <--- Added this line
             ) {
                 return Promise.reject(error);
             }
+
             // Prevent infinite loops if the refresh token endpoint itself fails
             if (originalRequest.url.includes('/auth/refresh-token')) {
                 return Promise.reject(error);
@@ -65,7 +68,7 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                // Call our new backend endpoint to refresh the httpOnly cookie
+                // Call our backend endpoint to refresh the httpOnly cookie
                 await api.post('/auth/refresh-token');
 
                 isRefreshing = false;

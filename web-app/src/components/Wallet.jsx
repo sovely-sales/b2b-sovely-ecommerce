@@ -104,18 +104,20 @@ const Wallet = () => {
                 handler: async function (response) {
                     try {
                         // 4. Verify Payment on Backend
-                        await api.post('/wallet/verify', {
+                        await api.post('/payments/verify', {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature,
-                            invoiceId: invoiceId, // Passing the invoiceId from step 1
+                            invoiceId: invoiceId,
                             purpose: 'WALLET_RECHARGE',
                         });
 
                         setRechargeAmount('');
                         fetchWalletData(); // Refresh balance and ledger
                     } catch (err) {
-                        alert('Payment verification failed. Please contact B2B support.');
+                        const backendError = err.response?.data?.message || err.message;
+                        console.error('Verification Error:', backendError);
+                        alert(`Verification Failed: ${backendError}`);
                     }
                 },
                 prefill: {

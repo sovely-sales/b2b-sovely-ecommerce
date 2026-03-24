@@ -4,13 +4,95 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
+// --- NEW: Client's Logistics Engine ---
+const calculateFreightAndPackaging = (product, qty) => {
+    // 1. Actual Weight in Kg
+    const actualWeightKg = (product.weightGrams || 0) / 1000;
+
+    // 2. Volumetric Weight in Kg (L * W * H / 5000)
+    const l = product.dimensions?.length || 0;
+    const w = product.dimensions?.width || 0;
+    const h = product.dimensions?.height || 0;
+    const volWeightKg = (l * w * h) / 5000;
+
+    // 3. Chargeable Weight (Greater of the two)
+    const chargeableWeightPerUnit = Math.max(actualWeightKg, volWeightKg);
+
+    // 4. Total Chargeable Weight for this cart line item
+    const totalWt = chargeableWeightPerUnit * qty;
+
+    // 5. Determine Weight Slab
+    let slab = 0;
+    if (totalWt <= 0.5) slab = 0.5;
+    else if (totalWt <= 1.0) slab = 1;
+    else if (totalWt <= 2.0) slab = 2;
+    else if (totalWt <= 3.0) slab = 3;
+    else if (totalWt <= 4.0) slab = 4;
+    else if (totalWt <= 5.0) slab = 5;
+    else slab = Math.ceil(totalWt); // Fallback: rounds up to nearest kg for >5kg
+
+    // 6. Calculate Delivery Charge (Based on Client's SWITCH)
+    let deliveryCharge = 0;
+    switch (slab) {
+        case 0.5:
+            deliveryCharge = 50;
+            break;
+        case 1:
+            deliveryCharge = 80;
+            break;
+        case 2:
+            deliveryCharge = 100;
+            break;
+        case 3:
+            deliveryCharge = 130;
+            break;
+        case 4:
+            deliveryCharge = 145;
+            break; // Interpolated (Missing in client data)
+        case 5:
+            deliveryCharge = 160;
+            break;
+        default:
+            deliveryCharge = 160 + (slab - 5) * 30; // +₹30 per extra kg above 5kg
+    }
+
+    // 7. Calculate Packaging/Product Charge (Based on Client's SWITCH)
+    let packingCharge = 0;
+    switch (slab) {
+        case 0.5:
+            packingCharge = 10;
+            break;
+        case 1:
+            packingCharge = 15;
+            break;
+        case 2:
+            packingCharge = 20;
+            break;
+        case 3:
+            packingCharge = 25;
+            break;
+        case 4:
+            packingCharge = 28;
+            break; // Interpolated (Missing in client data)
+        case 5:
+            packingCharge = 30;
+            break;
+        default:
+            packingCharge = 30 + (slab - 5) * 5; // +₹5 per extra kg above 5kg
+    }
+
+    return {
+        deliveryCharge,
+        packingCharge,
+        totalShippingCost: deliveryCharge + packingCharge,
+    };
+};
+
 const recalculateCart = async (cart) => {
     let subTotal = 0;
     let totalTax = 0;
     let totalShippingCost = 0;
     let totalExpectedProfit = 0;
-
-    const SHIPPING_RATE_PER_KG = 50; // Base rate: ₹50/kg
 
     for (let item of cart.items) {
         const product = await Product.findById(item.productId);
@@ -40,20 +122,26 @@ const recalculateCart = async (cart) => {
         item.gstSlab = product.gstSlab;
         item.taxAmountPerUnit = Number(((unitCost * product.gstSlab) / 100).toFixed(2));
 
-        // Calculate Shipping based on weight
-        const itemWeightKg = (product.weightGrams / 1000) * item.qty;
-        item.shippingCost = Math.ceil(Math.max(1, itemWeightKg)) * SHIPPING_RATE_PER_KG;
+        // --- APPLIED NEW LOGISTICS ENGINE ---
+        const { totalShippingCost: itemShippingCost } = calculateFreightAndPackaging(
+            product,
+            item.qty
+        );
+        item.shippingCost = itemShippingCost;
 
         item.totalItemPlatformCost = Number(
             ((unitCost + item.taxAmountPerUnit) * item.qty).toFixed(2)
         );
 
         if (item.orderType === 'DROPSHIP') {
+            // Minimum selling price = Platform Cost + Tax + Shipping
             const minimumSellingPrice =
                 unitCost + item.taxAmountPerUnit + item.shippingCost / item.qty;
+
             if (item.resellerSellingPrice < minimumSellingPrice) {
                 item.resellerSellingPrice = minimumSellingPrice;
             }
+
             const profitPerUnit = item.resellerSellingPrice - minimumSellingPrice;
             item.expectedProfit = Number((profitPerUnit * item.qty).toFixed(2));
         } else {
@@ -81,7 +169,7 @@ const recalculateCart = async (cart) => {
 export const getCart = asyncHandler(async (req, res) => {
     let cart = await Cart.findOne({ resellerId: req.user._id }).populate(
         'items.productId',
-        'title images sku inventory moq weightGrams'
+        'title images sku inventory moq weightGrams dimensions dropshipBasePrice suggestedRetailPrice' // Added dimensions
     );
 
     if (!cart) {
@@ -141,7 +229,7 @@ export const addToCart = asyncHandler(async (req, res) => {
 
     const populatedCart = await Cart.findById(cart._id).populate(
         'items.productId',
-        'title images sku inventory moq weightGrams'
+        'title images sku inventory moq weightGrams dimensions dropshipBasePrice suggestedRetailPrice'
     );
 
     return res.status(200).json(new ApiResponse(200, populatedCart, 'Item added to cart'));
@@ -176,7 +264,7 @@ export const updateCartItem = asyncHandler(async (req, res) => {
 
     const populatedCart = await Cart.findById(cart._id).populate(
         'items.productId',
-        'title images sku inventory moq weightGrams'
+        'title images sku inventory moq weightGrams dimensions dropshipBasePrice suggestedRetailPrice'
     );
 
     return res.status(200).json(new ApiResponse(200, populatedCart, 'Cart updated'));
@@ -195,7 +283,7 @@ export const removeFromCart = asyncHandler(async (req, res) => {
 
     const populatedCart = await Cart.findById(cart._id).populate(
         'items.productId',
-        'title images sku inventory moq weightGrams'
+        'title images sku inventory moq weightGrams dimensions dropshipBasePrice suggestedRetailPrice'
     );
 
     return res.status(200).json(new ApiResponse(200, populatedCart, 'Item removed from cart'));

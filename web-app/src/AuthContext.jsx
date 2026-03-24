@@ -12,9 +12,19 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
             localStorage.removeItem('reseller_cart');
 
-            // THE FIX: Only redirect if they aren't already on the login or signup page!
             const currentPath = window.location.pathname;
-            if (currentPath !== '/login' && currentPath !== '/signup') {
+            // THE FIX: Do not redirect if they are on the public home page or auth pages.
+            // Only force a redirect if they get unauthorized while inside the dashboard/catalog.
+            const publicPaths = [
+                '/',
+                '/login',
+                '/signup',
+                '/forgot-password',
+                '/terms',
+                '/privacy',
+            ];
+
+            if (!publicPaths.includes(currentPath)) {
                 window.location.href = '/login?session_expired=true';
             }
         };
@@ -26,7 +36,7 @@ export const AuthProvider = ({ children }) => {
                 const response = await api.get('/auth/me');
                 if (response.data?.data) setUser(response.data.data);
             } catch (error) {
-                // If it fails, they are a guest. Just set user to null.
+                // If it fails (e.g. 401), they are a guest. Just set user to null.
                 setUser(null);
             } finally {
                 setLoading(false);
@@ -68,11 +78,15 @@ export const AuthProvider = ({ children }) => {
     const logout = async () => {
         try {
             await api.post('/auth/logout');
-            setUser(null);
         } catch (error) {
             console.error('Error logging out', error);
-            // Even if the server fails, clear local state
+        } finally {
+            // 1. Clear the user state
             setUser(null);
+            // 2. Clear any local storage residue
+            localStorage.removeItem('reseller_cart');
+            // 3. Hard redirect to the marketing home page (flushes all React memory/state)
+            window.location.href = '/';
         }
     };
 
@@ -109,7 +123,7 @@ export const AuthProvider = ({ children }) => {
                 sendOtp,
                 loginWithOtpReq,
                 isKycApproved: user?.kycStatus === 'APPROVED',
-                isAdmin: user?.role === 'ADMIN', // Very helpful for frontend routing!
+                isAdmin: user?.role === 'ADMIN',
             }}
         >
             {children}
