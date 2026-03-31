@@ -1,4 +1,4 @@
-# 🛒 Sovely B2B E-Commerce Platform
+# <img src="public/images/sovely-image.png" width="40" align="top">  Sovely B2B E-Commerce Platform
 
 Welcome to the Sovely E-Commerce repository. This is a robust, production-ready MERN (MongoDB, Express, React, Node.js) application designed for B2B wholesale commerce. It features professional-grade authentication, automated product catalog management, a seamless wallet/payment system, and an advanced reseller analytics suite.
 
