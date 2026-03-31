@@ -5,17 +5,17 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Target the src folder inside web-app
+
 const targetDir = path.join(__dirname, 'src');
 
 function stripComments(content) {
-    // 1. Remove multi-line and JSX comments /* ... */
+    
     let cleaned = content.replace(/\/\*[\s\S]*?\*\//g, '');
     
     // 2. Remove single-line comments // ... (but ignore URLs like http://)
     cleaned = cleaned.replace(/([^:]|^)\/\/.*/g, '$1');
     
-    // 3. Remove excessive empty lines left behind by the deleted comments
+    
     cleaned = cleaned.replace(/^\s*[\r\n]/gm, '\n');
     
     return cleaned;
@@ -29,8 +29,8 @@ function processDirectory(directory) {
         const stat = fs.statSync(fullPath);
 
         if (stat.isDirectory()) {
-            processDirectory(fullPath); // Recursively search folders
-        } else if (fullPath.endsWith('.js') || fullPath.endsWith('.jsx')) { // Added .jsx support!
+            processDirectory(fullPath); 
+        } else if (fullPath.endsWith('.js') || fullPath.endsWith('.jsx')) { 
             const content = fs.readFileSync(fullPath, 'utf8');
             const cleanedContent = stripComments(content);
             fs.writeFileSync(fullPath, cleanedContent, 'utf8');

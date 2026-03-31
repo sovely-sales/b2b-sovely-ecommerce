@@ -11,15 +11,15 @@ function SearchResults() {
 
     const navigate = useNavigate();
 
-    // Scroll to top when the search query changes
+    
     useEffect(() => {
         window.scrollTo(0, 0);
     }, [query, categoryParam]);
 
-    // FIX: Provide a stable reference for empty filters to prevent the infinite loop in DropshipProducts
+    
     const emptyFilters = useMemo(() => ({}), []);
 
-    // Empty State (No query or category)
+    
     if (!query && categoryParam === 'All Categories') {
         return (
             <div className="mx-auto w-full max-w-7xl px-4 py-24 text-center sm:px-6 lg:px-8">
@@ -42,10 +42,10 @@ function SearchResults() {
         );
     }
 
-    // Results State
+    
     return (
         <div className="animate-in fade-in z-10 mx-auto w-full max-w-7xl px-4 py-8 duration-300 sm:px-6 lg:px-8 lg:py-12">
-            {/* NEW: Back Navigation */}
+            {}
             <button
                 onClick={() => navigate(ROUTES.CATALOG)}
                 className="mb-6 flex items-center gap-1 text-sm font-bold text-slate-500 hover:text-slate-900"
@@ -53,7 +53,7 @@ function SearchResults() {
                 <ArrowLeft size={16} /> Back to Catalog
             </button>
 
-            {/* Results Header */}
+            {}
             <div className="mb-8 border-b border-slate-200 pb-6">
                 <p className="mb-2 text-sm font-bold tracking-wider text-emerald-600 uppercase">
                     {query ? 'Search Results' : 'Category View'}
@@ -66,12 +66,12 @@ function SearchResults() {
                 </p>
             </div>
 
-            {/* The Product Grid/List */}
+            {}
             <DropshipProducts
                 initialCategory={categoryParam}
                 globalSearchQuery={query}
                 hideTitle={true}
-                filters={emptyFilters} // Passes the stable object to kill the infinite loop
+                filters={emptyFilters} 
             />
         </div>
     );

@@ -5,7 +5,7 @@ import { AuthContext } from '../AuthContext';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, ShieldCheck, ArrowLeft } from 'lucide-react';
 
-// --- ANIMATION VARIANTS ---
+
 const fadeUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
@@ -146,7 +146,7 @@ const Login = () => {
 
     return (
         <div className="flex min-h-screen bg-white font-sans selection:bg-emerald-500/30">
-            {/* LEFT PANEL - MARKETING (Hidden on mobile) */}
+            {}
             <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-slate-900 p-12 lg:flex">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:24px_24px]"></div>
                 <div className="animate-blob absolute top-[-20%] left-[-10%] h-[500px] w-[500px] rounded-full bg-emerald-500/20 mix-blend-overlay blur-[100px] filter"></div>
@@ -181,7 +181,7 @@ const Login = () => {
                 </div>
             </div>
 
-            {/* RIGHT PANEL - FORM */}
+            {}
             <div className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-16 xl:px-24">
                 <motion.div
                     initial="hidden"

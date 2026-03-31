@@ -16,12 +16,12 @@ const walletTransactionSchema = new mongoose.Schema(
         purpose: {
             type: String,
             enum: [
-                'WALLET_RECHARGE', // Reseller added funds via gateway
-                'ORDER_DEDUCTION', // Platform deducted base cost for an order
-                'PROFIT_CREDIT', // Platform credited COD profit to reseller
-                'RTO_PENALTY', // Deduction for Return-to-Origin shipping costs
-                'REFUND', // Order cancelled, funds returned to wallet
-                'BANK_WITHDRAWAL', // Reseller cashed out to their bank
+                'WALLET_RECHARGE', 
+                'ORDER_DEDUCTION', 
+                'PROFIT_CREDIT', 
+                'RTO_PENALTY', 
+                'REFUND', 
+                'BANK_WITHDRAWAL', 
             ],
             required: true,
         },
@@ -30,17 +30,17 @@ const walletTransactionSchema = new mongoose.Schema(
             required: true,
             min: 1,
         },
-        // Captures the wallet balance immediately after this transaction for audit trails
+        
         closingBalance: {
             type: Number,
             required: true,
         },
         referenceId: {
-            type: String, // Can be OrderId, PaymentId, or WithdrawalRequestId
+            type: String, 
             required: true,
         },
         description: {
-            type: String, // e.g., "Profit credited for Order #10045"
+            type: String, 
         },
         status: {
             type: String,

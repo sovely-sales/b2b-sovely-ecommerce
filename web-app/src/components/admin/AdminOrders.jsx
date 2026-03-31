@@ -47,11 +47,11 @@ const AdminOrders = () => {
         const fetchOrders = async () => {
             setLoading(true);
             try {
-                // THE FIX: Changed from '/orders/admin/all' to '/orders/all'
+                
                 const res = await api.get('/orders/all', {
                     params: {
                         page,
-                        limit: 20, // Increased limit for high-density view
+                        limit: 20, 
                         search: debouncedSearch,
                         status: filterOption === 'ALL' ? '' : filterOption,
                     },
@@ -111,7 +111,7 @@ const AdminOrders = () => {
 
     return (
         <div className="w-full">
-            {/* Command Bar */}
+            {}
             <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <h2 className="text-xl font-black text-slate-900">Order Fulfillment</h2>
 
@@ -146,7 +146,7 @@ const AdminOrders = () => {
                 </div>
             </div>
 
-            {/* High Density Orders Table */}
+            {}
             <div className="relative mb-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 {loading && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm">
@@ -568,7 +568,7 @@ const AdminOrders = () => {
                                         </>
                                     )}
 
-                                    {/* PROCESS MODE: Edit Form */}
+                                    {}
                                     {!viewMode && (
                                         <div className="border-t border-slate-200 pt-5">
                                             <h4 className="mb-3 flex items-center gap-1.5 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase">

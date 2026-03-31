@@ -6,8 +6,8 @@ const idempotencySchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
-    // We store the successful response here.
-    // If a duplicate request comes in, we just return this instead of processing again!
+    
+    
     response: {
         type: mongoose.Schema.Types.Mixed,
         required: true,
@@ -15,7 +15,7 @@ const idempotencySchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now,
-        expires: 86400, // TTL Index: Auto-deletes document after 24 hours (86400 seconds)
+        expires: 86400, 
     },
 });
 

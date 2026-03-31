@@ -10,12 +10,12 @@ function BestDeals() {
     useEffect(() => {
         const fetchDeals = async () => {
             try {
-                // Fetching top 4 high-margin active products
+                
                 const res = await api.get('/products', {
                     params: { limit: 4, sort: '-estimatedMarginPercent' },
                 });
 
-                // Handle different response structures
+                
                 const data = res.data?.data?.products || res.data?.data || res.data || [];
                 setDeals(Array.isArray(data) ? data.slice(0, 4) : []);
             } catch (error) {
@@ -96,12 +96,12 @@ function BestDeals() {
                                 key={deal._id}
                                 className="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                             >
-                                {/* Margin Badge */}
+                                {}
                                 <div className="absolute top-4 left-4 z-10 rounded-full bg-emerald-500 px-3 py-1 text-[10px] font-black tracking-widest text-white uppercase shadow-sm">
                                     {marginPercent}% Margin
                                 </div>
 
-                                {/* Image Wrapper */}
+                                {}
                                 <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100 p-4">
                                     <img
                                         src={image}
@@ -115,7 +115,7 @@ function BestDeals() {
                                     )}
                                 </div>
 
-                                {/* Content */}
+                                {}
                                 <div className="flex flex-1 flex-col p-5">
                                     <div className="mb-2 flex items-center justify-between text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                                         <span className="flex items-center gap-1">
@@ -130,7 +130,7 @@ function BestDeals() {
                                         {deal.title}
                                     </h3>
 
-                                    {/* B2B Pricing Block */}
+                                    {}
                                     <div className="mt-auto space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-4">
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs font-bold text-slate-500">
@@ -151,7 +151,7 @@ function BestDeals() {
                                         </div>
                                     </div>
 
-                                    {/* Action */}
+                                    {}
                                     <Link
                                         to={`/product/${deal._id}`}
                                         className="mt-4 w-full rounded-xl bg-slate-900 py-3 text-center text-sm font-bold text-white transition-colors hover:bg-slate-800"

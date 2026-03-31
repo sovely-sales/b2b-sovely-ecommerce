@@ -3,12 +3,9 @@ import { User } from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-/**
- * @desc    Verify JWT Token and attach user to request
- */
 export const verifyJWT = asyncHandler(async (req, res, next) => {
     try {
-        // Grab token from cookies or the Authorization header (Mobile apps/Postman)
+        
         const token =
             req.cookies?.accessToken || req.header('Authorization')?.replace('Bearer ', '');
 
@@ -21,7 +18,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
             process.env.ACCESS_TOKEN_SECRET || 'fallback_secret'
         );
 
-        // FIX: Added strict check to instantly block banned or soft-deleted users
+        
         const user = await User.findOne({
             _id: decodedToken._id,
             isActive: true,
@@ -32,7 +29,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
             throw new ApiError(401, 'Invalid Access Token or Account Suspended');
         }
 
-        // Attach the user object to the request for the next controller to use
+        
         req.user = user;
         next();
     } catch (error) {
@@ -40,10 +37,6 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     }
 });
 
-/**
- * @desc    Role-Based Access Control (RBAC)
- * @example router.post('/products', verifyJWT, authorizeRoles('ADMIN'), createProduct)
- */
 export const authorizeRoles = (...allowedRoles) => {
     return (req, res, next) => {
         if (!req.user || !allowedRoles.includes(req.user.role)) {
@@ -56,13 +49,9 @@ export const authorizeRoles = (...allowedRoles) => {
     };
 };
 
-/**
- * @desc    Strict B2B Check: Ensure Reseller has completed KYC
- * @usage   Use this on routes like placing wholesale orders or withdrawing wallet funds
- */
 export const requireKycApproved = asyncHandler(async (req, res, next) => {
     if (req.user.role === 'ADMIN') {
-        return next(); // Admins bypass KYC checks
+        return next(); 
     }
 
     if (req.user.kycStatus !== 'APPROVED') {

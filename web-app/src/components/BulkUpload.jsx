@@ -22,7 +22,7 @@ const BulkUpload = () => {
     const { addToCart, isLoading } = useCartStore();
     const { isAdmin } = useContext(AuthContext);
 
-    const [activeTab, setActiveTab] = useState('UPLOAD'); // 'UPLOAD' or 'PASTE'
+    const [activeTab, setActiveTab] = useState('UPLOAD'); 
     const [parsedData, setParsedData] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
     const [manualInput, setManualInput] = useState('');
@@ -56,7 +56,7 @@ const BulkUpload = () => {
         }
     };
 
-    // ─── File Handlers ────────────────────────────────────────────────────────
+    
     const handleFileUpload = (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -73,9 +73,9 @@ const BulkUpload = () => {
         if (isAdmin) {
             // Admin mode: hold file object for the API upload
             setUploadedFile(file);
-            setParsedData([{ sku: file.name, qty: '—', status: 'pending' }]); // preview row
+            setParsedData([{ sku: file.name, qty: '—', status: 'pending' }]); 
         } else {
-            // Reseller mode: parse locally
+            
             setUploadedFile(null);
             const reader = new FileReader();
             reader.onload = (event) => processCSVText(event.target.result);
@@ -102,7 +102,7 @@ const BulkUpload = () => {
         processCSVText(manualInput);
     };
 
-    // ─── ADMIN: Upload CSV to backend ─────────────────────────────────────────
+    
     const runAdminImport = async () => {
         if (!uploadedFile) return;
         setIsImporting(true);
@@ -114,9 +114,9 @@ const BulkUpload = () => {
             const formData = new FormData();
             formData.append('csvFile', uploadedFile);
 
-            // Removing explicit Content-Type header so Axios generates the unique multipart boundary correctly!
+            
             const res = await api.post('products/import-csv', formData, {
-                timeout: 300000, // 5 min for large files
+                timeout: 300000, 
             });
 
             const data = res.data?.data;
@@ -136,7 +136,7 @@ const BulkUpload = () => {
         }
     };
 
-    // ─── RESELLER: Add parsed SKUs to cart ───────────────────────────────────
+    
     const processBulkOrder = async () => {
         setError('');
         setSuccessMsg('');
@@ -238,9 +238,9 @@ const BulkUpload = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-                {/* Left: Input Area */}
+                {}
                 <div className="space-y-6 lg:col-span-5">
-                    {/* Hide the PASTE tab for admin — not relevant for product imports */}
+                    {}
                     {!isAdmin && (
                         <div className="flex rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
                             <button
@@ -329,7 +329,7 @@ const BulkUpload = () => {
                         )}
                     </div>
 
-                    {/* Admin: format info card */}
+                    {}
                     {isAdmin && (
                         <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-xs text-blue-800">
                             <p className="mb-1 font-extrabold">
@@ -352,7 +352,7 @@ const BulkUpload = () => {
                     )}
                 </div>
 
-                {/* Right: Preview & Execution */}
+                {}
                 <div className="lg:col-span-7">
                     <div className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
@@ -391,7 +391,7 @@ const BulkUpload = () => {
                             </div>
                         )}
 
-                        {/* Admin import result breakdown */}
+                        {}
                         {importResult && (
                             <div className="mb-4 grid grid-cols-3 gap-3">
                                 <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-center">

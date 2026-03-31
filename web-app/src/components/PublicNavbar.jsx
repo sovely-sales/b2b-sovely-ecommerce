@@ -6,7 +6,7 @@ function PublicNavbar() {
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-slate-200/50 bg-white/90 shadow-sm backdrop-blur-xl">
             <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                {/* Logo */}
+                {}
                 <Link to={ROUTES.HOME} className="group flex items-center gap-2">
                     <img
                         src="https://m.media-amazon.com/images/X/bxt1/M/Bbxt1BI1cNpD5ln._SL160_QL95_FMwebp_.png"
@@ -18,7 +18,7 @@ function PublicNavbar() {
                     </span>
                 </Link>
 
-                {/* Marketing Links (Hidden on mobile for simplicity right now) */}
+                {}
                 <div className="hidden items-center gap-8 md:flex">
                     <a
                         href="#features"
@@ -40,7 +40,7 @@ function PublicNavbar() {
                     </a>
                 </div>
 
-                {/* Auth Actions */}
+                {}
                 <div className="flex items-center gap-3">
                     <Link
                         to={ROUTES.LOGIN}

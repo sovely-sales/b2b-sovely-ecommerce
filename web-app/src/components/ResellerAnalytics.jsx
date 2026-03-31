@@ -18,7 +18,7 @@ const ResellerAnalytics = () => {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                // Call the new endpoint we just wired up!
+                
                 const res = await api.get('/analytics/reseller');
                 setData(res.data.data);
                 setIsLoading(false);
@@ -44,7 +44,7 @@ const ResellerAnalytics = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mt-8 space-y-6"
         >
-            {/* Action Required Banner for NDRs */}
+            {}
             {data.kpis.ndrActionRequired > 0 && (
                 <div className="flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 p-5">
                     <div className="flex items-center gap-4">
@@ -70,9 +70,9 @@ const ResellerAnalytics = () => {
                 </div>
             )}
 
-            {/* Top Level KPIs */}
+            {}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {/* Realized Profit */}
+                {}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                     <div className="mb-4 flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
@@ -90,7 +90,7 @@ const ResellerAnalytics = () => {
                     </p>
                 </div>
 
-                {/* Pending Profit */}
+                {}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                     <div className="mb-4 flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
@@ -108,7 +108,7 @@ const ResellerAnalytics = () => {
                     </p>
                 </div>
 
-                {/* RTO Rate */}
+                {}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm sm:col-span-2 lg:col-span-1">
                     <div className="mb-4 flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
@@ -139,7 +139,7 @@ const ResellerAnalytics = () => {
                 </div>
             </div>
 
-            {/* Profit Trend Chart (CSS Only) */}
+            {}
             <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                 <div className="mb-6">
                     <h3 className="text-lg font-extrabold text-slate-900">15-Day Margin Trend</h3>
@@ -156,18 +156,18 @@ const ResellerAnalytics = () => {
                                 key={idx}
                                 className="group relative flex h-full flex-1 flex-col items-center justify-end"
                             >
-                                {/* Tooltip */}
+                                {}
                                 <div className="absolute -top-10 z-10 scale-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold whitespace-nowrap text-white opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
                                     ₹{day.profit.toLocaleString('en-IN')}
                                 </div>
-                                {/* Bar */}
+                                {}
                                 <motion.div
                                     initial={{ height: 0 }}
                                     animate={{ height: `${heightPct}%` }}
                                     transition={{ duration: 0.5, delay: idx * 0.05 }}
                                     className="w-full rounded-t-md bg-emerald-200 transition-colors group-hover:bg-emerald-500"
                                 ></motion.div>
-                                {/* Date Label */}
+                                {}
                                 <span className="mt-2 hidden text-[10px] font-bold text-slate-400 sm:block">
                                     {idx % 2 === 0 ? day.date : ''}
                                 </span>

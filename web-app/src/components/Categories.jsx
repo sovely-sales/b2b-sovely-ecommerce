@@ -7,7 +7,7 @@ import { getCategoryIcon } from '../utils/categoryIcons';
 function Categories({ onSelectCategory }) {
     const scrollContainerRef = useRef(null);
 
-    // API Call: Fetch Categories
+    
     const { data: dbCategories = [] } = useQuery({
         queryKey: ['categories'],
         queryFn: async () => {
@@ -57,7 +57,7 @@ function Categories({ onSelectCategory }) {
                 </div>
 
                 <div className="group relative">
-                    {/* Left Scroll Button (Desktop Only) */}
+                    {}
                     <button
                         onClick={() => scroll('left')}
                         className="flex-h-12 absolute top-1/2 -left-5 z-10 hidden w-12 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white/90 text-slate-600 opacity-0 shadow-lg backdrop-blur-sm transition-all group-hover:opacity-100 hover:scale-110 hover:bg-white hover:text-slate-900 md:flex"
@@ -66,7 +66,7 @@ function Categories({ onSelectCategory }) {
                         <ChevronLeft size={24} />
                     </button>
 
-                    {/* Horizontal Scroll Container */}
+                    {}
                     <div
                         ref={scrollContainerRef}
                         className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
@@ -94,7 +94,7 @@ function Categories({ onSelectCategory }) {
                         ))}
                     </div>
 
-                    {/* Right Scroll Button (Desktop Only) */}
+                    {}
                     <button
                         onClick={() => scroll('right')}
                         className="flex-h-12 absolute top-1/2 -right-5 z-10 hidden w-12 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white/90 text-slate-600 opacity-0 shadow-lg backdrop-blur-sm transition-all group-hover:opacity-100 hover:scale-110 hover:bg-white hover:text-slate-900 md:flex"

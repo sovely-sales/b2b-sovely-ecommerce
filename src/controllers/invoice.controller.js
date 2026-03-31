@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const getInvoice = asyncHandler(async (req, res) => {
-    // FIX: Changed userId to resellerId
+    
     const invoice = await Invoice.findOne({
         _id: req.params.id,
         resellerId: req.user._id,
@@ -25,7 +25,7 @@ export const getInvoice = asyncHandler(async (req, res) => {
 });
 
 export const listMyInvoices = asyncHandler(async (req, res) => {
-    // FIX: Changed userId to resellerId
+    
     const invoices = await Invoice.find({ resellerId: req.user._id })
         .populate('orderId')
         .sort({ createdAt: -1 });
@@ -45,17 +45,17 @@ export const getAllInvoices = asyncHandler(async (req, res) => {
 
     if (status !== 'ALL') {
         if (status === 'OVERDUE') {
-            query.paymentStatus = 'UNPAID'; // FIX: Changed status to paymentStatus
+            query.paymentStatus = 'UNPAID'; 
             query.dueDate = { $lt: new Date() };
         } else {
-            query.paymentStatus = status; // FIX: Changed status to paymentStatus
+            query.paymentStatus = status; 
         }
     }
 
     if (search) {
         query['$or'] = [
             { invoiceNumber: { $regex: search, $options: 'i' } },
-            // FIX: Changed buyerDetails to billedTo
+            
             { 'billedTo.companyName': { $regex: search, $options: 'i' } },
             { 'billedTo.gstin': { $regex: search, $options: 'i' } },
         ];
@@ -81,27 +81,27 @@ export const getAllInvoices = asyncHandler(async (req, res) => {
 });
 
 export const getMyInvoices = asyncHandler(async (req, res) => {
-    // FIX: Using resellerId to match your schema
+    
     const invoices = await Invoice.find({ resellerId: req.user._id })
         .sort({ createdAt: -1 })
         .populate('orderId', 'orderId');
 
-    // Format the response for the frontend table using the CORRECT schema keys
+    
     const formattedInvoices = invoices.map((inv) => {
-        // Calculate total GST dynamically
+        
         const totalGst = (inv.totalCgst || 0) + (inv.totalSgst || 0) + (inv.totalIgst || 0);
 
         return {
             _id: inv._id,
             invoiceNumber: inv.invoiceNumber,
-            orderId: inv.orderId?.orderId || 'WALLET-TOPUP', // Fallback for wallet receipts
+            orderId: inv.orderId?.orderId || 'WALLET-TOPUP', 
             date: inv.createdAt,
             taxableAmount: inv.totalTaxableValue || 0,
             gstAmount: totalGst,
             totalAmount: inv.grandTotal || 0,
             status: inv.paymentStatus || 'PAID',
             invoiceType: inv.invoiceType,
-            // If the user has an approved KYC with a GSTIN, it's ITC eligible!
+            
             isItcEligible:
                 req.user.kycStatus === 'APPROVED' &&
                 !!req.user.gstin &&
@@ -118,7 +118,7 @@ export const markAsPaidManual = asyncHandler(async (req, res) => {
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) throw new ApiError(404, 'Invoice not found');
 
-    // FIX: Changed status to paymentStatus
+    
     if (invoice.paymentStatus === 'PAID') {
         throw new ApiError(400, 'Invoice is already paid');
     }
@@ -134,7 +134,7 @@ export const markAsPaidManual = asyncHandler(async (req, res) => {
 });
 
 const amountToWords = (amount) => {
-    // Note: In production, consider a robust library like 'number-to-words' for Indian Rupee format
+    
     return `Rupees ${Math.floor(amount).toLocaleString('en-IN')} Only`;
 };
 
@@ -152,7 +152,7 @@ const generateTableRow = (doc, y, c1, c2, c3, c4, c5, c6, c7, c8) => {
 
 export const generateInvoicePDF = async (req, res, next) => {
     try {
-        // Support finding by Invoice ID or Order ID
+        
         const query = {};
         if (req.params.orderId) {
             query.orderId = req.params.orderId;
@@ -193,7 +193,7 @@ export const generateInvoicePDF = async (req, res, next) => {
             doc.fontSize(24).font('Helvetica-Bold').fillColor('#0f172a').text('SOVELY', 40, 35);
         }
 
-        // Title changes based on type
+        
         const docTitle = invoice.invoiceType === 'WALLET_TOPUP' ? 'RECEIPT' : 'TAX INVOICE';
 
         doc.fillColor('#0f172a')
@@ -228,7 +228,7 @@ export const generateInvoicePDF = async (req, res, next) => {
             .text('ABCDE1234F');
 
         doc.fontSize(10).font('Helvetica-Bold').text('Billed To:', 300, topY);
-        // FIX: Replaced buyerDetails with billedTo
+        
         doc.font('Helvetica-Bold')
             .fontSize(11)
             .text(invoice.billedTo?.companyName || req.user.name, 300, topY + 15);
@@ -279,7 +279,7 @@ export const generateInvoicePDF = async (req, res, next) => {
 
         let y = metaY + 60;
 
-        // TABLE LOGIC
+        
         if (invoice.invoiceType !== 'WALLET_TOPUP' && invoice.items && invoice.items.length > 0) {
             doc.rect(40, y, 515, 20).fillAndStroke('#0f172a', '#0f172a');
             doc.fillColor('#ffffff').font('Helvetica-Bold');
@@ -300,7 +300,7 @@ export const generateInvoicePDF = async (req, res, next) => {
             let index = 1;
             doc.fillColor('#0f172a').font('Helvetica');
 
-            // FIX: Loop through invoice.items, not invoice.orderId.items
+            
             for (const item of invoice.items) {
                 if (y > 700) {
                     doc.addPage();
@@ -351,14 +351,14 @@ export const generateInvoicePDF = async (req, res, next) => {
             doc.moveTo(40, y).lineTo(555, y).stroke('#cbd5e1');
             y += 15;
         } else if (invoice.invoiceType === 'WALLET_TOPUP') {
-            // Render a simple single line for Wallet Topup
+            
             doc.rect(40, y, 515, 20).fillAndStroke('#f8fafc', '#cbd5e1');
             doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(10);
             doc.text('Description: Wallet Top-Up (Prepaid Balance)', 50, y + 6);
             y += 35;
         }
 
-        // TOTALS SECTION
+        
         doc.font('Helvetica-Bold').fontSize(9);
 
         if (invoice.invoiceType !== 'WALLET_TOPUP') {
@@ -371,7 +371,7 @@ export const generateInvoicePDF = async (req, res, next) => {
             );
             y += 15;
 
-            // FIX: Using direct totals from the invoice document
+            
             if (invoice.isInterState) {
                 doc.text('IGST Amount:', 360, y);
                 doc.text(
@@ -417,7 +417,7 @@ export const generateInvoicePDF = async (req, res, next) => {
         doc.fontSize(9).font('Helvetica-Bold').text('Amount in Words:');
         doc.font('Helvetica').text(amountToWords(invoice.grandTotal));
 
-        // FOOTER
+        
         if (doc.y > 650) doc.addPage();
         const footerY = doc.y + 40;
 
@@ -475,15 +475,15 @@ export const generateInvoicePDF = async (req, res, next) => {
 };
 
 export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => {
-    // 1. Determine Interstate Tax
-    // Assuming platform HQ is in Karnataka (State Code 29)
+    
+    
     const hqStateCode = '29';
-    const resellerStateCode = resellerDoc.stateCode || '29'; // Default to intra-state if missing
+    const resellerStateCode = resellerDoc.stateCode || '29'; 
     const isInterState = hqStateCode !== resellerStateCode;
 
-    // 2. Map Order Items to Invoice Items strictly using the Order Snapshot
+    
     const invoiceItems = orderDoc.items.map((item) => {
-        // Platform Invoice ALWAYS reflects what the reseller pays us (Platform Cost)
+        
         const baseAmount = item.platformBasePrice * item.qty;
         const taxAmount = item.taxAmountPerUnit * item.qty;
 
@@ -495,7 +495,7 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
             qty: item.qty,
             unitBasePrice: item.platformBasePrice,
             totalBaseAmount: baseAmount,
-            gstSlab: item.gstSlab, // Uses exact snapshot!
+            gstSlab: item.gstSlab, 
             cgstAmount: isInterState ? 0 : taxAmount / 2,
             sgstAmount: isInterState ? 0 : taxAmount / 2,
             igstAmount: isInterState ? taxAmount : 0,
@@ -503,9 +503,9 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
         };
     });
 
-    // 3. Add Shipping & COD as separate line items
+    
     if (orderDoc.shippingTotal > 0) {
-        // Construct a detailed title. Fallback to generic if weight wasn't saved.
+        
         const freightTitle = orderDoc.totalBillableWeight
             ? `Freight & Packaging Services (Billable Weight: ${orderDoc.totalBillableWeight}kg)`
             : 'Freight & Packaging Services';
@@ -513,11 +513,11 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
         invoiceItems.push({
             sku: 'FRGT-PKG-001',
             title: freightTitle,
-            hsnCode: '996813', // Local freight delivery
+            hsnCode: '996813', 
             qty: 1,
             unitBasePrice: orderDoc.shippingTotal,
             totalBaseAmount: orderDoc.shippingTotal,
-            gstSlab: 0, // NOTE: Freight usually attracts 18% GST in India, you may want to update this!
+            gstSlab: 0, 
             cgstAmount: 0,
             sgstAmount: 0,
             igstAmount: 0,
@@ -529,7 +529,7 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
         invoiceItems.push({
             sku: 'FEE-COD-001',
             title: 'Courier Cash on Delivery (COD) Fee',
-            hsnCode: '999799', // Other services
+            hsnCode: '999799', 
             qty: 1,
             unitBasePrice: orderDoc.codCharge,
             totalBaseAmount: orderDoc.codCharge,
@@ -541,14 +541,14 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
         });
     }
 
-    // 4. Calculate Totals directly from the invoice items array
+    
     const totalTaxableValue = invoiceItems.reduce((acc, item) => acc + item.totalBaseAmount, 0);
     const totalCgst = invoiceItems.reduce((acc, item) => acc + item.cgstAmount, 0);
     const totalSgst = invoiceItems.reduce((acc, item) => acc + item.sgstAmount, 0);
     const totalIgst = invoiceItems.reduce((acc, item) => acc + item.igstAmount, 0);
     const grandTotal = totalTaxableValue + totalCgst + totalSgst + totalIgst;
 
-    // 5. Build the Invoice Document
+    
     const invoiceType = orderDoc.orderId.includes('WH') ? 'B2B_WHOLESALE' : 'DROPSHIP_PLATFORM_FEE';
 
     const invoice = new Invoice({
@@ -585,7 +585,7 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
         totalIgst: Number(totalIgst.toFixed(2)),
         grandTotal: Number(grandTotal.toFixed(2)),
 
-        paymentStatus: 'PAID', // Since your pipeline deducts wallet instantly
+        paymentStatus: 'PAID', 
         paymentTerms: 'PREPAID',
         status: 'GENERATED',
     });

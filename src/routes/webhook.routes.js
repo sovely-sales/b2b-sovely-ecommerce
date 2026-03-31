@@ -3,10 +3,10 @@ import { handleLogisticsWebhook, razorpayWebhook } from '../controllers/webhook.
 
 const router = Router();
 
-// Endpoint: POST /api/webhooks/logistics
+
 router.post('/logistics', handleLogisticsWebhook);
 
-// Endpoint: POST /api/webhooks/razorpay
+
 router.post('/razorpay', razorpayWebhook);
 
 export default router;

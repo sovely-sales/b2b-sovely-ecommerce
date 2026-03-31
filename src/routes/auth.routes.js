@@ -14,15 +14,15 @@ import { authValidation } from '../validations/auth.validation.js';
 
 const router = Router();
 
-// Public Routes
-// router.post('/register', validate(authValidation.register), registerUser);
+
+
 router.post('/login', loginUser);
 router.post('/refresh-token', refreshAccessToken);
-router.post('/send-otp', sendOtp); // NEW
+router.post('/send-otp', sendOtp); 
 router.post('/login-otp', loginWithOtp);
 router.post('/register', registerUser);
 
-// Secured Routes
+
 router.post('/logout', verifyJWT, logoutUser);
 router.get('/me', verifyJWT, getCurrentUser);
 

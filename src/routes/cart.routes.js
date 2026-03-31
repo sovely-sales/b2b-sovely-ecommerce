@@ -10,7 +10,7 @@ import { verifyJWT } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// All cart routes require a logged-in reseller
+
 router.use(verifyJWT);
 
 router.route('/').get(getCart).post(addToCart).delete(clearCart);

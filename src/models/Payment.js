@@ -7,7 +7,7 @@ const paymentSchema = new mongoose.Schema(
             ref: 'User',
             required: true,
         },
-        // External Gateway Details (e.g., Razorpay)
+        
         gatewayOrderId: {
             type: String,
             required: true,
@@ -15,14 +15,14 @@ const paymentSchema = new mongoose.Schema(
         },
         gatewayPaymentId: {
             type: String,
-            sparse: true, // Only exists after successful payment
+            sparse: true, 
         },
         gatewaySignature: {
             type: String,
         },
         amount: {
             type: Number,
-            required: true, // Amount in INR
+            required: true, 
         },
         currency: {
             type: String,
@@ -44,7 +44,7 @@ const paymentSchema = new mongoose.Schema(
             default: 'CREATED',
         },
         errorMessage: {
-            type: String, // Stores failure reasons from the gateway
+            type: String, 
         },
     },
     { timestamps: true }

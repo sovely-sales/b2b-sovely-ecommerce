@@ -65,7 +65,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                 qty: item.qty,
                 platformBasePrice: item.platformUnitCost,
                 resellerSellingPrice: item.resellerSellingPrice,
-                // --- NEW SNAPSHOTS ---
+                
                 taxAmountPerUnit: item.taxAmountPerUnit,
                 gstSlab: item.gstSlab,
                 shippingCost: item.shippingCost || 0,
@@ -84,7 +84,7 @@ export const createOrder = asyncHandler(async (req, res) => {
         const ordersToCreate = [];
         const generatedOrderIds = [];
 
-        // WHOLESALE ORDER CREATION
+        
         if (wholesaleItems.length > 0) {
             const whSubTotal = wholesaleItems.reduce(
                 (acc, item) => acc + item.platformBasePrice * item.qty,
@@ -119,9 +119,11 @@ export const createOrder = asyncHandler(async (req, res) => {
                 subTotal: whSubTotal,
                 taxTotal: whTaxTotal,
                 shippingTotal: whShippingTotal,
+                deliveryCharge: cart.totalDeliveryCharge,
+                packingCharge: cart.totalPackingCharge,
                 totalPlatformCost: whTotalCost,
 
-                // Assign wholesale weights
+                
                 totalActualWeight: whActualWeight,
                 totalVolumetricWeight: whVolWeight,
                 totalBillableWeight: whBillableWeight,
@@ -136,7 +138,7 @@ export const createOrder = asyncHandler(async (req, res) => {
             });
         }
 
-        // DROPSHIP ORDER CREATION
+        
         if (dropshipItems.length > 0) {
             const dsSubTotal = dropshipItems.reduce(
                 (acc, item) => acc + item.platformBasePrice * item.qty,
@@ -148,7 +150,7 @@ export const createOrder = asyncHandler(async (req, res) => {
             );
             const dsShippingTotal = dropshipItems.reduce((acc, item) => acc + item.shippingCost, 0);
 
-            // --- NEW: Apply Client's COD Logic ---
+            
             const codCharge = paymentMethod === 'COD' ? 35 : 0;
             const dsTotalCost = dsSubTotal + dsTaxTotal + dsShippingTotal + codCharge;
 
@@ -157,14 +159,29 @@ export const createOrder = asyncHandler(async (req, res) => {
 
             let amountToCollect = 0;
             let resellerProfitMargin = 0;
+            let resellerPayoutOnDelivery = 0;
 
             if (paymentMethod === 'COD') {
                 amountToCollect = dropshipItems.reduce(
                     (acc, item) => acc + item.resellerSellingPrice * item.qty,
                     0
                 );
-                // Profit is what's left after subtracting platform cost, shipping, tax, AND the COD fee
+
+                
                 resellerProfitMargin = amountToCollect - dsTotalCost;
+
+                
+                
+                resellerPayoutOnDelivery =
+                    dsSubTotal + dsTaxTotal + dsShippingTotal + resellerProfitMargin;
+
+                
+                if (resellerProfitMargin < 0) {
+                    throw new ApiError(
+                        400,
+                        `Selling price is too low. You are losing ₹${Math.abs(resellerProfitMargin)} on this COD order.`
+                    );
+                }
             }
 
             const dsActualWeight = dropshipItems.reduce((acc, item) => acc + item.actualWeight, 0);
@@ -186,7 +203,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                 codCharge,
                 totalPlatformCost: dsTotalCost,
 
-                // Assign dropship weights
+                
                 totalActualWeight: dsActualWeight,
                 totalVolumetricWeight: dsVolWeight,
                 totalBillableWeight: dsBillableWeight,
@@ -194,6 +211,7 @@ export const createOrder = asyncHandler(async (req, res) => {
 
                 amountToCollect,
                 resellerProfitMargin,
+                payoutOnDelivery: resellerPayoutOnDelivery,
                 items: dropshipItems,
                 statusHistory: [
                     {
@@ -281,12 +299,8 @@ export const createOrder = asyncHandler(async (req, res) => {
     }
 });
 
-/**
- * @desc    Get a single order by ID
- * @route   GET /api/orders/:id
- */
 export const getOrderById = asyncHandler(async (req, res) => {
-    // Finds the order ensuring it belongs to the logged-in reseller
+    
     const order = await Order.findOne({ _id: req.params.id, resellerId: req.user._id });
 
     if (!order) {
@@ -296,10 +310,6 @@ export const getOrderById = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, order, 'Order fetched successfully'));
 });
 
-/**
- * @desc    Get Reseller's Orders
- * @route   GET /api/orders
- */
 export const getMyOrders = asyncHandler(async (req, res) => {
     const resellerId = req.user._id;
     const { status, page = 1, limit = 10 } = req.query;
@@ -325,10 +335,6 @@ export const getMyOrders = asyncHandler(async (req, res) => {
     );
 });
 
-/**
- * @desc    Update Order Status (ADMIN ONLY) - Handles Profit Payouts & NDR
- * @route   PUT /api/orders/:id/status
- */
 export const updateOrderStatus = asyncHandler(async (req, res) => {
     const { status, awbNumber, courierName, ndrReason } = req.body;
     const { id } = req.params;
@@ -336,12 +342,8 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     const order = await Order.findById(id);
     if (!order) throw new ApiError(404, 'Order not found');
 
-    // Handle Shipping Details
-    if (status === 'SHIPPED') {
-        order.tracking = { awbNumber, courierName };
-    }
+    if (status === 'SHIPPED') order.tracking = { awbNumber, courierName };
 
-    // Handle NDR (Non-Delivery Report)
     if (status === 'NDR') {
         order.ndrDetails = {
             attemptCount: (order.ndrDetails?.attemptCount || 0) + 1,
@@ -350,73 +352,131 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         };
     }
 
-    // FIX: ACID Transaction & Race Condition protection for profit payouts
+    
+    if (['CANCELLED', 'RTO'].includes(status) && !['CANCELLED', 'RTO'].includes(order.status)) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            let refundAmount = 0;
+            let description = '';
+
+            if (status === 'CANCELLED') {
+                
+                refundAmount = order.totalPlatformCost;
+                description = `Full refund for cancelled order ${order.orderId}`;
+            } else if (status === 'RTO') {
+                
+                refundAmount = order.subTotal + order.taxTotal + order.codCharge;
+                description = `RTO Refund (Principal + Tax + COD Fee) for order ${order.orderId}. Freight forfeited.`;
+            }
+
+            if (refundAmount > 0) {
+                const updatedReseller = await User.findByIdAndUpdate(
+                    order.resellerId,
+                    { $inc: { walletBalance: refundAmount } },
+                    { new: true, session }
+                );
+
+                await WalletTransaction.create(
+                    [
+                        {
+                            resellerId: order.resellerId,
+                            type: 'CREDIT',
+                            purpose: 'REFUND',
+                            amount: refundAmount,
+                            closingBalance: updatedReseller.walletBalance,
+                            referenceId: order.orderId,
+                            description: description,
+                            status: 'COMPLETED',
+                        },
+                    ],
+                    { session }
+                );
+            }
+
+            
+            for (const item of order.items) {
+                await Product.findByIdAndUpdate(
+                    item.productId,
+                    { $inc: { 'inventory.stock': item.qty } },
+                    { session }
+                );
+            }
+
+            order.statusHistory.push({
+                status: 'REFUND_PROCESSED',
+                comment: `₹${refundAmount} refunded to wallet.`,
+            });
+
+            await session.commitTransaction();
+            session.endSession();
+        } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new ApiError(500, 'Failed to process refund and restore inventory.');
+        }
+    }
+
+    
     if (status === 'DELIVERED' && order.status !== 'DELIVERED') {
-        if (order.resellerProfitMargin > 0 && order.paymentMethod === 'COD') {
+        if (order.payoutOnDelivery > 0 && order.paymentMethod === 'COD') {
             const session = await mongoose.startSession();
             session.startTransaction();
 
             try {
-                // 1. Atomically add profit to wallet and get the new balance
+                
                 const updatedReseller = await User.findByIdAndUpdate(
                     order.resellerId,
-                    { $inc: { walletBalance: order.resellerProfitMargin } },
+                    { $inc: { walletBalance: order.payoutOnDelivery } },
                     { new: true, session }
                 );
 
-                if (!updatedReseller) throw new Error('Reseller not found during payout');
-
-                // 2. Create the Ledger Entry
+                
                 await WalletTransaction.create(
                     [
                         {
                             resellerId: order.resellerId,
                             type: 'CREDIT',
                             purpose: 'PROFIT_CREDIT',
-                            amount: order.resellerProfitMargin,
+                            amount: order.payoutOnDelivery,
                             closingBalance: updatedReseller.walletBalance,
                             referenceId: order.orderId,
-                            description: `Profit margin credited for COD delivery of ${order.orderId}`,
+                            description: `Payout (Principal + ₹${order.resellerProfitMargin} Profit) credited for COD delivery`,
                             status: 'COMPLETED',
                         },
                     ],
                     { session }
                 );
 
+                order.statusHistory.push({ status: 'DELIVERED', comment: 'Order delivered' });
+                order.statusHistory.push({
+                    status: 'PROFIT_CREDITED',
+                    comment: `₹${order.payoutOnDelivery} (Principal + Profit) credited to wallet`,
+                });
+
+                order.status = 'PROFIT_CREDITED';
+                await order.save({ session });
+
                 await session.commitTransaction();
                 session.endSession();
 
-                // Push both status entries into tracking history
-                order.statusHistory.push({
-                    status: 'DELIVERED',
-                    comment: 'Order delivered to customer',
-                });
-                order.statusHistory.push({
-                    status: 'PROFIT_CREDITED',
-                    comment: `Rs.${order.resellerProfitMargin} profit margin credited to your wallet`,
-                });
-                order.status = 'PROFIT_CREDITED';
-                await order.save();
                 return res
                     .status(200)
-                    .json(new ApiResponse(200, order, 'Order delivered and profit credited'));
+                    .json(new ApiResponse(200, order, 'Order delivered and payout credited'));
             } catch (error) {
                 await session.abortTransaction();
                 session.endSession();
-                throw new ApiError(
-                    500,
-                    'Failed to process profit payout. Order status not updated.'
-                );
+                throw new ApiError(500, 'Failed to process profit payout.');
             }
         }
     }
 
-    // Record every status change in tracking history
     const statusComment = {
         PENDING: 'Order placed and awaiting confirmation',
         PROCESSING: 'Order is being processed and packed',
         SHIPPED: awbNumber
-            ? `Order shipped via ${courierName || 'courier'} (AWB: ${awbNumber})`
+            ? `Order shipped via ${courierName} (AWB: ${awbNumber})`
             : 'Order shipped',
         NDR: `Delivery attempt failed: ${ndrReason || 'Customer Unavailable'}`,
         DELIVERED: 'Order delivered to customer',
@@ -435,27 +495,23 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, order, `Order status updated to ${status}`));
 });
 
-/**
- * @desc    Reseller takes action on an NDR (Non-Delivery Report)
- * @route   POST /api/orders/:id/ndr-action
- */
 export const resellerActionOnNDR = asyncHandler(async (req, res) => {
-    const { action, updatedPhone } = req.body; // action must be 'REATTEMPT' or 'RTO_REQUESTED'
+    const { action, updatedPhone } = req.body; 
     const { id } = req.params;
     const resellerId = req.user._id;
 
-    // 1. Validate Input
+    
     if (!['REATTEMPT', 'RTO_REQUESTED'].includes(action)) {
         throw new ApiError(400, 'Invalid NDR action. Must be REATTEMPT or RTO_REQUESTED.');
     }
 
-    // 2. Find the Order (Ensure it belongs to this reseller)
+    
     const order = await Order.findOne({ _id: id, resellerId });
     if (!order) {
         throw new ApiError(404, 'Order not found');
     }
 
-    // 3. Ensure the order is actually in NDR state
+    
     if (order.status !== 'NDR') {
         throw new ApiError(
             400,
@@ -463,15 +519,15 @@ export const resellerActionOnNDR = asyncHandler(async (req, res) => {
         );
     }
 
-    // 4. Update the NDR Details
+    
     order.ndrDetails.resellerAction = action;
     if (updatedPhone) {
         order.ndrDetails.updatedCustomerPhone = updatedPhone;
-        // Optionally update the main customer details as well
+        
         order.endCustomerDetails.phone = updatedPhone;
     }
 
-    // 5. Log the history
+    
     order.statusHistory.push({
         status: 'NDR_ACTION_SUBMITTED',
         comment: `Reseller requested: ${action}${updatedPhone ? ` with new phone: ${updatedPhone}` : ''}`,
@@ -483,21 +539,17 @@ export const resellerActionOnNDR = asyncHandler(async (req, res) => {
         .status(200)
         .json(new ApiResponse(200, order, `NDR action '${action}' submitted successfully.`));
 });
-/**
- * @desc    Get ALL orders across the platform (ADMIN ONLY)
- * @route   GET /api/orders/all
- */
 export const getAllAdminOrders = asyncHandler(async (req, res) => {
     const { page = 1, limit = 20, status, search } = req.query;
 
     const query = {};
 
-    // Filter by exact status if provided
+    
     if (status) {
         query.status = status;
     }
 
-    // Basic search by Order ID
+    
     if (search) {
         query.$or = [{ orderId: { $regex: search, $options: 'i' } }];
     }
@@ -508,7 +560,7 @@ export const getAllAdminOrders = asyncHandler(async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(Number(limit))
-        .populate('resellerId', 'name companyName email'); // Populate business details for admin
+        .populate('resellerId', 'name companyName email'); 
 
     const total = await Order.countDocuments(query);
 
@@ -526,4 +578,266 @@ export const getAllAdminOrders = asyncHandler(async (req, res) => {
             'All platform orders fetched successfully'
         )
     );
+});
+
+
+const calculateItemWeights = (product, qty) => {
+    const actualWeightKg = (product.weightGrams || 0) / 1000;
+    const l = product.dimensions?.length || 0;
+    const w = product.dimensions?.width || 0;
+    const h = product.dimensions?.height || 0;
+    const volWeightKg = (l * w * h) / 5000;
+
+    const chargeableWeightPerUnit = Math.max(actualWeightKg, volWeightKg);
+
+    
+    const finalBillable = chargeableWeightPerUnit > 0 ? chargeableWeightPerUnit * qty : 0.5 * qty;
+    const finalActual = actualWeightKg > 0 ? actualWeightKg * qty : 0.5 * qty;
+
+    return {
+        actualWeight: finalActual,
+        volumetricWeight: volWeightKg * qty,
+        billableWeight: finalBillable,
+    };
+};
+
+const calculateSlabCharge = (totalWt) => {
+    if (totalWt <= 0) totalWt = 0.5;
+    let slab = 0;
+    if (totalWt <= 0.5) slab = 0.5;
+    else if (totalWt <= 1.0) slab = 1;
+    else if (totalWt <= 2.0) slab = 2;
+    else if (totalWt <= 3.0) slab = 3;
+    else if (totalWt <= 4.0) slab = 4;
+    else if (totalWt <= 5.0) slab = 5;
+    else slab = Math.ceil(totalWt);
+
+    let deliveryCharge = 0;
+    let packingCharge = 0;
+
+    switch (slab) {
+        case 0.5:
+            deliveryCharge = 50;
+            packingCharge = 10;
+            break;
+        case 1:
+            deliveryCharge = 80;
+            packingCharge = 15;
+            break;
+        case 2:
+            deliveryCharge = 100;
+            packingCharge = 20;
+            break;
+        case 3:
+            deliveryCharge = 130;
+            packingCharge = 25;
+            break;
+        case 4:
+            deliveryCharge = 145;
+            packingCharge = 28;
+            break;
+        case 5:
+            deliveryCharge = 160;
+            packingCharge = 30;
+            break;
+        default:
+            deliveryCharge = 160 + (slab - 5) * 30;
+            packingCharge = 30 + (slab - 5) * 5;
+    }
+    return { deliveryCharge, packingCharge, totalShippingCost: deliveryCharge + packingCharge };
+};
+
+export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
+    const { orders } = req.body;
+    const resellerId = req.user._id;
+
+    if (!orders || !Array.isArray(orders) || orders.length === 0) {
+        throw new ApiError(400, 'No valid orders provided.');
+    }
+
+    const user = req.user;
+    if (user.accountType === 'B2B' && user.kycStatus !== 'APPROVED') {
+        throw new ApiError(403, 'Forbidden: Business KYC must be approved to place orders.');
+    }
+
+    
+    const productIds = [...new Set(orders.map((o) => o.productId))];
+    const products = await Product.find({ _id: { $in: productIds } });
+    const productMap = products.reduce((acc, p) => {
+        acc[p._id.toString()] = p;
+        return acc;
+    }, {});
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const ordersToCreate = [];
+        const generatedOrderIds = [];
+        let grandTotalWalletDeduction = 0;
+
+        for (const inputOrder of orders) {
+            const product = productMap[inputOrder.productId.toString()];
+            if (!product) throw new ApiError(404, `Product unavailable.`);
+            if (product.inventory.stock < inputOrder.qty)
+                throw new ApiError(400, `Insufficient stock for ${product.sku}`);
+
+            
+            const platformBasePrice = product.dropshipBasePrice;
+            const subTotal = platformBasePrice * inputOrder.qty;
+            const taxAmountPerUnit = Number(
+                ((platformBasePrice * product.gstSlab) / 100).toFixed(2)
+            );
+            const taxTotal = taxAmountPerUnit * inputOrder.qty;
+
+            
+            const weights = calculateItemWeights(product, inputOrder.qty);
+            const freight = calculateSlabCharge(weights.billableWeight);
+
+            const codCharge = inputOrder.paymentMethod === 'COD' ? 35 : 0;
+            const totalPlatformCost = subTotal + taxTotal + freight.totalShippingCost + codCharge;
+
+            
+            grandTotalWalletDeduction += totalPlatformCost;
+
+            
+            let amountToCollect = 0;
+            let resellerProfitMargin = 0;
+            let payoutOnDelivery = 0;
+
+            if (inputOrder.paymentMethod === 'COD') {
+                amountToCollect = inputOrder.resellerSellingPrice * inputOrder.qty;
+                resellerProfitMargin = amountToCollect - totalPlatformCost;
+                payoutOnDelivery =
+                    subTotal + taxTotal + freight.totalShippingCost + resellerProfitMargin;
+
+                if (resellerProfitMargin < 0) {
+                    throw new ApiError(
+                        400,
+                        `Selling price for ${product.sku} is too low. You would lose money.`
+                    );
+                }
+            }
+
+            const dsOrderId = `OD-BLK-${Math.floor(1000000 + Math.random() * 9000000)}`;
+            generatedOrderIds.push(dsOrderId);
+
+            ordersToCreate.push({
+                orderId: dsOrderId,
+                resellerId,
+                endCustomerDetails: inputOrder.endCustomerDetails,
+                status: 'PENDING',
+                paymentMethod: inputOrder.paymentMethod,
+
+                subTotal,
+                taxTotal,
+                shippingTotal: freight.totalShippingCost,
+                deliveryCharge: freight.deliveryCharge,
+                packingCharge: freight.packingCharge,
+                codCharge,
+                totalPlatformCost,
+
+                totalActualWeight: weights.actualWeight,
+                totalVolumetricWeight: weights.volumetricWeight,
+                totalBillableWeight: weights.billableWeight,
+                weightType:
+                    weights.volumetricWeight > weights.actualWeight ? 'VOLUMETRIC' : 'ACTUAL',
+
+                amountToCollect,
+                resellerProfitMargin,
+                payoutOnDelivery,
+
+                items: [
+                    {
+                        productId: product._id,
+                        sku: product.sku,
+                        title: product.title,
+                        hsnCode: product.hsnCode || '0000',
+                        qty: inputOrder.qty,
+                        platformBasePrice,
+                        resellerSellingPrice: inputOrder.resellerSellingPrice,
+                        taxAmountPerUnit,
+                        gstSlab: product.gstSlab,
+                        shippingCost: freight.totalShippingCost,
+                        actualWeight: weights.actualWeight,
+                        volumetricWeight: weights.volumetricWeight,
+                        billableWeight: weights.billableWeight,
+                    },
+                ],
+                statusHistory: [
+                    { status: 'PENDING', comment: `Bulk dropship order dispatched via CSV` },
+                ],
+            });
+        }
+
+        
+        const resellerCheck = await User.findById(resellerId).session(session);
+        if (!resellerCheck || resellerCheck.walletBalance < grandTotalWalletDeduction) {
+            throw new ApiError(
+                400,
+                `Insufficient wallet balance. You need ₹${grandTotalWalletDeduction.toLocaleString('en-IN', { maximumFractionDigits: 0 })} for this bulk batch.`
+            );
+        }
+
+        
+        const createdOrders = await Order.insertMany(ordersToCreate, { session });
+
+        for (const orderDoc of createdOrders) {
+            await createInvoiceFromOrder(orderDoc, req.user, session);
+        }
+
+        const updatedReseller = await User.findByIdAndUpdate(
+            resellerId,
+            { $inc: { walletBalance: -grandTotalWalletDeduction } },
+            { returnDocument: 'after', session }
+        );
+
+        await WalletTransaction.create(
+            [
+                {
+                    resellerId,
+                    type: 'DEBIT',
+                    purpose: 'ORDER_DEDUCTION',
+                    amount: grandTotalWalletDeduction,
+                    closingBalance: updatedReseller.walletBalance,
+                    referenceId:
+                        generatedOrderIds.length > 3
+                            ? `${generatedOrderIds[0]} + ${generatedOrderIds.length - 1} more`
+                            : generatedOrderIds.join(', '),
+                    description: `Platform cost deducted for Bulk CSV Dropship (${generatedOrderIds.length} orders)`,
+                    status: 'COMPLETED',
+                },
+            ],
+            { session }
+        );
+
+        
+        for (const inputOrder of orders) {
+            await Product.findByIdAndUpdate(
+                inputOrder.productId,
+                { $inc: { 'inventory.stock': -inputOrder.qty } },
+                { session }
+            );
+        }
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res
+            .status(201)
+            .json(
+                new ApiResponse(
+                    201,
+                    createdOrders,
+                    `Successfully dispatched ${createdOrders.length} bulk dropship orders!`
+                )
+            );
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new ApiError(
+            error.statusCode || 500,
+            error.message || 'Failed to process bulk orders'
+        );
+    }
 });

@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './Navbar';
 import BulkUpload from './BulkUpload';
 
-// Sub-components
+
 import AdminOverview from './admin/AdminOverview';
 import AdminOrders from './admin/AdminOrders';
 import AdminProducts from './admin/AdminProducts';
@@ -37,7 +37,7 @@ const AdminDashboard = () => {
     useEffect(() => {
         if (location.state?.tab) {
             setActiveTab(location.state.tab);
-            // Replace the state so refreshing doesn't keep locking them into that tab permanently
+            
             window.history.replaceState({}, document.title);
         }
     }, [location.state]);
@@ -66,7 +66,7 @@ const AdminDashboard = () => {
             <Navbar />
 
             <div className="relative flex flex-1 overflow-hidden">
-                {/* Sidebar Navigation */}
+                {}
                 <motion.aside
                     initial={{ x: -100, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
@@ -108,7 +108,7 @@ const AdminDashboard = () => {
                     ))}
                 </motion.aside>
 
-                {/* Main Content Area */}
+                {}
                 <main className="custom-scrollbar flex-1 overflow-y-auto p-6 md:ml-72 lg:p-10">
                     <motion.h2
                         layoutId="pageTitle"

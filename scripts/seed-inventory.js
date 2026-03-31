@@ -26,13 +26,13 @@ const seedInventoryLogs = async () => {
         
         const adjustments = [];
         const reasons = [
-            'Vendor Restock', 'Vendor Restock', 'Vendor Restock', // Weighted heavily towards positive restocks
+            'Vendor Restock', 'Vendor Restock', 'Vendor Restock', 
             'Damaged in Transit', 
             'Quality Control Rejection', 
             'Found in Warehouse Audit'
         ];
 
-        // Give each product 3 to 8 historical stock adjustments over the last 6 months
+        
         for (const product of products) {
             const numAdjustments = faker.number.int({ min: 3, max: 8 });
             
@@ -40,11 +40,11 @@ const seedInventoryLogs = async () => {
                 const reason = faker.helpers.arrayElement(reasons);
                 let adjustedAmount;
 
-                // If it's a negative reason, make the amount negative
+                
                 if (reason.includes('Damaged') || reason.includes('Rejection')) {
                     adjustedAmount = -faker.number.int({ min: 1, max: 10 });
                 } else {
-                    adjustedAmount = faker.number.int({ min: 50, max: 500 }); // Restocks
+                    adjustedAmount = faker.number.int({ min: 50, max: 500 }); 
                 }
 
                 adjustments.push({
@@ -52,12 +52,12 @@ const seedInventoryLogs = async () => {
                     adminUserId: adminUser._id,
                     adjustedAmount,
                     reason,
-                    createdAt: faker.date.recent({ days: 180 }) // Historical date
+                    createdAt: faker.date.recent({ days: 180 }) 
                 });
             }
         }
 
-        // Insert in bulk for speed
+        
         await StockAdjustment.insertMany(adjustments);
 
         console.log(`✅ Inventory Seeding Complete! Inserted ${adjustments.length} logs.`);

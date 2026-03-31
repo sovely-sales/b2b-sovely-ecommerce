@@ -18,24 +18,24 @@ import { verifyJWT, authorizeRoles } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// ==========================================
-// PUBLIC AUTHENTICATION ROUTES
-// ==========================================
+
+
+
 router.post('/send-otp', sendSignupOtp);
 router.post('/send-login-otp', sendLoginOtp);
 router.post('/login-otp', loginWithOtp);
 
-// ==========================================
-// ADMIN ROUTES
-// ==========================================
+
+
+
 router.get('/admin/all', verifyJWT, authorizeRoles('ADMIN'), getAllUsers);
 router.put('/admin/:id/kyc-status', verifyJWT, authorizeRoles('ADMIN'), updateKycStatus);
 router.put('/admin/:id/toggle-status', verifyJWT, authorizeRoles('ADMIN'), toggleUserStatus);
 router.put('/admin/:id/role', verifyJWT, authorizeRoles('ADMIN'), updateUserRole);
 
-// ==========================================
-// LOGGED-IN USER (RESELLER) ROUTES
-// ==========================================
+
+
+
 router.post('/avatar', verifyJWT, uploadImages.single('avatar'), updateAvatar);
 router.put('/profile', verifyJWT, updateMyProfile);
 router.put('/security/password', verifyJWT, updatePassword);

@@ -36,7 +36,7 @@ const invoiceSchema = new mongoose.Schema(
         orderId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Order',
-            // Not required for wallet top-ups
+            
         },
         resellerId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -46,7 +46,7 @@ const invoiceSchema = new mongoose.Schema(
 
         invoiceType: {
             type: String,
-            // FIX: Added WALLET_TOPUP so your Razorpay controller doesn't crash
+            
             enum: [
                 'B2B_WHOLESALE',
                 'DROPSHIP_PLATFORM_FEE',
@@ -57,7 +57,7 @@ const invoiceSchema = new mongoose.Schema(
             required: true,
         },
 
-        // FIX: Only require GST details if it's an actual product/service sale
+        
         isInterState: {
             type: Boolean,
             required: function () {
@@ -94,7 +94,7 @@ const invoiceSchema = new mongoose.Schema(
 
         items: [invoiceItemSchema],
 
-        // Invoice Totals
+        
         totalTaxableValue: {
             type: Number,
             required: function () {
@@ -106,7 +106,7 @@ const invoiceSchema = new mongoose.Schema(
         totalIgst: { type: Number, default: 0 },
         grandTotal: { type: Number, required: true },
 
-        // --- NEW: B2B Payment Tracking ---
+        
         paymentStatus: {
             type: String,
             enum: ['UNPAID', 'PARTIAL', 'PAID'],
@@ -118,7 +118,7 @@ const invoiceSchema = new mongoose.Schema(
             default: 'DUE_ON_RECEIPT',
         },
         dueDate: { type: Date },
-        razorpayOrderId: { type: String }, // Links back to the payment controller
+        razorpayOrderId: { type: String }, 
 
         status: {
             type: String,
@@ -131,7 +131,7 @@ const invoiceSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// invoiceSchema.index({ invoiceNumber: 1 });
+
 invoiceSchema.index({ resellerId: 1 });
 invoiceSchema.index({ orderId: 1 });
 

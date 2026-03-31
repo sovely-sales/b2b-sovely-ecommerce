@@ -24,7 +24,7 @@ import api from '../utils/api';
 import { useCartStore } from '../store/cartStore';
 import LoadingScreen from './LoadingScreen';
 
-// --- ANIMATION VARIANTS ---
+
 const fadeUp = {
     hidden: { opacity: 0, y: 15 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
@@ -48,7 +48,7 @@ const ProductPage = () => {
     const [error, setError] = useState(null);
     const [addToCartSuccess, setAddToCartSuccess] = useState(false);
 
-    // B2B Order Intent State
+    
     const [orderType, setOrderType] = useState('WHOLESALE');
     const [quantity, setQuantity] = useState(1);
     const [customSellingPrice, setCustomSellingPrice] = useState(0);
@@ -79,7 +79,7 @@ const ProductPage = () => {
             <div className="p-10 text-center font-medium text-slate-500">Product not found.</div>
         );
 
-    // --- Dynamic Pricing Logic ---
+    
     let currentUnitCost = product.dropshipBasePrice;
 
     if (orderType === 'WHOLESALE' && product.tieredPricing?.length > 0) {
@@ -95,7 +95,7 @@ const ProductPage = () => {
             ? (customSellingPrice - (currentUnitCost + estimatedTax)) * quantity
             : 0;
 
-    // --- Handlers ---
+    
     const updateQuantity = (newQty) => {
         setAddToCartSuccess(false);
         if (newQty === '') {
@@ -143,9 +143,9 @@ const ProductPage = () => {
                 variants={staggerContainer}
                 className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12"
             >
-                {/* LEFT COLUMN: Image Gallery & Specs */}
+                {}
                 <div className="space-y-6 lg:col-span-5">
-                    {/* Main Image Viewer */}
+                    {}
                     <motion.div
                         variants={fadeUp}
                         className="group relative aspect-square w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
@@ -167,7 +167,7 @@ const ProductPage = () => {
                         )}
                     </motion.div>
 
-                    {/* Interactive Thumbnail Gallery */}
+                    {}
                     {product.images?.length > 1 && (
                         <motion.div
                             variants={fadeUp}
@@ -193,7 +193,7 @@ const ProductPage = () => {
                         </motion.div>
                     )}
 
-                    {/* Hard Data / Spec Table */}
+                    {}
                     <motion.div
                         variants={fadeUp}
                         className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
@@ -241,9 +241,9 @@ const ProductPage = () => {
                     </motion.div>
                 </div>
 
-                {/* RIGHT COLUMN: Action Center */}
+                {}
                 <div className="flex flex-col space-y-8 lg:col-span-7">
-                    {/* Header & Badges */}
+                    {}
                     <motion.div variants={fadeUp} className="border-b border-slate-200 pb-6">
                         <div className="mb-4 flex flex-wrap items-center gap-2">
                             <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
@@ -275,7 +275,7 @@ const ProductPage = () => {
                         </div>
                     </motion.div>
 
-                    {/* Order Intent Segmented Control */}
+                    {}
                     <motion.div
                         variants={fadeUp}
                         className="flex rounded-xl bg-slate-100 p-1.5 shadow-inner"
@@ -302,14 +302,14 @@ const ProductPage = () => {
                         </button>
                     </motion.div>
 
-                    {/* WHOLESALE COMMAND CENTER */}
+                    {}
                     {orderType === 'WHOLESALE' && (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="space-y-6 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-6"
                         >
-                            {/* Tiered Pricing Matrix */}
+                            {}
                             <div className="space-y-3">
                                 <h3 className="text-xs font-bold tracking-wider text-indigo-900/60 uppercase">
                                     Volume Pricing
@@ -358,7 +358,7 @@ const ProductPage = () => {
                                 </div>
                             </div>
 
-                            {/* Execution Console */}
+                            {}
                             <div className="flex flex-col gap-6 rounded-xl border border-indigo-100 bg-white p-5 lg:flex-row lg:items-end lg:justify-between">
                                 <div className="w-full lg:w-auto">
                                     <label className="mb-3 flex items-center justify-between text-xs font-bold tracking-wider text-slate-500 uppercase">
@@ -567,8 +567,8 @@ const ProductPage = () => {
                             </button>
                         </div>
 
-                        {/* Tab Content */}
-                        {/* Tab Content */}
+                        {}
+                        {}
                         <div className="p-6">
                             {activeTab === 'description' && (
                                 <StructuredDescription htmlContent={product.descriptionHTML} />

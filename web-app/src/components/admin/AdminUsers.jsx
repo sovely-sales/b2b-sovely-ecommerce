@@ -34,7 +34,7 @@ const AdminUsers = () => {
     const [editForm, setEditForm] = useState({});
     const [isSaving, setIsSaving] = useState(false);
 
-    // NEW: State for the KYC Modal
+    
     const [viewKycUser, setViewKycUser] = useState(null);
 
     useEffect(() => {
@@ -93,7 +93,7 @@ const AdminUsers = () => {
                 'Please enter a rejection reason for the reseller (e.g. "GSTIN Mismatch" or "Address document blurred"):',
                 'Invalid documents'
             );
-            if (!reason) return; // Cancel if no reason provided
+            if (!reason) return; 
         } else if (
             !window.confirm(`Are you sure you want to mark this Reseller as ${newStatus}?`)
         ) {
@@ -142,7 +142,7 @@ const AdminUsers = () => {
 
     return (
         <>
-            {/* Filters Header */}
+            {}
             <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-5">
                 <div className="flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900 md:col-span-2 lg:col-span-3">
                     <Search size={18} className="text-slate-400" />
@@ -181,7 +181,7 @@ const AdminUsers = () => {
                 </div>
             </div>
 
-            {/* Users Table */}
+            {}
             <div className="mb-6 overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-sm">
                 <div className="relative min-h-[300px] overflow-x-auto">
                     {loading && (
@@ -337,7 +337,7 @@ const AdminUsers = () => {
                 </div>
             </div>
 
-            {/* Pagination */}
+            {}
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -359,7 +359,7 @@ const AdminUsers = () => {
                 </button>
             </div>
 
-            {/* NEW: KYC Review Modal */}
+            {}
             {viewKycUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-2xl rounded-[2rem] bg-white shadow-2xl">
@@ -381,7 +381,7 @@ const AdminUsers = () => {
                         </div>
 
                         <div className="custom-scrollbar max-h-[70vh] space-y-6 overflow-y-auto p-6">
-                            {/* Identity */}
+                            {}
                             <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
                                 <h3 className="mb-4 flex items-center gap-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
                                     <Building2 size={16} className="text-accent" /> Identity
@@ -415,7 +415,7 @@ const AdminUsers = () => {
                                 </div>
                             </div>
 
-                            {/* Address */}
+                            {}
                             <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
                                 <h3 className="mb-4 flex items-center gap-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
                                     <MapPin size={16} className="text-accent" /> Registered Address
@@ -449,7 +449,7 @@ const AdminUsers = () => {
                                 </div>
                             </div>
 
-                            {/* Bank */}
+                            {}
                             <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
                                 <h3 className="mb-4 flex items-center gap-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
                                     <Landmark size={16} className="text-accent" /> Bank Details

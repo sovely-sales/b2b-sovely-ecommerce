@@ -81,11 +81,11 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error('Error logging out', error);
         } finally {
-            // 1. Clear the user state
+            
             setUser(null);
-            // 2. Clear any local storage residue
+            
             localStorage.removeItem('reseller_cart');
-            // 3. Hard redirect to the marketing home page (flushes all React memory/state)
+            
             window.location.href = '/';
         }
     };

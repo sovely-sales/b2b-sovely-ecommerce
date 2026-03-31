@@ -5,12 +5,12 @@ export const syncProductRtoRates = async () => {
     try {
         console.log('Starting nightly RTO rate calculation...');
 
-        // 1. Crunch the numbers in MongoDB
+        
         const rtoStats = await Order.aggregate([
-            // Deconstruct the items array so we can group by individual products
+            
             { $unwind: '$items' },
 
-            // Group by Product ID and calculate total orders vs RTO orders
+            
             {
                 $group: {
                     _id: '$items.productId',
@@ -23,13 +23,13 @@ export const syncProductRtoRates = async () => {
                 },
             },
 
-            // Calculate the percentage
+            
             {
                 $project: {
                     rtoRate: {
                         $round: [
                             { $multiply: [{ $divide: ['$rtoTimes', '$totalTimesOrdered'] }, 100] },
-                            2, // Round to 2 decimal places
+                            2, 
                         ],
                     },
                 },
@@ -41,7 +41,7 @@ export const syncProductRtoRates = async () => {
             return;
         }
 
-        // 2. Prepare bulk update operations for blazing fast execution
+        
         const bulkOps = rtoStats.map((stat) => ({
             updateOne: {
                 filter: { _id: stat._id },
@@ -49,7 +49,7 @@ export const syncProductRtoRates = async () => {
             },
         }));
 
-        // 3. Execute all updates at once
+        
         const result = await Product.bulkWrite(bulkOps);
 
         console.log(`RTO Sync Complete. Updated ${result.modifiedCount} products.`);

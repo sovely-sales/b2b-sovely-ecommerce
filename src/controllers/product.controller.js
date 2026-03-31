@@ -3,10 +3,6 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-/**
- * @desc    Create a new B2B/Dropship Product (ADMIN ONLY)
- * @route   POST /api/products
- */
 export const createProduct = asyncHandler(async (req, res) => {
     const {
         sku,
@@ -69,10 +65,6 @@ export const createProduct = asyncHandler(async (req, res) => {
     return res.status(201).json(new ApiResponse(201, product, 'B2B Product created successfully'));
 });
 
-/**
- * @desc    Get all products with Reseller/B2B filters (Regex Search)
- * @route   GET /api/products
- */
 export const getProducts = asyncHandler(async (req, res) => {
     const {
         search,
@@ -108,7 +100,7 @@ export const getProducts = asyncHandler(async (req, res) => {
 
     if (category) query.categoryId = category;
 
-    // FIX: Ensure margin comparisons are strictly treated as numbers
+    
     if (minMargin) query.estimatedMarginPercent = { $gte: Number(minMargin) };
     if (req.query.margin) {
         const marginVal = Number(req.query.margin);
@@ -216,10 +208,6 @@ export const getProducts = asyncHandler(async (req, res) => {
     );
 });
 
-/**
- * @desc    Get single product details
- * @route   GET /api/products/:id
- */
 export const getProductById = asyncHandler(async (req, res) => {
     const product = await Product.findOne({ _id: req.params.id, deletedAt: null }).populate(
         'categoryId',
@@ -235,10 +223,6 @@ export const getProductById = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, product, 'Product details fetched successfully'));
 });
 
-/**
- * @desc    Update a Product (ADMIN ONLY)
- * @route   PUT /api/products/:id
- */
 export const updateProduct = asyncHandler(async (req, res) => {
     const product = await Product.findOne({ _id: req.params.id, deletedAt: null });
 
@@ -258,10 +242,6 @@ export const updateProduct = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, product, 'Product updated successfully'));
 });
 
-/**
- * @desc    Soft Delete a Product (ADMIN ONLY)
- * @route   DELETE /api/products/:id
- */
 export const deleteProduct = asyncHandler(async (req, res) => {
     const product = await Product.findOne({ _id: req.params.id, deletedAt: null });
 
@@ -278,10 +258,6 @@ export const deleteProduct = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, null, 'Product successfully deleted (archived)'));
 });
 
-/**
- * @desc    Get ALL products for Admin Dashboard
- * @route   GET /api/products/admin/all
- */
 export const getAllAdminProducts = asyncHandler(async (req, res) => {
     const { page = 1, limit = 20, search } = req.query;
 
@@ -323,10 +299,6 @@ export const getAllAdminProducts = asyncHandler(async (req, res) => {
     );
 });
 
-/**
- * @desc    Validate a bulk list of SKUs for B2B Quick Orders
- * @route   POST /api/products/validate-bulk
- */
 export const validateBulkOrder = asyncHandler(async (req, res) => {
     const { skus } = req.body;
 
@@ -338,13 +310,21 @@ export const validateBulkOrder = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Maximum 500 SKUs allowed per bulk validation request.');
     }
 
-    const cleanSkus = skus.map((sku) => sku.trim().toUpperCase());
+    
+    const cleanSkus = skus.map((sku) => sku.replace(/["'\r\n]/g, '').trim());
+
+    // Create case-insensitive regex for every SKU to prevent exact-match failures
+    const regexSkus = cleanSkus.map(
+        (sku) => new RegExp(`^${sku.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')
+    );
 
     const products = await Product.find({
-        sku: { $in: cleanSkus },
+        sku: { $in: regexSkus }, 
         status: 'active',
         deletedAt: null,
-    }).select('sku title inventory.stock moq dropshipBasePrice platformSellPrice');
+    }).select(
+        'sku title inventory.stock moq dropshipBasePrice platformSellPrice gstSlab weightGrams dimensions hsnCode'
+    ); 
 
     return res
         .status(200)

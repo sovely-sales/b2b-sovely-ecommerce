@@ -12,7 +12,7 @@ const orderItemSnapshotSchema = new mongoose.Schema(
         platformBasePrice: { type: Number, required: true },
         resellerSellingPrice: { type: Number, required: true },
 
-        // --- NEW: Exact Tax & Shipping Snapshots ---
+        
         taxAmountPerUnit: { type: Number, required: true },
         gstSlab: { type: Number, required: true },
         shippingCost: { type: Number, required: true },
@@ -94,10 +94,12 @@ const orderSchema = new mongoose.Schema(
             default: 'COD',
         },
 
-        // --- FIXED: Accurate Totals per split order ---
+        
         subTotal: { type: Number, required: true, default: 0 },
         taxTotal: { type: Number, required: true, default: 0 },
         shippingTotal: { type: Number, required: true, default: 0 },
+        deliveryCharge: { type: Number, default: 0 },
+        packingCharge: { type: Number, default: 0 },
         codCharge: { type: Number, required: true, default: 0 },
         totalPlatformCost: { type: Number, required: true },
         totalActualWeight: { type: Number, default: 0 },
@@ -107,6 +109,7 @@ const orderSchema = new mongoose.Schema(
 
         amountToCollect: { type: Number, required: true },
         resellerProfitMargin: { type: Number, required: true },
+        payoutOnDelivery: { type: Number, default: 0 },
 
         items: [orderItemSnapshotSchema],
         orderDate: { type: Date, default: Date.now },

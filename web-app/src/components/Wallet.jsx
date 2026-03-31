@@ -18,7 +18,7 @@ import api from '../utils/api.js';
 import { AuthContext } from '../AuthContext';
 import LoadingScreen from './LoadingScreen';
 
-// Helper to load Razorpay SDK dynamically
+
 const loadRazorpayScript = () => {
     return new Promise((resolve) => {
         const script = document.createElement('script');
@@ -37,7 +37,7 @@ const Wallet = () => {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Recharge State
+    
     const [rechargeAmount, setRechargeAmount] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState('');
@@ -79,13 +79,13 @@ const Wallet = () => {
         setIsProcessing(true);
 
         try {
-            // 1. Call your specific addMoney controller
+            
             const orderRes = await api.post('/wallet/add-money', { amount });
 
-            // Match the response shape from your addMoney backend controller
+            
             const { razorpayOrderId, amount: rzpAmount, keyId, invoiceId } = orderRes.data.data;
 
-            // 2. Load Razorpay SDK
+            
             const isLoaded = await loadRazorpayScript();
             if (!isLoaded) {
                 setError('Payment gateway failed to load. Please check your connection.');
@@ -93,17 +93,17 @@ const Wallet = () => {
                 return;
             }
 
-            // 3. Open Razorpay Modal
+            
             const options = {
                 key: keyId || import.meta.env.VITE_RAZORPAY_KEY_ID,
-                amount: rzpAmount, // Backend already multiplied by 100
+                amount: rzpAmount, 
                 currency: 'INR',
                 name: 'Sovely B2B Network',
                 description: 'Working Capital Recharge',
-                order_id: razorpayOrderId, // Fixed: Using proper backend key
+                order_id: razorpayOrderId, 
                 handler: async function (response) {
                     try {
-                        // 4. Verify Payment on Backend
+                        
                         await api.post('/payments/verify', {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
@@ -141,12 +141,12 @@ const Wallet = () => {
         }
     };
 
-    // Calculate metrics for the dashboard
+    
     const totalMarginsEarned = transactions
         .filter((t) => t.type === 'CREDIT' && t.purpose.includes('MARGIN'))
         .reduce((sum, t) => sum + t.amount, 0);
 
-    // Helper to style ledger items dynamically
+    
     const getTransactionStyling = (purpose, type) => {
         const p = purpose.toUpperCase();
         if (p.includes('RECHARGE') || p.includes('ADD'))
@@ -183,7 +183,7 @@ const Wallet = () => {
                     </p>
                 </div>
 
-                {/* Lifetime Margin Stat */}
+                {}
                 {totalMarginsEarned > 0 && (
                     <div className="flex min-w-[200px] items-center gap-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
                         <div className="rounded-xl bg-emerald-100 p-2.5 text-emerald-600">
@@ -202,9 +202,9 @@ const Wallet = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-                {/* Left Column: Recharge Station */}
+                {}
                 <div className="space-y-6 lg:col-span-5">
-                    {/* Current Balance Card - Premium Fintech Look */}
+                    {}
                     <div className="group relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 p-8 text-white shadow-2xl shadow-slate-900/20">
                         <div className="absolute -top-10 -right-10 p-8 opacity-[0.03] transition-transform duration-700 group-hover:scale-110 group-hover:rotate-12">
                             <Building2 size={240} />
@@ -232,7 +232,7 @@ const Wallet = () => {
                         </div>
                     </div>
 
-                    {/* Add Funds Form */}
+                    {}
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
                         <h3 className="mb-6 flex items-center gap-2 text-lg font-extrabold text-slate-900">
                             <Plus size={20} className="text-indigo-600" /> Add Capital
@@ -297,7 +297,7 @@ const Wallet = () => {
                     </div>
                 </div>
 
-                {/* Right Column: Transaction Ledger */}
+                {}
                 <div className="lg:col-span-7">
                     <div className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
                         <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-6">

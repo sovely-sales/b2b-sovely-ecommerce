@@ -9,7 +9,7 @@ import {
     Wallet,
     Package,
     ArrowLeft,
-    ArrowRight, // <-- Added ArrowRight for the CTA button
+    ArrowRight, 
     Building2,
     FileText,
     AlertCircle,
@@ -72,7 +72,7 @@ const MyAccount = () => {
                 Back to Home
             </Link>
 
-            {/* UPDATED: Dynamic KYC Warning Banner with direct CTA to /kyc */}
+            {}
             {!isKycApproved && user.role !== 'ADMIN' && (
                 <div className="mb-6 flex animate-[fadeIn_0.3s_ease-out] flex-col items-start justify-between gap-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-800 shadow-sm sm:flex-row sm:items-center">
                     <div className="flex items-start gap-3">
@@ -103,7 +103,7 @@ const MyAccount = () => {
             )}
 
             <div className="overflow-hidden rounded-[2.5rem] border border-slate-100 bg-white shadow-sm">
-                {/* Header Banner */}
+                {}
                 <div className="relative overflow-hidden bg-slate-900 px-8 py-10">
                     <div className="absolute -top-24 -right-12 h-64 w-64 rounded-full bg-emerald-500/20 mix-blend-screen blur-3xl"></div>
                     <div className="absolute -bottom-24 left-10 h-48 w-48 rounded-full bg-blue-500/20 mix-blend-screen blur-3xl"></div>
@@ -146,9 +146,9 @@ const MyAccount = () => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-8 p-8 lg:grid-cols-3">
-                    {/* Left Column: Business & Personal Info */}
+                    {}
                     <div className="space-y-8 lg:col-span-2">
-                        {/* Business Info */}
+                        {}
                         <div>
                             <div className="mb-4 flex items-center justify-between">
                                 <h3 className="flex items-center gap-2 text-xl font-extrabold text-slate-900">
@@ -195,7 +195,7 @@ const MyAccount = () => {
                             </div>
                         </div>
 
-                        {/* Account Info */}
+                        {}
                         <div>
                             <h3 className="mb-4 flex items-center gap-2 text-xl font-extrabold text-slate-900">
                                 <User size={24} className="text-slate-400" /> Account Contact
@@ -234,7 +234,7 @@ const MyAccount = () => {
                         </div>
                     </div>
 
-                    {/* Right Column: Quick Links */}
+                    {}
                     <div className="space-y-4 lg:border-l lg:border-slate-100 lg:pl-8">
                         <h3 className="mb-6 text-xl font-extrabold text-slate-900">
                             Procurement Tools

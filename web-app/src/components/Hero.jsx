@@ -39,7 +39,7 @@ function Hero({ onShopNow }) {
                         >
                             Browse Wholesale Catalog
                         </button>
-                        {/* Changed this secondary button to target bulk/excel uploads */}
+                        {}
                         <button className="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white/80 px-8 py-4 font-bold tracking-wide text-slate-900 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-slate-300 hover:bg-white sm:w-auto">
                             <UploadCloud size={18} /> Quick Bulk Order
                         </button>

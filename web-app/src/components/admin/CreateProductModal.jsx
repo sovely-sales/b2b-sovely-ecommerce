@@ -6,7 +6,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [images, setImages] = useState([]);
 
-    // Core B2B Form State
+    
     const [formData, setFormData] = useState({
         title: '',
         sku: '',
@@ -19,10 +19,10 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
         gstSlab: '18',
         status: 'active',
         descriptionHTML: '',
-        categoryId: '60d5ecb54ab24c001f3e3a4b', // Needs to be an actual Category ID from your DB
+        categoryId: '60d5ecb54ab24c001f3e3a4b', 
     });
 
-    // Dynamic Wholesale Tiers State
+    
     const [tiers, setTiers] = useState([]);
 
     if (!isOpen) return null;
@@ -67,9 +67,9 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
             JSON.stringify({ stock: Number(formData.stock), alertThreshold: 10 })
         );
 
-        // Append Tiered Pricing array if it exists
+        
         if (tiers.length > 0) {
-            // Clean up empty maxQty fields before sending
+            
             const cleanedTiers = tiers.map((t) => ({
                 minQty: Number(t.minQty),
                 maxQty: t.maxQty ? Number(t.maxQty) : undefined,
@@ -83,7 +83,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
         });
 
         try {
-            // Hit the new B2B product creation endpoint
+            
             await api.post('/products', data, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
@@ -116,7 +116,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-8 p-6">
-                    {/* Section 1: Basic Info */}
+                    {}
                     <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50 p-5">
                         <h4 className="text-sm font-bold text-slate-900">Core Identity</h4>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -147,7 +147,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                         </div>
                     </div>
 
-                    {/* Section 2: Dropship Pricing & Margins */}
+                    {}
                     <div className="space-y-4 rounded-2xl border border-amber-100 bg-amber-50 p-5">
                         <h4 className="text-sm font-bold text-amber-900">
                             Dropship Pricing (Per Unit)
@@ -188,7 +188,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                         </p>
                     </div>
 
-                    {/* Section 3: Wholesale Tiers */}
+                    {}
                     <div className="space-y-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-5">
                         <div className="flex items-center justify-between">
                             <h4 className="text-sm font-bold text-indigo-900">
@@ -257,7 +257,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                         )}
                     </div>
 
-                    {/* Section 4: Logistics & Compliance */}
+                    {}
                     <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50 p-5">
                         <h4 className="text-sm font-bold text-slate-900">Logistics & Compliance</h4>
                         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -337,7 +337,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                         </div>
                     </div>
 
-                    {/* Section 5: Images */}
+                    {}
                     <div>
                         <div className="group relative flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 transition-colors hover:border-slate-400">
                             <input
@@ -359,7 +359,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                         </div>
                     </div>
 
-                    {/* Action Bar */}
+                    {}
                     <div className="flex justify-end gap-3 border-t border-slate-100 pt-6">
                         <button
                             type="button"

@@ -16,6 +16,7 @@ import {
     Clock,
     CreditCard,
     Box,
+    Receipt,
 } from 'lucide-react';
 import api from '../utils/api.js';
 
@@ -134,6 +135,8 @@ const Orders = () => {
 
     return (
         <div className="mx-auto mb-20 w-full max-w-7xl flex-1 px-4 py-8 font-sans text-slate-900 sm:px-6 md:mb-0 lg:px-8 lg:py-12">
+            
+            {}
             <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <Link
@@ -160,7 +163,7 @@ const Orders = () => {
                                 Incoming Margins
                             </span>
                             <div className="text-2xl font-black text-emerald-900">
-                                ₹{pendingProfit.toLocaleString('en-IN')}
+                                ₹{pendingProfit.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                             </div>
                         </div>
                     </div>
@@ -190,6 +193,7 @@ const Orders = () => {
                 </div>
             </div>
 
+            {}
             {ndrCount > 0 && (
                 <div className="mb-6 flex flex-col justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm sm:flex-row sm:items-center">
                     <div className="flex items-center gap-3">
@@ -208,7 +212,7 @@ const Orders = () => {
                     </div>
                     <button
                         onClick={() => setFilter('NDR')}
-                        className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-extrabold tracking-widest whitespace-nowrap text-white uppercase shadow-sm transition-colors hover:bg-amber-700"
+                        className="rounded-xl bg-amber-600 px-5 py-2.5 text-xs font-extrabold tracking-widest whitespace-nowrap text-white uppercase shadow-sm transition-colors hover:bg-amber-700"
                     >
                         View NDR Orders
                     </button>
@@ -226,14 +230,14 @@ const Orders = () => {
                         placeholder="Search Order ID, Customer, or SKU..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm font-bold text-slate-900 transition-all outline-none focus:border-slate-400 focus:bg-white"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm font-bold text-slate-900 transition-all outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
                     />
                 </div>
                 <div className="flex items-center gap-3">
                     <select
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
-                        className="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-extrabold text-slate-700 outline-none focus:border-slate-400"
+                        className="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-extrabold text-slate-700 outline-none transition-all focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
                     >
                         <option value="ALL">All Statuses</option>
                         <option value="PENDING">Pending / Processing</option>
@@ -246,15 +250,16 @@ const Orders = () => {
                 </div>
             </div>
 
+            {}
             {loading ? (
-                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                <div className="flex flex-col items-center justify-center py-24 text-slate-400">
                     <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800"></div>
                     <p className="text-xs font-bold tracking-widest uppercase">
                         Syncing Logistics...
                     </p>
                 </div>
             ) : processedOrders.length === 0 ? (
-                <div className="flex flex-col items-center rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+                <div className="flex flex-col items-center rounded-3xl border border-slate-200 bg-white p-16 text-center shadow-sm">
                     <div className="mb-4 rounded-full bg-slate-50 p-6">
                         <Package size={48} className="text-slate-300" />
                     </div>
@@ -276,10 +281,11 @@ const Orders = () => {
                                 key={ord._id}
                                 className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md"
                             >
-                                <div className="flex flex-col justify-between gap-6 border-b border-slate-100 p-5 md:p-6 lg:flex-row">
+                                {}
+                                <div className="flex flex-col justify-between gap-6 border-b border-slate-100 p-5 md:p-6 lg:flex-row lg:items-center">
                                     <div className="flex-1">
-                                        <div className="mb-2 flex flex-wrap items-center gap-3">
-                                            <h3 className="text-lg font-black text-slate-900">
+                                        <div className="mb-3 flex flex-wrap items-center gap-3">
+                                            <h3 className="text-xl font-black text-slate-900">
                                                 {ord.orderId}
                                             </h3>
                                             <span
@@ -290,7 +296,7 @@ const Orders = () => {
                                             </span>
                                         </div>
                                         <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-400">
-                                            <p className="flex items-center gap-1">
+                                            <p className="flex items-center gap-1.5">
                                                 <Clock size={14} />{' '}
                                                 {new Date(ord.createdAt).toLocaleDateString(
                                                     'en-IN',
@@ -305,56 +311,39 @@ const Orders = () => {
                                             </p>
                                             <span className="h-1 w-1 rounded-full bg-slate-300"></span>
                                             {isDropship ? (
-                                                <span className="flex items-center gap-1 text-amber-600">
-                                                    <MapPin size={14} /> Dropship Order
+                                                <span className="flex items-center gap-1.5 text-amber-600">
+                                                    <MapPin size={14} /> Dropship Dispatch
                                                 </span>
                                             ) : (
-                                                <span className="flex items-center gap-1 text-indigo-600">
-                                                    <Box size={14} /> Wholesale Procurement
+                                                <span className="flex items-center gap-1.5 text-indigo-600">
+                                                    <Box size={14} /> B2B Wholesale
                                                 </span>
                                             )}
                                         </div>
-
-                                        <div className="mt-4 flex max-w-sm items-center gap-1 opacity-80">
-                                            <div
-                                                className={`h-1.5 flex-1 rounded-l-full ${['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'PROFIT_CREDITED'].includes(ord.status) ? 'bg-indigo-500' : 'bg-slate-200'}`}
-                                            ></div>
-                                            <div
-                                                className={`h-1.5 flex-1 ${['SHIPPED', 'DELIVERED', 'PROFIT_CREDITED'].includes(ord.status) ? 'bg-indigo-500' : 'bg-slate-200'}`}
-                                            ></div>
-                                            <div
-                                                className={`h-1.5 flex-1 ${['DELIVERED', 'PROFIT_CREDITED'].includes(ord.status) ? 'bg-emerald-400' : 'bg-slate-200'}`}
-                                            ></div>
-                                            <div
-                                                className={`h-1.5 flex-1 rounded-r-full ${ord.status === 'PROFIT_CREDITED' ? 'bg-emerald-500' : 'bg-slate-200'}`}
-                                            ></div>
-                                        </div>
                                     </div>
 
+                                    {}
                                     <div
-                                        className={`flex shrink-0 gap-6 rounded-xl border p-4 ${isDropship ? 'border-amber-100 bg-amber-50/50' : 'border-slate-100 bg-slate-50'}`}
+                                        className={`flex shrink-0 gap-6 rounded-xl border p-4 ${isDropship ? 'border-emerald-100 bg-emerald-50/50' : 'border-slate-100 bg-slate-50'}`}
                                     >
                                         <div>
                                             <p className="mb-1 flex items-center gap-1 text-[10px] font-extrabold tracking-widest text-slate-500 uppercase">
-                                                <Wallet size={12} /> Platform Deducted
+                                                <Wallet size={12} /> Platform Cost
                                             </p>
                                             <p className="text-lg font-black text-slate-900">
-                                                ₹{ord.totalPlatformCost?.toLocaleString('en-IN')}
+                                                ₹{ord.totalPlatformCost?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                             </p>
                                         </div>
 
                                         {isDropship && (
                                             <>
-                                                <div className="my-1 w-px bg-amber-200"></div>
+                                                <div className="my-1 w-px bg-emerald-200"></div>
                                                 <div>
                                                     <p className="mb-1 flex items-center gap-1 text-[10px] font-extrabold tracking-widest text-emerald-700 uppercase">
-                                                        <TrendingUp size={12} /> Your Net Margin
+                                                        <TrendingUp size={12} /> Net Margin
                                                     </p>
                                                     <p className="text-lg font-black text-emerald-600">
-                                                        +₹
-                                                        {(
-                                                            ord.resellerProfitMargin || 0
-                                                        ).toLocaleString('en-IN')}
+                                                        +₹{(ord.resellerProfitMargin || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                                     </p>
                                                 </div>
                                             </>
@@ -362,7 +351,8 @@ const Orders = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50/50 p-4">
+                                {}
+                                <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50/80 px-6 py-4">
                                     <div className="flex items-center gap-3 text-sm">
                                         {ord.status === 'NDR' && (
                                             <span className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-100 px-3 py-1.5 font-bold text-amber-800 shadow-sm">
@@ -375,7 +365,7 @@ const Orders = () => {
                                                 href={ord.tracking.trackingUrl}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="flex items-center gap-1.5 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-2 font-bold text-indigo-600 transition-colors hover:bg-indigo-100"
+                                                className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 font-bold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900"
                                             >
                                                 <Truck size={16} /> Track Shipment
                                             </a>
@@ -383,7 +373,7 @@ const Orders = () => {
                                     </div>
                                     <button
                                         onClick={() => toggleExpand(ord._id)}
-                                        className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-extrabold tracking-widest text-slate-600 uppercase shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900"
+                                        className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 py-2 text-xs font-extrabold tracking-widest text-slate-600 uppercase shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
                                     >
                                         {isExpanded ? (
                                             <>
@@ -397,19 +387,22 @@ const Orders = () => {
                                     </button>
                                 </div>
 
+                                {}
                                 {isExpanded && (
-                                    <div className="grid grid-cols-1 gap-8 border-t border-slate-200 bg-white p-6 lg:grid-cols-3">
-                                        <div className="space-y-4 lg:col-span-2">
-                                            <h4 className="mb-4 flex items-center gap-2 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
+                                    <div className="grid grid-cols-1 gap-8 border-t border-slate-200 bg-white p-6 lg:grid-cols-12">
+                                        
+                                        {}
+                                        <div className="space-y-4 lg:col-span-7 xl:col-span-8">
+                                            <h4 className="flex items-center gap-2 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
                                                 <Package size={16} /> Order Contents
                                             </h4>
-                                            <div className="divide-y divide-slate-50 overflow-hidden rounded-2xl border border-slate-100">
+                                            <div className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200">
                                                 {ord.items.map((item, idx) => (
                                                     <div
                                                         key={idx}
-                                                        className="flex items-center gap-4 bg-white p-4 transition-colors hover:bg-slate-50"
+                                                        className="flex items-start gap-4 bg-white p-5 transition-colors hover:bg-slate-50"
                                                     >
-                                                        <div className="h-14 w-14 flex-shrink-0 rounded-xl border border-slate-200 bg-slate-100">
+                                                        <div className="h-16 w-16 shrink-0 rounded-xl border border-slate-200 bg-slate-100">
                                                             {item.image && (
                                                                 <img
                                                                     src={item.image}
@@ -419,106 +412,96 @@ const Orders = () => {
                                                             )}
                                                         </div>
                                                         <div className="min-w-0 flex-1">
-                                                            <p className="truncate text-sm font-bold text-slate-900">
+                                                            <p className="line-clamp-2 text-sm font-bold text-slate-900 leading-tight">
                                                                 {item.title}
                                                             </p>
-                                                            <p className="mt-1 text-xs font-bold text-slate-500">
-                                                                SKU:{' '}
-                                                                <span className="rounded bg-slate-100 px-1 font-mono">
-                                                                    {item.sku}
-                                                                </span>{' '}
-                                                                | Qty: {item.qty}
-                                                            </p>
+                                                            <div className="mt-2 flex items-center gap-2 text-xs font-bold text-slate-500">
+                                                                <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] uppercase">
+                                                                    SKU: {item.sku}
+                                                                </span>
+                                                                <span>Qty: {item.qty}</span>
+                                                            </div>
                                                         </div>
                                                         <div className="text-right">
                                                             <p className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
                                                                 Base Rate
                                                             </p>
                                                             <p className="text-sm font-black text-slate-900">
-                                                                ₹
-                                                                {item.platformBasePrice?.toLocaleString(
-                                                                    'en-IN'
-                                                                )}
+                                                                ₹{item.platformBasePrice?.toLocaleString('en-IN')}
                                                             </p>
                                                             <p className="mt-0.5 text-[10px] font-bold text-slate-500">
-                                                                + ₹
-                                                                {item.taxAmountPerUnit?.toLocaleString(
-                                                                    'en-IN'
-                                                                )}{' '}
-                                                                Tax
+                                                                + ₹{item.taxAmountPerUnit?.toLocaleString('en-IN')} Tax
                                                             </p>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
 
-                                            {/* NEW: Explicit Math Breakdown so it aligns perfectly with the Wallet Deduction */}
-                                            <div className="mt-4 flex flex-col items-end space-y-1.5 border-t border-slate-100 pt-4 text-sm font-medium text-slate-500">
-                                                <p className="flex w-48 justify-between">
-                                                    <span>Subtotal:</span>
-                                                    <span className="font-bold text-slate-700">
-                                                        ₹{ord.subTotal?.toLocaleString('en-IN')}
-                                                    </span>
-                                                </p>
-                                                <p className="flex w-48 justify-between">
-                                                    <span>Tax (GST):</span>
-                                                    <span className="font-bold text-slate-700">
-                                                        + ₹{ord.taxTotal?.toLocaleString('en-IN')}
-                                                    </span>
-                                                </p>
-                                                <p className="flex w-48 justify-between">
-                                                    <span>Shipping:</span>
-                                                    <span className="font-bold text-slate-700">
-                                                        + ₹
-                                                        {ord.shippingTotal?.toLocaleString('en-IN')}
-                                                    </span>
-                                                </p>
-                                                <p className="flex w-48 justify-between border-t border-slate-100 pt-2 text-base font-black text-slate-900">
-                                                    <span>Platform Cost:</span>
-                                                    <span>
-                                                        ₹
-                                                        {ord.totalPlatformCost?.toLocaleString(
-                                                            'en-IN'
-                                                        )}
-                                                    </span>
-                                                </p>
+                                            {}
+                                            <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                                                <h4 className="mb-4 flex items-center gap-2 text-xs font-extrabold tracking-widest text-slate-500 uppercase">
+                                                    <Receipt size={16} /> Financial Breakdown
+                                                </h4>
+                                                <div className="flex flex-col space-y-2.5 text-sm text-slate-600">
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">Platform Subtotal</span>
+                                                        <span className="font-bold text-slate-900">₹{ord.subTotal?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">Tax (GST)</span>
+                                                        <span className="font-bold text-slate-900">+ ₹{ord.taxTotal?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                                                    </div>
+                                                    
+                                                    {}
+                                                    <div className="flex justify-between">
+                                                        <span className="font-medium">Delivery Charge</span>
+                                                        <span className="font-bold text-slate-900">
+                                                            + ₹{(ord.deliveryCharge || ord.shippingTotal || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                                                        </span>
+                                                    </div>
+                                                    {(ord.packingCharge !== undefined) && (
+                                                        <div className="flex justify-between">
+                                                            <span className="font-medium">Packing & Handling</span>
+                                                            <span className="font-bold text-slate-900">
+                                                                + ₹{(ord.packingCharge || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {}
+                                                    {ord.codCharge > 0 && (
+                                                        <div className="flex justify-between text-amber-700">
+                                                            <span className="font-medium">COD Fee</span>
+                                                            <span className="font-bold">+ ₹{ord.codCharge?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div className="mt-2 flex justify-between border-t border-dashed border-slate-300 pt-3 text-base">
+                                                        <span className="font-extrabold text-slate-900">Total Deducted</span>
+                                                        <span className="font-black text-slate-900">₹{ord.totalPlatformCost?.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div className="space-y-6">
+                                        {}
+                                        <div className="space-y-6 lg:col-span-5 xl:col-span-4">
                                             {isDropship && ord.endCustomerDetails ? (
                                                 <div>
                                                     <h4 className="mb-3 flex items-center gap-2 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
-                                                        <MapPin size={16} /> Dropship Address
+                                                        <MapPin size={16} /> Dispatch Address
                                                     </h4>
-                                                    <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-5 text-sm font-medium text-slate-700">
+                                                    <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-5 text-sm text-slate-700">
                                                         <p className="text-base font-black text-slate-900">
                                                             {ord.endCustomerDetails.name}
                                                         </p>
                                                         <p className="mt-1 font-bold text-slate-600">
                                                             {ord.endCustomerDetails.phone}
                                                         </p>
-                                                        <div className="mt-3 border-t border-amber-200/50 pt-3">
-                                                            <p>
-                                                                {
-                                                                    ord.endCustomerDetails.address
-                                                                        .street
-                                                                }
-                                                            </p>
-                                                            <p>
-                                                                {
-                                                                    ord.endCustomerDetails.address
-                                                                        .city
-                                                                }
-                                                                ,{' '}
-                                                                {
-                                                                    ord.endCustomerDetails.address
-                                                                        .state
-                                                                }
-                                                            </p>
-                                                            <p className="font-bold">
-                                                                {ord.endCustomerDetails.address.zip}
-                                                            </p>
+                                                        <div className="mt-3 border-t border-amber-200/50 pt-3 font-medium">
+                                                            <p>{ord.endCustomerDetails.address.street}</p>
+                                                            <p>{ord.endCustomerDetails.address.city}, {ord.endCustomerDetails.address.state}</p>
+                                                            <p className="mt-1 font-bold text-slate-900">{ord.endCustomerDetails.address.zip}</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -528,13 +511,9 @@ const Orders = () => {
                                                         <Box size={16} /> Delivery Destination
                                                     </h4>
                                                     <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5 text-sm font-medium text-slate-700">
-                                                        <p className="font-black text-slate-900">
-                                                            Standard B2B Delivery
-                                                        </p>
+                                                        <p className="font-black text-slate-900">Standard B2B Delivery</p>
                                                         <p className="mt-1 text-slate-600">
-                                                            Items will be dispatched to your
-                                                            registered HQ address based on KYC
-                                                            details.
+                                                            Items dispatched to your registered HQ address based on KYC.
                                                         </p>
                                                     </div>
                                                 </div>
@@ -544,27 +523,24 @@ const Orders = () => {
                                                 <h4 className="mb-3 flex items-center gap-2 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
                                                     <CreditCard size={16} /> Customer Payment
                                                 </h4>
-                                                <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-black text-slate-900">
-                                                    {ord.paymentMethod === 'COD'
-                                                        ? 'Cash on Delivery'
-                                                        : 'Prepaid (Wallet)'}
+                                                <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                                                    <span className="text-sm font-black text-slate-900">
+                                                        {ord.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Prepaid (Wallet)'}
+                                                    </span>
                                                     {ord.paymentMethod === 'COD' && (
-                                                        <span className="rounded-md bg-slate-900 px-2 py-1 text-[10px] tracking-widest text-white uppercase">
-                                                            To Collect: ₹
-                                                            {ord.amountToCollect?.toLocaleString(
-                                                                'en-IN'
-                                                            )}
+                                                        <span className="rounded-lg bg-amber-100 px-2.5 py-1 text-[10px] font-extrabold tracking-widest text-amber-800 uppercase">
+                                                            To Collect: ₹{ord.amountToCollect?.toLocaleString('en-IN')}
                                                         </span>
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="mt-6 border-t border-slate-100 pt-6">
+
+                                            <div className="pt-2">
                                                 <Link
                                                     to={`/orders/${ord._id}/track`}
-                                                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-3.5 text-sm font-extrabold text-white transition-all hover:bg-slate-800"
+                                                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-3.5 text-sm font-extrabold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-slate-800"
                                                 >
-                                                    <Package size={18} /> View Full Tracking &
-                                                    Invoices
+                                                    <Package size={18} /> Full Tracking & Invoices
                                                 </Link>
                                             </div>
                                         </div>

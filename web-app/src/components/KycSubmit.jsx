@@ -9,7 +9,7 @@ const KycSubmit = () => {
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    // Form States
+    
     const [gstin, setGstin] = useState(user?.gstin || '');
     const [panNumber, setPanNumber] = useState('');
 
@@ -35,7 +35,7 @@ const KycSubmit = () => {
         setIsLoading(true);
 
         try {
-            // We will build this endpoint in the backend next!
+            
             const response = await api.put('/users/kyc-update', {
                 gstin: gstin.toUpperCase(),
                 panNumber: panNumber.toUpperCase(),
@@ -50,7 +50,7 @@ const KycSubmit = () => {
 
             if (response.data.success) {
                 toast.success('KYC Details submitted successfully! Awaiting Admin approval.');
-                // Refresh the page or redirect to trigger a user context update
+                
                 window.location.href = '/my-account';
             }
         } catch (error) {
@@ -80,7 +80,7 @@ const KycSubmit = () => {
                     </button>
                 </div>
 
-                {/* Status Banner */}
+                {}
                 {isApproved ? (
                     <div className="mb-8 flex items-center gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
                         <div className="rounded-full bg-emerald-100 p-3 text-emerald-600">
@@ -112,7 +112,7 @@ const KycSubmit = () => {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* SECTION 1: Identity */}
+                    {}
                     <div className="rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm">
                         <div className="mb-6 flex items-center gap-3 border-b border-slate-100 pb-4">
                             <Building className="text-accent" size={24} />
@@ -151,7 +151,7 @@ const KycSubmit = () => {
                         </div>
                     </div>
 
-                    {/* SECTION 2: Address */}
+                    {}
                     <div className="rounded-[2rem] border border-slate-100 bg-white p-8 shadow-sm">
                         <div className="mb-6 flex items-center gap-3 border-b border-slate-100 pb-4">
                             <MapPin className="text-accent" size={24} />

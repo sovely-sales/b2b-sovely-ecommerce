@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { fakerEN_IN as faker } from '@faker-js/faker';
 
-// Import all your models
+
 import { User } from '../src/models/User.js';
 import { Category } from '../src/models/Category.js';
 import { Product } from '../src/models/Product.js';
@@ -18,9 +18,9 @@ import { Counter } from '../src/models/Counter.js';
 
 dotenv.config();
 
-// Helper to generate a valid Indian GSTIN
+
 const generateGSTIN = () => {
-    const stateCode = faker.number.int({ min: 10, max: 37 }).toString(); // e.g., 27 for Maharashtra
+    const stateCode = faker.number.int({ min: 10, max: 37 }).toString(); 
     const panChars = faker.string.alpha({ length: 5, casing: 'upper' });
     const panNums = faker.string.numeric(4);
     const panChar2 = faker.string.alpha({ length: 1, casing: 'upper' });
@@ -47,16 +47,16 @@ const seedDatabase = async () => {
         console.log('🧹 Dropping database to clear old indexes...');
 await mongoose.connection.db.dropDatabase();
 
-// Sync indexes to ensure they are rebuilt immediately based on your current models
+
 const models = [User, Category, Product, UserPricing, Cart, Wishlist, Order, Invoice, Payment, WalletTransaction, StockAdjustment, Counter];
 for (let model of models) {
     await model.syncIndexes();
 }
 console.log('✨ Database and indexes cleared.\n');
 
-        // ==========================================
-        // 1. SEED CATEGORIES
-        // ==========================================
+        
+        
+        
         console.log('🌱 Seeding Categories...');
         const parentCategories = await Category.create([
             { name: 'Industrial Machinery' },
@@ -73,15 +73,15 @@ console.log('✨ Database and indexes cleared.\n');
         ]);
         const allCategories = [...parentCategories, ...subCategories];
 
-        // ==========================================
-        // 2. SEED USERS (Admin, B2B, B2C)
-        // ==========================================
+        
+        
+        
         console.log('🌱 Seeding Users...');
         const adminUser = await User.create({
             name: 'System Admin',
             email: 'admin@sovely.in',
             phoneNumber: '9876543210',
-            passwordHash: 'Admin@123', // Will be hashed by pre-save hook
+            passwordHash: 'Admin@123', 
             role: 'ADMIN',
             accountType: 'B2B',
             isVerifiedB2B: true
@@ -89,7 +89,7 @@ console.log('✨ Database and indexes cleared.\n');
 
 const staticB2BUser = await User.create({
     name: 'Test B2B Company',
-    email: 'b2b@sovely.in', // Use this to log in!
+    email: 'b2b@sovely.in', 
     phoneNumber: '9999999998',
     passwordHash: 'Password@123',
     role: 'CUSTOMER',
@@ -102,7 +102,7 @@ const staticB2BUser = await User.create({
 
 const staticB2CUser = await User.create({
     name: 'Test Consumer',
-    email: 'b2c@sovely.in', // Use this to log in!
+    email: 'b2c@sovely.in', 
     phoneNumber: '9999999999',
     passwordHash: 'Password@123',
     role: 'CUSTOMER',
@@ -156,9 +156,9 @@ const staticB2CUser = await User.create({
 createdB2BUsers.push(staticB2BUser);
 createdB2CUsers.push(staticB2CUser);
 
-        // ==========================================
-        // 3. SEED PRODUCTS & ADJUSTMENTS
-        // ==========================================
+        
+        
+        
         console.log('🌱 Seeding Products...');
         const products = [];
         for (let i = 0; i < 20; i++) {
@@ -176,11 +176,11 @@ createdB2CUsers.push(staticB2CUser);
                     { url: faker.image.url(), position: 1, altText: 'Product Image 1' },
                     { url: faker.image.url(), position: 2, altText: 'Product Image 2' }
                 ],
-                // Updated Pricing Engine Fields
+                
                 dropshipBasePrice: basePrice,
                 suggestedRetailPrice: srp,
                 
-                // Added Missing Required B2B Fields
+                
                 hsnCode: faker.string.numeric(6),
                 gstSlab: faker.helpers.arrayElement([0, 5, 12, 18, 28]),
                 
@@ -193,7 +193,7 @@ createdB2CUsers.push(staticB2CUser);
         }
         const createdProducts = await Product.create(products);
 
-        // Add Initial Stock Adjustments for the first 5 products
+        
         const stockAdjustments = createdProducts.slice(0, 5).map(p => ({
             productId: p._id,
             adminUserId: adminUser._id,
@@ -202,12 +202,12 @@ createdB2CUsers.push(staticB2CUser);
         }));
         await StockAdjustment.create(stockAdjustments);
 
-        // ==========================================
-        // 4. SEED USER PRICING (B2B Custom Rates)
-        // ==========================================
+        
+        
+        
         console.log('🌱 Seeding Custom B2B Pricing...');
         const userPricings = [];
-        // Give the first 2 B2B users custom pricing on 3 random products
+        
         for (let i = 0; i < 2; i++) {
             const user = createdB2BUsers[i];
             const selectedProducts = faker.helpers.arrayElements(createdProducts, 3);
@@ -215,15 +215,15 @@ createdB2CUsers.push(staticB2CUser);
                 userPricings.push({
                     userId: user._id,
                     productId: product._id,
-                    customPrice: Math.floor(product.platformSellPrice * 0.85) // 15% off platform price
+                    customPrice: Math.floor(product.platformSellPrice * 0.85) 
                 });
             }
         }
         await UserPricing.create(userPricings);
 
-        // ==========================================
-        // 5. SEED CARTS & WISHLISTS
-        // ==========================================
+        
+        
+        
         console.log('🌱 Seeding Carts & Wishlists...');
         for (const user of allCustomers) {
             await Cart.create({
@@ -236,9 +236,9 @@ createdB2CUsers.push(staticB2CUser);
             });
         }
 
-        // ==========================================
-        // 6. SEED ORDERS, INVOICES, PAYMENTS & WALLET
-        // ==========================================
+        
+        
+        
         console.log('🌱 Seeding Transactions (Orders, Invoices, Payments)...');
         
         for (let i = 0; i < 10; i++) {
@@ -246,11 +246,11 @@ createdB2CUsers.push(staticB2CUser);
             const product = faker.helpers.arrayElement(createdProducts);
             const qty = faker.number.int({ min: product.moq, max: 100 });
             const basePrice = product.dropshipBasePrice;
-            const taxSlab = 18; // 18% GST
+            const taxSlab = 18; 
             const taxAmountPerUnit = (basePrice * taxSlab) / 100;
             const totalItemPrice = (basePrice + taxAmountPerUnit) * qty;
 
-            // 1. Create Order
+            
             const order = await Order.create({
                 orderId: `ORD-${Date.now()}-${i}`,
                 userId: user._id,
@@ -273,7 +273,7 @@ createdB2CUsers.push(staticB2CUser);
                 }]
             });
 
-            // 2. Create Invoice
+            
             const invoice = await Invoice.create({
                 invoiceNumber: `INV-${Date.now()}-${i}`,
                 userId: user._id,
@@ -297,7 +297,7 @@ createdB2CUsers.push(staticB2CUser);
                 paymentMethod: 'RAZORPAY'
             });
 
-            // 3. Create Payment
+            
             const payment = await Payment.create({
                 userId: user._id,
                 invoiceId: invoice._id,
@@ -306,11 +306,11 @@ createdB2CUsers.push(staticB2CUser);
                 referenceId: `pay_${faker.string.alphanumeric(14)}`
             });
 
-            // 4. Create Wallet Transaction (simulating cashback or partial wallet use for fun)
+            
             if (i % 3 === 0) {
                 await WalletTransaction.create({
                     userId: user._id,
-                    paymentId: payment._id, // Linking to payment as per your strict schema rules
+                    paymentId: payment._id, 
                     amount: 500,
                     transactionType: 'CREDIT',
                     description: 'Cashback on Order'
@@ -318,7 +318,7 @@ createdB2CUsers.push(staticB2CUser);
             }
         }
 
-        // Add a few admin-initiated wallet top-ups
+        
         for (let i = 0; i < 3; i++) {
             await WalletTransaction.create({
                 userId: faker.helpers.arrayElement(createdB2BUsers)._id,

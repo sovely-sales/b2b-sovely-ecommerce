@@ -12,7 +12,7 @@ export const getBalance = asyncHandler(async (req, res) => {
 });
 
 export const getTransactionHistory = asyncHandler(async (req, res) => {
-    // FIX: Changed userId to resellerId to match the schema
+    
     const transactions = await WalletTransaction.find({ resellerId: req.user._id })
         .sort({ createdAt: -1 })
         .limit(50);
@@ -30,16 +30,16 @@ export const addMoney = asyncHandler(async (req, res) => {
     const invoiceNumSeq = await Counter.getNextSequenceValue('invoiceNumber');
     const invoiceNumStr = `INV-${invoiceNumSeq.toString().padStart(6, '0')}`;
 
-    // FIX: Aligned with the updated Invoice schema (removed subTotal, added proper B2B fields)
+    
     const invoice = await Invoice.create({
         invoiceNumber: invoiceNumStr,
-        resellerId, // FIX: Changed from userId to resellerId
+        resellerId, 
         invoiceType: 'WALLET_TOPUP',
         totalTaxableValue: amount,
         grandTotal: amount,
         paymentTerms: 'DUE_ON_RECEIPT',
         dueDate: new Date(),
-        paymentStatus: 'UNPAID', // FIX: Changed from status: 'UNPAID' to paymentStatus
+        paymentStatus: 'UNPAID', 
     });
 
     const options = {

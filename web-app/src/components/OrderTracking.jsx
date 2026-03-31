@@ -44,7 +44,7 @@ const OrderTracking = () => {
             }
         };
         fetchOrder();
-        // Poll every 15s so status updates are reflected without a manual refresh
+        
         const interval = setInterval(() => fetchOrder(true), 15000);
         return () => clearInterval(interval);
     }, [id]);
@@ -149,7 +149,7 @@ const OrderTracking = () => {
                         </h2>
                         <div className="relative space-y-8 border-l-2 border-slate-100 pl-4">
                             {(() => {
-                                // For legacy orders with empty statusHistory, show current status as fallback
+                                
                                 const history =
                                     order.statusHistory && order.statusHistory.length > 0
                                         ? [...order.statusHistory].reverse()
@@ -253,7 +253,7 @@ const OrderTracking = () => {
                 </div>
 
                 <div className="space-y-6">
-                    {/* NEW: Financial Summary block on Tracking page */}
+                    {}
                     <div className="rounded-3xl border border-slate-200 bg-white p-6">
                         <h3 className="mb-4 flex items-center gap-2 text-sm font-black tracking-wider text-slate-500 uppercase">
                             <Wallet size={16} /> Financial Summary

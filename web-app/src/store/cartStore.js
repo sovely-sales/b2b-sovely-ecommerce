@@ -76,11 +76,11 @@ export const useCartStore = create((set, get) => ({
         try {
             const res = await api.delete('/cart');
 
-            // Success: Set the cart to the newly returned EMPTY cart object from the backend
+            
             set({ cart: res.data.data, isLoading: false });
             toast.success('Cart cleared successfully', { position: 'bottom-right' });
         } catch (error) {
-            // Failure: Do NOT set cart to null. Keep the existing items visible so the user knows it failed.
+            
             set({
                 error: error.response?.data?.message || 'Failed to clear cart',
                 isLoading: false,

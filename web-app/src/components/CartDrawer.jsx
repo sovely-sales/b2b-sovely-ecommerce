@@ -17,7 +17,7 @@ import {
 import { useCartStore } from '../store/cartStore';
 import { AuthContext } from '../AuthContext';
 
-// --- ANIMATION VARIANTS (Matched to Sidebar) ---
+
 const drawerVariants = {
     hidden: { x: '100%', transition: { type: 'tween', duration: 0.3, ease: 'easeInOut' } },
     visible: { x: 0, transition: { type: 'tween', duration: 0.3, ease: 'easeInOut' } },
@@ -59,12 +59,12 @@ const CartDrawer = ({ isOpen, onClose }) => {
         useCartStore();
     const { user, isKycApproved } = useContext(AuthContext);
 
-    // FIX 1: Fetch Cart on Open
+    
     useEffect(() => {
         if (isOpen) fetchCart();
     }, [isOpen, fetchCart]);
 
-    // FIX 2: Added Body Scroll Lock (matches Sidebar exactly)
+    
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
@@ -89,7 +89,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-[100] flex justify-end font-sans">
-                    {/* Dark Overlay */}
+                    {}
                     <motion.div
                         variants={overlayVariants}
                         initial="hidden"
@@ -100,7 +100,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         aria-hidden="true"
                     />
 
-                    {/* The Cart Drawer */}
+                    {}
                     <motion.div
                         variants={drawerVariants}
                         initial="hidden"
@@ -166,7 +166,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                                 <motion.div
                                                     layout
                                                     variants={itemVariants}
-                                                    // FIX: Composite key guarantees uniqueness even if the same product is added twice
+                                                    
                                                     key={`${item.productId?._id}-${item.orderType}`}
                                                     className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
                                                 >

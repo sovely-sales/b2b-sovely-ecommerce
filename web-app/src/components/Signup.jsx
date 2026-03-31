@@ -5,7 +5,7 @@ import { AuthContext } from '../AuthContext';
 import toast from 'react-hot-toast';
 import { Eye, EyeOff, Building2, ArrowLeft } from 'lucide-react';
 
-// --- ANIMATION VARIANTS ---
+
 const fadeUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
@@ -167,7 +167,7 @@ const Signup = () => {
 
     return (
         <div className="flex h-screen overflow-hidden bg-white font-sans selection:bg-emerald-500/30">
-            {/* LEFT PANEL - MARKETING (Hidden on mobile) */}
+            {}
             <div className="relative hidden w-1/2 flex-col justify-between bg-slate-900 p-12 lg:flex">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:24px_24px]"></div>
                 <div className="animate-blob absolute top-[10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-emerald-500/20 mix-blend-overlay blur-[100px] filter"></div>
@@ -202,7 +202,7 @@ const Signup = () => {
                 </div>
             </div>
 
-            {/* RIGHT PANEL - FORM (Scrollable to accommodate extra fields) */}
+            {}
             <div className="custom-scrollbar flex w-full flex-col overflow-y-auto px-6 py-12 lg:w-1/2 lg:px-16 xl:px-24">
                 <motion.div
                     initial="hidden"

@@ -6,7 +6,7 @@ import { ChevronDown, Filter, AlignJustify, LayoutGrid, Box } from 'lucide-react
 import api from '../utils/api.js';
 import { useDebounce } from '../hooks/useDebounce';
 
-// Extracted Components
+
 import ProductFilterSidebar from '../components/ProductFilterSidebar';
 import ProductCard from '../components/ProductCard';
 import ProductTableRow from '../components/ProductTableRow';
@@ -27,7 +27,7 @@ export default function DropshipProducts({
     const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
     const [viewMode, setViewMode] = useState('grid');
 
-    // --- FILTER STATE ---
+    
     const [category, setCategory] = useState(initialCategory);
     const [sort, setSort] = useState('default');
     const [minPrice, setMinPrice] = useState('');
@@ -43,11 +43,11 @@ export default function DropshipProducts({
         vendor: 'all',
     });
 
-    // --- DEBOUNCED VALUES ---
+    
     const debouncedMinPrice = useDebounce(minPrice, 500);
     const debouncedMaxPrice = useDebounce(maxPrice, 500);
 
-    // Sync prop filters carefully
+    
     const stringifiedFilters = JSON.stringify(filters);
     useEffect(() => {
         const parsedFilters = JSON.parse(stringifiedFilters);
@@ -92,7 +92,7 @@ export default function DropshipProducts({
         return found ? found._id : null;
     }, [category, dbCategories]);
 
-    // --- API CALL ---
+    
     const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery({
         queryKey: [
             'products',
@@ -103,7 +103,7 @@ export default function DropshipProducts({
             selectedGst,
             maxDispatchDays,
             verifiedOnly,
-            b2bFilters.moq, // Note: margin removed from here
+            b2bFilters.moq, 
             b2bFilters.readyToShip,
             b2bFilters.lowRtoRisk,
             b2bFilters.vendor,
@@ -120,7 +120,7 @@ export default function DropshipProducts({
             if (maxDispatchDays) params.append('maxShippingDays', maxDispatchDays);
             if (verifiedOnly) params.append('isVerifiedSupplier', 'true');
 
-            // FIX: Removed minMargin from the API call
+            
 
             if (b2bFilters.moq === 'under-50') params.append('maxMoq', '50');
             else if (b2bFilters.moq === '50-500') {
@@ -173,7 +173,7 @@ export default function DropshipProducts({
                 };
             });
 
-        // FIX: Filter by margin locally on the frontend
+        
         if (b2bFilters.margin > 0) {
             mappedProducts = mappedProducts.filter((p) => p.margin >= b2bFilters.margin);
         }
@@ -197,7 +197,7 @@ export default function DropshipProducts({
 
     return (
         <section className="relative z-10 w-full pt-4 font-sans">
-            {/* Utility Bar */}
+            {}
             <div className="mb-4 flex flex-col justify-between gap-4 md:flex-row md:items-center">
                 <button
                     className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm md:hidden"
@@ -274,7 +274,7 @@ export default function DropshipProducts({
                     resetAll={resetAll}
                 />
 
-                {/* MAIN PRODUCT AREA */}
+                {}
                 <div className="no-scrollbar w-full min-w-0 flex-1 pb-12">
                     {isLoading ? (
                         <div
@@ -302,7 +302,7 @@ export default function DropshipProducts({
                             </button>
                         </div>
                     ) : (
-                        // FIX: Added AnimatePresence with mode="wait" and a key on the motion.div
+                        
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={viewMode}

@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { fakerEN_IN as faker } from '@faker-js/faker';
 
-// Models
+
 import { User } from '../src/models/User.js';
 import { Product } from '../src/models/Product.js';
 import { Order } from '../src/models/Order.js';
@@ -11,7 +11,7 @@ import { Payment } from '../src/models/Payment.js';
 
 dotenv.config();
 
-// Assuming your platform operates out of Karnataka for GST calculations
+
 const PLATFORM_STATE = 'Karnataka'; 
 
 const seedOrders = async () => {
@@ -22,7 +22,7 @@ const seedOrders = async () => {
         await Invoice.deleteMany({});
         await Payment.deleteMany({});
 
-        // Fetch dependencies
+        
         const resellers = await User.find({ role: 'RESELLER' });
         const products = await Product.find({ status: 'active' });
 
@@ -38,16 +38,16 @@ const seedOrders = async () => {
             const numItems = faker.number.int({ min: 1, max: 3 });
             const selectedProducts = faker.helpers.arrayElements(products, numItems);
             
-            // Historical Date for Analytics
+            
             const orderDate = faker.date.recent({ days: 180 });
             const isInterState = reseller.billingAddress?.state !== PLATFORM_STATE;
 
-            // -- 1. Build Order Items --
+            
             const orderItems = [];
             let subTotal = 0;
             let taxTotal = 0;
             let shippingTotal = 0;
-            let amountToCollect = 0; // What the end customer pays
+            let amountToCollect = 0; 
 
             selectedProducts.forEach(product => {
                 const qty = faker.number.int({ min: 1, max: 5 });
@@ -55,7 +55,7 @@ const seedOrders = async () => {
                 const resellerSellingPrice = product.suggestedRetailPrice;
                 
                 const taxAmountPerUnit = platformBasePrice * (product.gstSlab / 100);
-                const shippingCost = faker.number.int({ min: 40, max: 120 }); // Dynamic shipping
+                const shippingCost = faker.number.int({ min: 40, max: 120 }); 
 
                 orderItems.push({
                     productId: product._id,
@@ -83,7 +83,7 @@ const seedOrders = async () => {
             // Randomize Status to test different UI states
             const orderStatus = faker.helpers.arrayElement(['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'DELIVERED', 'RTO']);
 
-            // -- 2. Create the Order --
+            
             const order = await Order.create({
                 orderId: `ORD-${faker.string.numeric(8)}`,
                 resellerId: reseller._id,
@@ -108,10 +108,10 @@ const seedOrders = async () => {
                 resellerProfitMargin,
                 items: orderItems,
                 orderDate,
-                createdAt: orderDate // Force mongoose timestamp for accurate analytics
+                createdAt: orderDate 
             });
 
-            // -- 3. Create the B2B Invoice (Platform billing the Reseller) --
+            
             const invoiceItems = orderItems.map(item => {
                 const totalBaseAmount = item.platformBasePrice * item.qty;
                 const totalItemTax = item.taxAmountPerUnit * item.qty;
@@ -158,20 +158,20 @@ const seedOrders = async () => {
                         stateCode: isInterState ? 'IGST' : 'CGST/SGST' 
                     }
                 },
-                shippedTo: order.endCustomerDetails, // Dropshipping standard
+                shippedTo: order.endCustomerDetails, 
                 items: invoiceItems,
                 totalTaxableValue: subTotal,
                 totalCgst: isInterState ? 0 : taxTotal / 2,
                 totalSgst: isInterState ? 0 : taxTotal / 2,
                 totalIgst: isInterState ? taxTotal : 0,
-                grandTotal: totalPlatformCost, // Platform only bills reseller for platform cost
+                grandTotal: totalPlatformCost, 
                 paymentStatus: order.paymentMethod.includes('PREPAID') ? 'PAID' : 'UNPAID',
                 status: 'GENERATED',
                 generatedAt: orderDate,
                 createdAt: orderDate
             });
 
-            // -- 4. Create Payment Record (If Prepaid) --
+            
             if (order.paymentMethod === 'PREPAID_GATEWAY') {
                 await Payment.create({
                     resellerId: reseller._id,
@@ -186,7 +186,7 @@ const seedOrders = async () => {
             }
         }
 
-        // -- 5. Seed a few Wallet Top-Up Invoices & Payments for Variety --
+        
         console.log(`🌱 Generating Wallet Top-Up Data...`);
         for(let i=0; i < 100; i++) {
             const reseller = faker.helpers.arrayElement(resellers);
@@ -199,7 +199,7 @@ const seedOrders = async () => {
                 grandTotal: topUpAmount,
                 paymentStatus: 'PAID',
                 status: 'GENERATED'
-                // NOTE: GST details omitted naturally via your conditional schema logic!
+                
             });
 
             await Payment.create({

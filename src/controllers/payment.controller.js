@@ -64,7 +64,7 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
     session.startTransaction();
 
     try {
-        // Idempotency check up front to save DB reads
+        
         const existingPayment = await Payment.findOne({
             gatewayPaymentId: razorpay_payment_id,
         }).session(session);
@@ -114,7 +114,7 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
                     gatewayPaymentId: razorpay_payment_id,
                     gatewaySignature: razorpay_signature,
                     amount: invoice.grandTotal,
-                    paymentMethod: 'UNKNOWN', // Safe fallback based on your Enums
+                    paymentMethod: 'UNKNOWN', 
                     purpose:
                         invoice.invoiceType === 'WALLET_TOPUP'
                             ? 'WALLET_RECHARGE'
@@ -136,7 +136,7 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
                 await order.save({ session });
             }
         } else if (invoice.invoiceType === 'WALLET_TOPUP') {
-            // FIX: Update User FIRST to secure the closing balance
+            
             const updatedUser = await User.findByIdAndUpdate(
                 resellerId,
                 { $inc: { walletBalance: invoice.grandTotal } },
@@ -145,7 +145,7 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
 
             if (!updatedUser) throw new ApiError(404, 'User not found during wallet update');
 
-            // FIX: Use exact schema field names for WalletTransaction
+            
             await WalletTransaction.create(
                 [
                     {
@@ -181,13 +181,13 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
 
     if (!invoiceId) throw new ApiError(400, 'invoiceId is required');
 
-    // FIX: Changed userId to resellerId
+    
     const invoice = await Invoice.findOne({ _id: invoiceId, resellerId });
 
     if (!invoice) throw new ApiError(404, 'Invoice not found or does not belong to user');
     if (invoice.paymentStatus === 'PAID') throw new ApiError(400, 'Invoice is already paid');
 
-    // FIX: Changed totalAmount to grandTotal
+    
     const amountInINR = invoice.grandTotal;
 
     const options = {

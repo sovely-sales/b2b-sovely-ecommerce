@@ -3,35 +3,24 @@ import crypto from 'crypto';
 import { Order } from '../models/Order.js';
 import { User } from '../models/User.js';
 import { WalletTransaction } from '../models/WalletTransaction.js';
-import { Invoice } from '../models/Invoice.js'; // NEW IMPORT
-import { Payment } from '../models/Payment.js'; // NEW IMPORT
+import { Invoice } from '../models/Invoice.js'; 
+import { Payment } from '../models/Payment.js'; 
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-/**
- * @desc    Handle incoming logistics status updates
- * @route   POST /api/webhooks/logistics
- */
 export const handleLogisticsWebhook = asyncHandler(async (req, res) => {
-    // 1. --- SECURITY: Verify the Webhook Signature ---
     const signature = req.headers['x-logistics-signature'];
     const webhookSecret = process.env.LOGISTICS_WEBHOOK_SECRET;
 
-    if (!signature || !webhookSecret) {
-        throw new ApiError(401, 'Missing webhook signature or secret');
-    }
+    if (!signature || !webhookSecret) throw new ApiError(401, 'Missing webhook signature');
 
     const expectedSignature = crypto
         .createHmac('sha256', webhookSecret)
         .update(JSON.stringify(req.body))
         .digest('hex');
+    if (signature !== expectedSignature) throw new ApiError(401, 'Invalid webhook signature');
 
-    if (signature !== expectedSignature) {
-        throw new ApiError(401, 'Invalid webhook signature');
-    }
-
-    // 2. Extract Data
     const { order_id: orderId, awb, current_status, remarks } = req.body;
 
     const statusMap = {
@@ -44,38 +33,27 @@ export const handleLogisticsWebhook = asyncHandler(async (req, res) => {
     };
 
     const newInternalStatus = statusMap[current_status?.toUpperCase()];
+    if (!newInternalStatus) return res.status(200).json({ received: true });
 
-    if (!newInternalStatus) {
-        return res.status(200).json({ received: true, message: 'Status ignored' });
-    }
-
-    // 3. Find the Order
     const order = await Order.findOne({ orderId });
-    if (!order) {
-        return res.status(200).json({ received: true, message: 'Order not found in our system' });
-    }
+    if (!order) return res.status(200).json({ received: true });
 
-    // 4. --- IDEMPOTENCY CHECK ---
     if (
         order.status === newInternalStatus ||
         ['PROFIT_CREDITED', 'CANCELLED', 'RTO'].includes(order.status)
     ) {
-        return res
-            .status(200)
-            .json({ received: true, message: 'Status already updated previously' });
+        return res.status(200).json({ received: true });
     }
 
-    // 5. Update Status History
     order.statusHistory.push({
         status: newInternalStatus,
         comment: remarks || `Automated update from courier: ${current_status}`,
     });
 
-    // 6. Handle Specific Business Logic based on Status
     if (newInternalStatus === 'NDR') {
         order.ndrDetails = {
             attemptCount: (order.ndrDetails?.attemptCount || 0) + 1,
-            reason: remarks || 'Customer Unavailable (Automated)',
+            reason: remarks || 'Customer Unavailable',
             resellerAction: 'PENDING',
         };
         order.status = 'NDR';
@@ -83,18 +61,81 @@ export const handleLogisticsWebhook = asyncHandler(async (req, res) => {
         return res.status(200).json({ received: true });
     }
 
-    // 7. --- PROFIT PAYOUT LOGIC (ACID Transaction) ---
-    if (newInternalStatus === 'DELIVERED') {
-        order.status = 'DELIVERED';
+    
+    if (['CANCELLED', 'RTO'].includes(newInternalStatus)) {
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        if (order.resellerProfitMargin > 0 && order.paymentMethod === 'COD') {
+        try {
+            let refundAmount =
+                newInternalStatus === 'CANCELLED'
+                    ? order.totalPlatformCost
+                    : order.subTotal + order.taxTotal + order.codCharge; 
+
+            const description =
+                newInternalStatus === 'CANCELLED'
+                    ? `Full refund for cancelled order ${order.orderId} via Webhook`
+                    : `RTO Refund (Principal + Tax + COD) for ${order.orderId}. Freight forfeited.`;
+
+            if (refundAmount > 0) {
+                const updatedReseller = await User.findByIdAndUpdate(
+                    order.resellerId,
+                    { $inc: { walletBalance: refundAmount } },
+                    { new: true, session }
+                );
+
+                await WalletTransaction.create(
+                    [
+                        {
+                            resellerId: order.resellerId,
+                            type: 'CREDIT',
+                            purpose: 'REFUND',
+                            amount: refundAmount,
+                            closingBalance: updatedReseller.walletBalance,
+                            referenceId: order.orderId,
+                            description,
+                            status: 'COMPLETED',
+                        },
+                    ],
+                    { session }
+                );
+            }
+
+            for (const item of order.items) {
+                await Product.findByIdAndUpdate(
+                    item.productId,
+                    { $inc: { 'inventory.stock': item.qty } },
+                    { session }
+                );
+            }
+
+            order.statusHistory.push({
+                status: 'REFUND_PROCESSED',
+                comment: `₹${refundAmount} auto-refunded to wallet.`,
+            });
+            order.status = newInternalStatus;
+
+            await order.save({ session });
+            await session.commitTransaction();
+            session.endSession();
+            return res.status(200).json({ received: true });
+        } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
+            throw new ApiError(500, 'Webhook processed but refund failed');
+        }
+    }
+
+    
+    if (newInternalStatus === 'DELIVERED') {
+        if (order.payoutOnDelivery > 0 && order.paymentMethod === 'COD') {
             const session = await mongoose.startSession();
             session.startTransaction();
 
             try {
                 const updatedReseller = await User.findByIdAndUpdate(
                     order.resellerId,
-                    { $inc: { walletBalance: order.resellerProfitMargin } },
+                    { $inc: { walletBalance: order.payoutOnDelivery } },
                     { new: true, session }
                 );
 
@@ -104,10 +145,10 @@ export const handleLogisticsWebhook = asyncHandler(async (req, res) => {
                             resellerId: order.resellerId,
                             type: 'CREDIT',
                             purpose: 'PROFIT_CREDIT',
-                            amount: order.resellerProfitMargin,
+                            amount: order.payoutOnDelivery,
                             closingBalance: updatedReseller.walletBalance,
                             referenceId: order.orderId,
-                            description: `Profit margin credited for automated COD delivery of ${order.orderId}`,
+                            description: `Payout (Principal + ₹${order.resellerProfitMargin} Profit) auto-credited for COD delivery`,
                             status: 'COMPLETED',
                         },
                     ],
@@ -116,39 +157,36 @@ export const handleLogisticsWebhook = asyncHandler(async (req, res) => {
 
                 order.statusHistory.push({
                     status: 'PROFIT_CREDITED',
-                    comment: `₹${order.resellerProfitMargin} auto-credited to wallet on delivery`,
+                    comment: `₹${order.payoutOnDelivery} auto-credited to wallet on delivery`,
                 });
-                order.status = 'PROFIT_CREDITED';
 
+                order.status = 'PROFIT_CREDITED';
                 await order.save({ session });
+
                 await session.commitTransaction();
                 session.endSession();
             } catch (error) {
                 await session.abortTransaction();
                 session.endSession();
-                console.error(`Failed to process auto-payout for ${orderId}:`, error);
                 throw new ApiError(500, 'Webhook processed but payout failed');
             }
         } else {
+            order.status = 'DELIVERED';
             await order.save();
         }
-    } else {
-        order.status = newInternalStatus;
-        await order.save();
+        return res.status(200).json({ received: true });
     }
 
-    return res.status(200).json({ received: true, status: newInternalStatus });
+    order.status = newInternalStatus;
+    await order.save();
+    return res.status(200).json({ received: true });
 });
 
-/**
- * @desc    Handle Razorpay successful payment captures
- * @route   POST /api/webhooks/razorpay
- */
 export const razorpayWebhook = async (req, res) => {
-    // 1. Verify the signature to ensure the request is actually from Razorpay
+    
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
-    // If there is no secret configured, fail safely
+    
     if (!secret) {
         console.error('⚠️ Missing RAZORPAY_WEBHOOK_SECRET in .env');
         return res.status(500).json({ status: 'error', message: 'Server configuration error' });
@@ -165,7 +203,7 @@ export const razorpayWebhook = async (req, res) => {
 
     const event = req.body.event;
 
-    // We only care about successful captures for the wallet
+    
     if (event === 'payment.captured') {
         const paymentEntity = req.body.payload.payment.entity;
         const razorpayOrderId = paymentEntity.order_id;
@@ -175,7 +213,7 @@ export const razorpayWebhook = async (req, res) => {
         session.startTransaction();
 
         try {
-            // Check Idempotency: Did the frontend already process this?
+            
             const existingPayment = await Payment.findOne({
                 referenceId: razorpayPaymentId,
             }).session(session);
@@ -187,7 +225,7 @@ export const razorpayWebhook = async (req, res) => {
                     .json({ status: 'ok', message: 'Already processed by frontend' });
             }
 
-            // Find the original invoice via the Razorpay Order ID
+            
             const invoice = await Invoice.findOne({ razorpayOrderId }).session(session);
             if (!invoice || invoice.paymentStatus === 'PAID') {
                 await session.abortTransaction();
@@ -197,7 +235,7 @@ export const razorpayWebhook = async (req, res) => {
                     .json({ status: 'ok', message: 'Invoice not found or already paid' });
             }
 
-            // --- PROCESS THE LEDGER ---
+            
             await Payment.create(
                 [
                     {

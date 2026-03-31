@@ -18,7 +18,7 @@ import {
     LogOut,
 } from 'lucide-react';
 
-// --- ANIMATION VARIANTS ---
+
 const sidebarVariants = {
     hidden: { x: '-100%', transition: { type: 'tween', duration: 0.3, ease: 'easeInOut' } },
     visible: { x: 0, transition: { type: 'tween', duration: 0.3, ease: 'easeInOut' } },
@@ -80,7 +80,7 @@ function Sidebar({ isOpen, onClose }) {
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-[100] flex font-sans">
-                    {/* Dark Overlay */}
+                    {}
                     <motion.div
                         variants={overlayVariants}
                         initial="hidden"
@@ -91,7 +91,7 @@ function Sidebar({ isOpen, onClose }) {
                         aria-hidden="true"
                     />
 
-                    {/* The Sidebar Drawer */}
+                    {}
                     <motion.aside
                         variants={sidebarVariants}
                         initial="hidden"
@@ -99,7 +99,7 @@ function Sidebar({ isOpen, onClose }) {
                         exit="hidden"
                         className="relative flex w-[85vw] max-w-[320px] flex-col bg-white shadow-2xl"
                     >
-                        {/* HEADER */}
+                        {}
                         <div className="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white p-5">
                             <div className="flex items-center gap-3">
                                 <img
@@ -123,9 +123,9 @@ function Sidebar({ isOpen, onClose }) {
                             </button>
                         </div>
 
-                        {/* NAVIGATION LINKS */}
+                        {}
                         <div className="custom-scrollbar flex-1 overflow-y-auto px-4 py-6">
-                            {/* Admin Block */}
+                            {}
                             {user && user.role === 'ADMIN' && (
                                 <div className="mb-8">
                                     <h3 className="mb-3 px-3 text-xs font-bold tracking-wider text-slate-400 uppercase">
@@ -145,7 +145,7 @@ function Sidebar({ isOpen, onClose }) {
                                 </div>
                             )}
 
-                            {/* Procurement Portal */}
+                            {}
                             <div className="mb-8">
                                 <h3 className="mb-3 px-3 text-xs font-bold tracking-wider text-slate-400 uppercase">
                                     Procurement Portal
@@ -219,7 +219,7 @@ function Sidebar({ isOpen, onClose }) {
                                 </ul>
                             </div>
 
-                            {/* Business Settings */}
+                            {}
                             <div>
                                 <h3 className="mb-3 px-3 text-xs font-bold tracking-wider text-slate-400 uppercase">
                                     Business Settings
@@ -255,7 +255,7 @@ function Sidebar({ isOpen, onClose }) {
                             </div>
                         </div>
 
-                        {/* FOOTER: Profile / Auth Actions */}
+                        {}
                         <div className="shrink-0 border-t border-slate-200 bg-white p-5">
                             {user ? (
                                 <div className="flex items-center justify-between gap-3">

@@ -1,7 +1,3 @@
-/**
- * Admin: Import products from a Shopify-format CSV upload
- * POST /api/v1/products/import-csv
- */
 import { Readable } from 'stream';
 import csvParser from 'csv-parser';
 import { Product } from '../models/Product.js';
@@ -12,7 +8,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 
 const toNum = (val) => {
     if (!val) return 0;
-    // Robust: Remove currency, commas, and whitespace before parsing
+    
     const str = String(val).replace(/[^\d.-]/g, '');
     const n = parseFloat(str);
     return isNaN(n) ? 0 : n;
@@ -51,7 +47,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
     console.log(
         `📦 File received: ${req.file.originalname} (${(req.file.size / 1024 / 1024).toFixed(2)} MB)`
     );
-    // --- Parse CSV from uploaded buffer ---
+    
     const productMap = new Map();
     await new Promise((resolve, reject) => {
         const readable = Readable.from(req.file.buffer.toString('utf8'));
@@ -101,7 +97,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
         );
     }
 
-    // --- Ensure categories exist (find or create) ---
+    
     const categoryNames = [...new Set([...productMap.values()].map((p) => p.type || 'General'))];
     const categoryIdMap = new Map();
     for (const name of categoryNames) {
@@ -110,7 +106,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
         categoryIdMap.set(name, cat._id);
     }
 
-    // --- Upsert products ---
+    
     let inserted = 0;
     let updated = 0;
     let skipped = 0;

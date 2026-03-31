@@ -50,7 +50,7 @@ export default function ProductFilterSidebar({
             </div>
 
             <div className="space-y-6">
-                {/* Categories */}
+                {}
                 <div className="space-y-3">
                     <h4 className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                         <Box size={14} /> Category
@@ -80,7 +80,7 @@ export default function ProductFilterSidebar({
                     </div>
                 </div>
 
-                {/* Price */}
+                {}
                 <div className="space-y-3 border-t border-slate-100 pt-5">
                     <h4 className="text-xs font-semibold text-slate-700">Unit Price (₹)</h4>
                     <div className="flex items-center gap-2">
@@ -102,7 +102,7 @@ export default function ProductFilterSidebar({
                     </div>
                 </div>
 
-                {/* GST Slab */}
+                {}
                 <div className="space-y-3 border-t border-slate-100 pt-5">
                     <h4 className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                         <Receipt size={14} /> GST Slab
@@ -125,7 +125,7 @@ export default function ProductFilterSidebar({
                     </div>
                 </div>
 
-                {/* Dispatch Time */}
+                {}
                 <div className="space-y-3 border-t border-slate-100 pt-5">
                     <h4 className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                         <Truck size={14} /> Dispatch Target

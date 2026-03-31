@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { TrendingUp, ShieldCheck, Truck, ArrowRight, BarChart3, Globe2 } from 'lucide-react';
 import { ROUTES } from '../utils/routes';
 
-// --- ANIMATION VARIANTS ---
+
 const fadeUp = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } },
@@ -21,12 +21,12 @@ const staggerContainer = {
 const MarketingLandingPage = () => {
     return (
         <div className="flex w-full flex-col bg-white">
-            {/* HERO SECTION */}
+            {}
             <section className="relative overflow-hidden bg-slate-50 pt-20 pb-32 lg:pt-32">
-                {/* Background grid pattern */}
+                {}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
 
-                {/* Animated Background Blobs (Borrowed from your Hero.jsx idea!) */}
+                {}
                 <div className="animate-blob absolute top-0 -left-4 h-96 w-96 rounded-full bg-emerald-200/40 mix-blend-multiply blur-3xl filter"></div>
                 <div className="animate-blob animation-delay-2000 absolute top-0 -right-4 h-96 w-96 rounded-full bg-blue-200/40 mix-blend-multiply blur-3xl filter"></div>
 
@@ -81,7 +81,7 @@ const MarketingLandingPage = () => {
                         </Link>
                     </motion.div>
 
-                    {/* Social Proof Stats */}
+                    {}
                     <motion.div
                         variants={staggerContainer}
                         className="mx-auto mt-20 grid max-w-4xl grid-cols-2 gap-8 border-t border-slate-200/60 pt-10 md:grid-cols-4"
@@ -107,7 +107,7 @@ const MarketingLandingPage = () => {
                 </motion.div>
             </section>
 
-            {/* VALUE PROPS SECTION */}
+            {}
             <section className="py-24" id="features">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <motion.div
@@ -173,7 +173,7 @@ const MarketingLandingPage = () => {
                 </div>
             </section>
 
-            {/* HOW IT WORKS / DROPSHIP HIGHLIGHT */}
+            {}
             <section className="overflow-hidden bg-slate-900 py-24 text-white">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:items-center">
@@ -232,7 +232,7 @@ const MarketingLandingPage = () => {
                             </motion.ul>
                         </motion.div>
 
-                        {/* Abstract UI Mockup - Animated */}
+                        {}
                         <motion.div
                             initial={{ opacity: 0, x: 50 }}
                             whileInView={{ opacity: 1, x: 0 }}
@@ -286,7 +286,7 @@ const MarketingLandingPage = () => {
                 </div>
             </section>
 
-            {/* BOTTOM CTA */}
+            {}
             <motion.section
                 initial="hidden"
                 whileInView="visible"

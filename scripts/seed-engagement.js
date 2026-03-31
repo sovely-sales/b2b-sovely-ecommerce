@@ -27,7 +27,7 @@ const seedEngagement = async () => {
         console.log(`🌱 Seeding Carts and Wishlists for ${resellers.length} users...`);
 
         for (const reseller of resellers) {
-            // -- 1. Seed Wishlist (~60% chance to have one) --
+            
             if (faker.datatype.boolean({ probability: 0.6 })) {
                 const numWishlistItems = faker.number.int({ min: 1, max: 8 });
                 const selectedProducts = faker.helpers.arrayElements(products, numWishlistItems);
@@ -41,7 +41,7 @@ const seedEngagement = async () => {
                 });
             }
 
-            // -- 2. Seed Cart (~40% chance to have an active cart) --
+            
             if (faker.datatype.boolean({ probability: 0.4 })) {
                 const numCartItems = faker.number.int({ min: 1, max: 4 });
                 const selectedProducts = faker.helpers.arrayElements(products, numCartItems);
@@ -55,7 +55,7 @@ const seedEngagement = async () => {
 
                 for (const product of selectedProducts) {
                     const orderType = faker.helpers.arrayElement(['DROPSHIP', 'WHOLESALE']);
-                    // Wholesale implies buying at MOQ or higher
+                    
                     const qty = orderType === 'WHOLESALE' ? faker.number.int({ min: product.moq, max: product.moq + 20 }) : faker.number.int({ min: 1, max: 3 });
                     
                     const platformUnitCost = product.dropshipBasePrice;
@@ -77,7 +77,7 @@ const seedEngagement = async () => {
                         taxAmountPerUnit,
                         shippingCost,
                         totalItemPlatformCost,
-                        expectedProfit: expectedProfit > 0 ? expectedProfit : 0 // Prevents negative profit in seed
+                        expectedProfit: expectedProfit > 0 ? expectedProfit : 0 
                     });
 
                     subTotalPlatformCost += (platformUnitCost * qty);

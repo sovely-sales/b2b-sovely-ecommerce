@@ -75,7 +75,7 @@ export default function ProductCard({ product }) {
                     </div>
                 </div>
 
-                {/* Grid Quantity & Add */}
+                {}
                 <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
                     <div className="flex h-10 w-1/3 items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-2">
                         <input

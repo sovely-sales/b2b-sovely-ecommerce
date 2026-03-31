@@ -29,7 +29,7 @@ function LandingPage() {
     return (
         <div className="flex min-h-screen w-full flex-col bg-slate-50 font-sans">
             <main className="flex w-full flex-1 flex-col pb-12">
-                {/* PAGE HEADER (Non-sticky, clean enterprise SaaS layout) */}
+                {}
                 <motion.div
                     initial={{ y: -10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -38,7 +38,7 @@ function LandingPage() {
                 >
                     <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
                         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-                            {/* Title & Context */}
+                            {}
                             <div>
                                 <h1 className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
                                     <PackageSearch
@@ -75,7 +75,7 @@ function LandingPage() {
                                 </div>
                             </div>
 
-                            {/* Filters Strip */}
+                            {}
                             <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-2">
                                 <B2BFilterBar
                                     filters={b2bFilters}
@@ -86,7 +86,7 @@ function LandingPage() {
                     </div>
                 </motion.div>
 
-                {/* PRODUCT DATA INJECTION */}
+                {}
                 <div className="mx-auto w-full max-w-[1600px] px-4 pt-6 sm:px-6 lg:px-8">
                     <DropshipProducts filters={b2bFilters} globalSearchQuery={globalSearchQuery} />
                 </div>

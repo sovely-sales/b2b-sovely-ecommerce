@@ -7,13 +7,13 @@ import { OtpToken } from '../models/OtpToken.js';
 import { AuthService } from '../services/auth.service.js';
 import crypto from 'crypto';
 
-// Helper for setting secure cookies
+
 const cookieOptions = {
     httpOnly: true,
-    // MUST be false for localhost (since you aren't using https://)
+    
     secure: process.env.NODE_ENV === 'production',
-    // 'lax' allows localhost:3000 to send cookies to localhost:5173
-    // 'none' is required for production if frontend and backend are on different domains
+    
+    
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
 };
 
@@ -27,10 +27,6 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
     return { accessToken, refreshToken };
 };
-/**
- * @desc    Generate and send OTP
- * @route   POST /api/auth/send-otp
- */
 export const sendOtp = asyncHandler(async (req, res) => {
     const { phoneNumber, isLogin } = req.body;
 
@@ -38,7 +34,7 @@ export const sendOtp = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Phone number is required');
     }
 
-    // If it's a login request, ensure the user actually exists first
+    
     if (isLogin) {
         const userExists = await User.findOne({ phoneNumber, isActive: true, deletedAt: null });
         if (!userExists) {
@@ -46,29 +42,25 @@ export const sendOtp = asyncHandler(async (req, res) => {
         }
     }
 
-    // Generate a 4-digit OTP
+    
     const otpCode = crypto.randomInt(1000, 10000).toString();
 
-    // Clear any existing unused OTPs for this number to prevent spam/conflicts
+    
     await OtpToken.deleteMany({ identifier: phoneNumber, isUsed: false });
 
-    // Create new OTP valid for 10 minutes
+    
     await OtpToken.create({
         identifier: phoneNumber,
         otpCode,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
 
-    // TODO: Integrate your SMS Gateway here (Twilio, MSG91, Fast2SMS, etc.)
+    
     console.log(`[SMS MOCK] Sent OTP ${otpCode} to ${phoneNumber}`);
 
     return res.status(200).json(new ApiResponse(200, {}, 'OTP sent successfully'));
 });
 
-/**
- * @desc    Verify OTP and Login
- * @route   POST /api/auth/login-otp
- */
 export const loginWithOtp = asyncHandler(async (req, res) => {
     const { phoneNumber, otpCode } = req.body;
 
@@ -76,23 +68,23 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Phone number and OTP are required');
     }
 
-    // Find the valid OTP
+    
     const validOtp = await OtpToken.findOne({
         identifier: phoneNumber,
         otpCode,
         isUsed: false,
-        expiresAt: { $gt: new Date() }, // Ensure it hasn't expired
+        expiresAt: { $gt: new Date() }, 
     });
 
     if (!validOtp) {
         throw new ApiError(400, 'Invalid or expired OTP');
     }
 
-    // Mark OTP as used
+    
     validOtp.isUsed = true;
     await validOtp.save();
 
-    // Find user and log them in
+    
     const user = await User.findOne({ phoneNumber, isActive: true, deletedAt: null });
 
     if (!user) {
@@ -119,15 +111,11 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
         );
 });
 
-/**
- * @desc    Register a new User (B2C or B2B)
- * @route   POST /api/auth/register
- */
 export const registerUser = asyncHandler(async (req, res) => {
-    // 1. Let the Service handle all the creation logic and validation
+    
     const createdUser = await AuthService.registerUser(req.body);
 
-    // 2. Controller handles HTTP-specific stuff (Tokens & Cookies)
+    
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(createdUser._id);
 
     return res
@@ -147,10 +135,6 @@ export const registerUser = asyncHandler(async (req, res) => {
         );
 });
 
-/**
- * @desc    Login Reseller / Admin / Customer
- * @route   POST /api/auth/login
- */
 export const loginUser = asyncHandler(async (req, res) => {
     const { email, phoneNumber, password } = req.body;
 
@@ -158,11 +142,11 @@ export const loginUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Email or phone number is required');
     }
 
-    // 1. Clean inputs (fixes issues where frontend sends trailing spaces)
+    
     const cleanEmail = email ? email.trim().toLowerCase() : undefined;
     const cleanPhone = phoneNumber ? phoneNumber.trim() : undefined;
 
-    // 2. Build a safer dynamic query
+    
     const query = { isActive: true };
     if (cleanEmail) {
         query.email = cleanEmail;
@@ -170,11 +154,11 @@ export const loginUser = asyncHandler(async (req, res) => {
         query.phoneNumber = cleanPhone;
     }
 
-    // 3. Find the user
+    
     const user = await User.findOne(query);
 
-    // FIX: Check user existence and soft-delete status in JS memory
-    // to avoid MongoDB null vs undefined field matching quirks.
+    
+    
     if (!user || user.deletedAt) {
         throw new ApiError(
             404,
@@ -205,10 +189,6 @@ export const loginUser = asyncHandler(async (req, res) => {
         );
 });
 
-/**
- * @desc    Logout User
- * @route   POST /api/auth/logout
- */
 export const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(req.user._id, { $unset: { refreshToken: 1 } }, { new: true });
 
@@ -219,10 +199,6 @@ export const logoutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, 'Logged out successfully'));
 });
 
-/**
- * @desc    Get Current Logged-In User Profile
- * @route   GET /api/auth/me
- */
 export const getCurrentUser = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user._id).select('-passwordHash -refreshToken');
 
@@ -233,12 +209,8 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, user, 'Current user fetched'));
 });
 
-/**
- * @desc    NEW: Refresh the Access Token
- * @route   POST /api/auth/refresh-token
- */
 export const refreshAccessToken = asyncHandler(async (req, res) => {
-    // Extract token from cookies OR body (depending on how frontend sends it)
+    
     const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
     if (!incomingRefreshToken) {

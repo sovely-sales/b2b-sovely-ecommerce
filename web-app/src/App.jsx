@@ -9,7 +9,7 @@ import PublicLayout from './layouts/PublicLayout';
 import ErrorBoundary from './ErrorBoundary';
 import ScrollToTop from './components/ScrollToTop';
 
-// Lazy loaded components
+
 const MarketingLandingPage = lazy(() => import('./components/MarketingLandingPage'));
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const ProductPage = lazy(() => import('./components/ProductPage'));
@@ -29,7 +29,7 @@ const SearchResults = lazy(() => import('./components/SearchResults'));
 const Terms = lazy(() => import('./components/Terms'));
 const KycSubmit = lazy(() => import('./components/KycSubmit'));
 
-// 404 Component
+
 const NotFound = () => (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
         <h1 className="text-6xl font-black text-slate-200">404</h1>
@@ -38,9 +38,9 @@ const NotFound = () => (
     </div>
 );
 
-// --- ROUTE GUARDS (The Bouncers) ---
 
-// 1. Traffic Cop for the Root URL
+
+
 const HomeRouter = () => {
     const { user, loading, isAdmin } = useContext(AuthContext);
     if (loading) return <LoadingScreen />;
@@ -49,7 +49,7 @@ const HomeRouter = () => {
     return <MarketingLandingPage />;
 };
 
-// 2. Protects the B2B Portal from Guests
+
 const ProtectedRoute = ({ children }) => {
     const location = useLocation();
     const { user, loading } = useContext(AuthContext);
@@ -57,11 +57,11 @@ const ProtectedRoute = ({ children }) => {
     if (loading) return <LoadingScreen />;
     if (!user) return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
 
-    // THE FIX: Return Outlet if used as a wrapper!
+    
     return children ? children : <Outlet />;
 };
 
-// 3. Protects Admin Dashboard
+
 const AdminRoute = ({ children }) => {
     const { user, loading, isAdmin } = useContext(AuthContext);
 
@@ -71,14 +71,14 @@ const AdminRoute = ({ children }) => {
     return children ? children : <Outlet />;
 };
 
-// 4. Protects Sensitive Reseller Pages (Wallet, Quick Order)
+
 const ResellerRoute = ({ children }) => {
     const { user, loading, isKycApproved } = useContext(AuthContext);
 
     if (loading) return <LoadingScreen />;
     if (!user) return <Navigate to={ROUTES.LOGIN} replace />;
 
-    // Lock B2B users out of these pages if KYC is pending
+    
     if (user.accountType === 'B2B' && !isKycApproved) {
         return <Navigate to="/kyc" replace />;
     }
@@ -94,33 +94,33 @@ function App() {
 
             <Suspense fallback={<LoadingScreen />}>
                 <Routes>
-                    {/* --- 1. PUBLIC MARKETING (Unprotected) --- */}
+                    {}
                     <Route element={<PublicLayout />}>
                         <Route path={ROUTES.HOME} element={<HomeRouter />} />
                         <Route path="/terms" element={<Terms />} />
                         <Route path="/privacy" element={<Terms />} />
                     </Route>
 
-                    {/* --- 2. AUTHENTICATION (Unprotected) --- */}
+                    {}
                     <Route path={ROUTES.LOGIN} element={<Login />} />
                     <Route path={ROUTES.SIGNUP} element={<Signup />} />
                     <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
 
-                    {/* --- 3. B2B PORTAL (Protected - Login Required) --- */}
+                    {}
                     <Route element={<ProtectedRoute />}>
                         <Route element={<MainLayout />}>
-                            {/* Core Catalog */}
+                            {}
                             <Route path={ROUTES.CATALOG} element={<LandingPage />} />
                             <Route path="/product/:productId" element={<ProductPage />} />
                             <Route path={ROUTES.SEARCH} element={<SearchResults />} />
 
-                            {/* Standard User Actions */}
+                            {}
                             <Route path={ROUTES.CHECKOUT} element={<Checkout />} />
                             <Route path={ROUTES.ORDERS} element={<Orders />} />
                             <Route path="/orders/:id/track" element={<OrderTracking />} />
                             <Route path="/kyc" element={<KycSubmit />} />
 
-                            {/* --- 4. SENSITIVE B2B DATA (KYC/Reseller Required) --- */}
+                            {}
                             <Route element={<ResellerRoute />}>
                                 <Route path={ROUTES.MY_ACCOUNT} element={<MyAccount />} />
                                 <Route
@@ -134,12 +134,12 @@ function App() {
                         </Route>
                     </Route>
 
-                    {/* --- 5. PLATFORM ADMIN (Admin Only) --- */}
+                    {}
                     <Route element={<AdminRoute />}>
                         <Route path="/admin/*" element={<AdminDashboard />} />
                     </Route>
 
-                    {/* --- CATCH ALL --- */}
+                    {}
                     <Route path="*" element={<NotFound />} />
                 </Routes>
             </Suspense>

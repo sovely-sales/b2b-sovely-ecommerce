@@ -25,7 +25,7 @@ const AdminOverview = ({ setActiveTab }) => {
         const fetchAnalytics = async () => {
             setLoading(true);
             try {
-                // IMPORTANT: Ensure this matches the route you established!
+                
                 const res = await api.get('/analytics/dashboard');
                 setAnalytics(res.data.data);
             } catch (err) {
@@ -52,29 +52,29 @@ const AdminOverview = ({ setActiveTab }) => {
     const outOfStockData = inventoryHealth.find((item) => item.name === 'Out of Stock');
     const totalAlerts = (lowStockData?.value || 0) + (outOfStockData?.value || 0);
 
-    // Standardize Pie Chart Colors based on Status (from main)
+    
     const getStatusColor = (status) => {
         switch (status?.toUpperCase()) {
             case 'DELIVERED':
-                return '#10b981'; // Green
+                return '#10b981'; 
             case 'PROCESSING':
-                return '#f59e0b'; // Yellow
+                return '#f59e0b'; 
             case 'SHIPPED':
-                return '#3b82f6'; // Blue
+                return '#3b82f6'; 
             case 'PENDING':
-                return '#8b5cf6'; // Purple
+                return '#8b5cf6'; 
             case 'CANCELLED':
-                return '#ef4444'; // Red
+                return '#ef4444'; 
             default:
-                return '#64748b'; // Slate
+                return '#64748b'; 
         }
     };
 
     return (
         <div className="flex flex-col gap-6">
-            {/* KPI GRID */}
+            {}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
-                {/* Revenue */}
+                {}
                 <div className="flex cursor-default items-center gap-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-green-500 hover:shadow-md">
                     <div className="rounded-2xl bg-green-50 p-4">
                         <DollarSign size={24} className="text-green-600" />
@@ -89,7 +89,7 @@ const AdminOverview = ({ setActiveTab }) => {
                     </div>
                 </div>
 
-                {/* Customers */}
+                {}
                 <div
                     onClick={() => setActiveTab('users')}
                     className="group flex cursor-pointer items-center gap-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-blue-500 hover:shadow-md"
@@ -107,7 +107,7 @@ const AdminOverview = ({ setActiveTab }) => {
                     </div>
                 </div>
 
-                {/* Orders Processing */}
+                {}
                 <div
                     onClick={() => setActiveTab('orders')}
                     className="group flex cursor-pointer items-center gap-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-indigo-500 hover:shadow-md"
@@ -125,7 +125,7 @@ const AdminOverview = ({ setActiveTab }) => {
                     </div>
                 </div>
 
-                {/* Stock Alerts */}
+                {}
                 <div
                     onClick={() => setActiveTab('products')}
                     className="group flex cursor-pointer items-center gap-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-red-500 hover:shadow-md"
@@ -141,7 +141,7 @@ const AdminOverview = ({ setActiveTab }) => {
                     </div>
                 </div>
 
-                {/* Pending KYC Card (Kept from ishan_b2b) */}
+                {}
                 <div
                     onClick={() => setActiveTab('users')}
                     className="group flex cursor-pointer items-center gap-4 rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm transition-all hover:bg-amber-100 hover:shadow-md"
@@ -160,9 +160,9 @@ const AdminOverview = ({ setActiveTab }) => {
                 </div>
             </div>
 
-            {/* Charts Row */}
+            {}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {/* Revenue Trend */}
+                {}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm lg:col-span-2">
                     <h3 className="mb-6 text-sm font-bold tracking-wider text-slate-900 uppercase">
                         30-Day Revenue Trend
@@ -218,7 +218,7 @@ const AdminOverview = ({ setActiveTab }) => {
                     </div>
                 </div>
 
-                {/* Lifetime Order Status */}
+                {}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                     <h3 className="mb-6 text-sm font-bold tracking-wider text-slate-900 uppercase">
                         Lifetime Order Status
@@ -264,7 +264,7 @@ const AdminOverview = ({ setActiveTab }) => {
                     </div>
                 </div>
 
-                {/* Inventory Health Snapshot */}
+                {}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm lg:col-span-3">
                     <h3 className="mb-6 text-sm font-bold tracking-wider text-slate-900 uppercase">
                         Inventory Health Snapshot

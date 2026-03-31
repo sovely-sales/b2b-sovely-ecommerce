@@ -2,11 +2,11 @@ import React, { useMemo } from 'react';
 import { CheckCircle2, Package, Tag, Layers, Ruler } from 'lucide-react';
 
 const StructuredDescription = ({ htmlContent }) => {
-    // Smart Parser: Extracts structured data from the raw B2B text block
+    
     const parsedData = useMemo(() => {
         if (!htmlContent) return null;
 
-        // Create a temporary DOM element to strip HTML tags but preserve text flow
+        
         const temp = document.createElement('div');
         temp.innerHTML = htmlContent;
         const rawText = temp.innerText || temp.textContent;
@@ -30,7 +30,7 @@ const StructuredDescription = ({ htmlContent }) => {
         for (let line of lines) {
             const lowerLine = line.toLowerCase();
 
-            // Detect Section Headers
+            
             if (lowerLine.includes('description :-') || lowerLine === 'description:') {
                 currentSection = 'description';
                 continue;
@@ -56,7 +56,7 @@ const StructuredDescription = ({ htmlContent }) => {
                 continue;
             }
 
-            // Route data to the correct array/string based on the active section
+            
             if (currentSection === 'description') {
                 data.description += line + ' ';
                 data.isStructured = true;
@@ -66,7 +66,7 @@ const StructuredDescription = ({ htmlContent }) => {
             } else if (currentSection === 'idealFor') {
                 data.idealFor.push(line.replace(/^[-•*]\s*/, ''));
             } else if (currentSection === 'specs') {
-                const parts = line.split(/[:-]/); // Split by : or :-
+                const parts = line.split(/[:-]/); 
                 if (parts.length >= 2) {
                     data.specs.push({
                         key: parts[0].trim(),
@@ -86,7 +86,7 @@ const StructuredDescription = ({ htmlContent }) => {
         return data;
     }, [htmlContent]);
 
-    // FALLBACK: If the parser couldn't find the B2B headers, just render the standard prose HTML
+    
     if (!parsedData?.isStructured) {
         return (
             <div
@@ -96,10 +96,10 @@ const StructuredDescription = ({ htmlContent }) => {
         );
     }
 
-    // SUCCESS: Render the beautiful, structured enterprise UI
+    
     return (
         <div className="space-y-8 text-sm text-slate-700">
-            {/* 1. Main Description */}
+            {}
             {parsedData.description && (
                 <div className="leading-relaxed">
                     <p>{parsedData.description}</p>
@@ -107,7 +107,7 @@ const StructuredDescription = ({ htmlContent }) => {
             )}
 
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-                {/* 2. Key Features */}
+                {}
                 {parsedData.features.length > 0 && (
                     <div>
                         <h4 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-slate-900 uppercase">
@@ -127,7 +127,7 @@ const StructuredDescription = ({ htmlContent }) => {
                     </div>
                 )}
 
-                {/* 3. Ideal For */}
+                {}
                 {parsedData.idealFor.length > 0 && (
                     <div>
                         <h4 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-slate-900 uppercase">
@@ -145,7 +145,7 @@ const StructuredDescription = ({ htmlContent }) => {
                 )}
             </div>
 
-            {/* 4. Specifications Table */}
+            {}
             {parsedData.specs.length > 0 && (
                 <div>
                     <h4 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-slate-900 uppercase">
@@ -171,7 +171,7 @@ const StructuredDescription = ({ htmlContent }) => {
                 </div>
             )}
 
-            {/* 5. Dimensions Grid */}
+            {}
             {parsedData.dimensions.length > 0 && (
                 <div>
                     <h4 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-slate-900 uppercase">
@@ -200,7 +200,7 @@ const StructuredDescription = ({ htmlContent }) => {
                 </div>
             )}
 
-            {/* 6. Keywords Tags */}
+            {}
             {parsedData.keywords.length > 0 && (
                 <div className="border-t border-slate-100 pt-4">
                     <h4 className="mb-3 flex items-center gap-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">

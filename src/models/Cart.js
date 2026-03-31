@@ -32,6 +32,7 @@ const cartItemSchema = new mongoose.Schema(
     },
     { _id: false }
 );
+
 const cartSchema = new mongoose.Schema(
     {
         resellerId: {
@@ -44,7 +45,12 @@ const cartSchema = new mongoose.Schema(
 
         subTotalPlatformCost: { type: Number, default: 0 },
         totalTax: { type: Number, default: 0 },
-        totalShippingCost: { type: Number, default: 0 }, // NEW
+
+        
+        totalShippingCost: { type: Number, default: 0 },
+        totalDeliveryCharge: { type: Number, default: 0 }, 
+        totalPackingCharge: { type: Number, default: 0 }, 
+
         grandTotalPlatformCost: { type: Number, default: 0 },
 
         totalExpectedProfit: { type: Number, default: 0 },

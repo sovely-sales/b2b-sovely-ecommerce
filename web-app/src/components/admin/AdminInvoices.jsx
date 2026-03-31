@@ -97,7 +97,7 @@ const AdminInvoices = () => {
 
     return (
         <>
-            {/* Header / Filters */}
+            {}
             <div className="mb-6 flex flex-col gap-4 md:flex-row">
                 <div className="flex flex-1 items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
                     <Search size={18} className="text-slate-400" />
@@ -124,7 +124,7 @@ const AdminInvoices = () => {
                 </div>
             </div>
 
-            {/* Invoices Table */}
+            {}
             <div className="mb-6 overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-sm">
                 <div className="relative min-h-[300px] overflow-x-auto">
                     {loading && (
@@ -296,7 +296,7 @@ const AdminInvoices = () => {
                 </div>
             </div>
 
-            {/* Pagination */}
+            {}
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}

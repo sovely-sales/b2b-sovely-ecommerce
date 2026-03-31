@@ -33,9 +33,9 @@ createRoot(document.getElementById('root')).render(
     </StrictMode>
 );
 
-// 🔥 KILL ANY ZOMBIE SERVICE WORKERS
-// Since http://localhost:5173 is often used in multiple React/Vite projects,
-// a previous project's PWA Service Worker might still be active and hijacking your API calls!
+
+
+
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker
         .getRegistrations()
@@ -43,7 +43,7 @@ if ('serviceWorker' in navigator) {
             for (let registration of registrations) {
                 registration.unregister();
                 console.log('💀 Zombie Service Worker Killed successfully!');
-                // Reload the page once if we actually killed one to ensure clean network state
+                
                 setTimeout(() => window.location.reload(), 500);
             }
         })

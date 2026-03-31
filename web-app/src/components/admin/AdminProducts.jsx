@@ -34,7 +34,7 @@ const AdminProducts = () => {
         const fetchProducts = async () => {
             setLoading(true);
             try {
-                // Hitting the B2B product controller with the new filters
+                
                 const res = await api.get('/products/admin/all', {
                     params: {
                         page,
@@ -49,7 +49,7 @@ const AdminProducts = () => {
 
                 let fetchedProducts = res.data?.data?.products || res.data?.data?.data || [];
 
-                // Sort the fetched items from Lowest Stock -> Highest Stock to prioritize alerts
+                
                 fetchedProducts.sort((a, b) => {
                     const stockA = a.inventory?.stock || 0;
                     const stockB = b.inventory?.stock || 0;
@@ -72,7 +72,7 @@ const AdminProducts = () => {
     const submitProductUpdate = async (id) => {
         setIsSaving(true);
         try {
-            // Preserving your custom B2B payload
+            
             const res = await api.put(`/products/${id}`, {
                 dropshipBasePrice: Number(editForm.dropshipBasePrice),
                 suggestedRetailPrice: Number(editForm.suggestedRetailPrice),
@@ -81,7 +81,7 @@ const AdminProducts = () => {
                 'inventory.stock': Number(editForm.stock),
             });
 
-            // Update and re-sort
+            
             setProducts((prev) => {
                 const updatedList = prev.map((p) => (p._id === id ? res.data.data : p));
                 return updatedList.sort(
@@ -98,7 +98,7 @@ const AdminProducts = () => {
 
     return (
         <>
-            {/* Header / Filters */}
+            {}
             <div className="mb-6 flex flex-wrap gap-4">
                 <div className="flex min-w-[250px] flex-1 items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
                     <Search size={18} className="text-slate-400" />
@@ -151,7 +151,7 @@ const AdminProducts = () => {
                 </button>
             </div>
 
-            {/* Product Table */}
+            {}
             <div className="mb-6 overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-sm">
                 <div className="relative min-h-[300px] overflow-x-auto">
                     {loading && (
@@ -416,7 +416,7 @@ const AdminProducts = () => {
                 </div>
             </div>
 
-            {/* Pagination */}
+            {}
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                 <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}

@@ -11,7 +11,7 @@ export const ROUTES = {
     ORDER_TRACKING: (id) => `/orders/${id}/track`,
     WALLET: '/wallet',
     MY_ACCOUNT: '/my-account',
-    ACCOUNT_SETTINGS: '/account/settings', // Unified settings page
+    ACCOUNT_SETTINGS: '/account/settings', 
     INVOICES: '/invoices',
     QUICK_ORDER: '/quick-order',
     ADMIN: '/admin',

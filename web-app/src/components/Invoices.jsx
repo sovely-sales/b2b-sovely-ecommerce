@@ -33,22 +33,22 @@ const Invoices = () => {
             inv.orderId.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // REAL PDF DOWNLOAD LOGIC
+    
     const handleDownload = async (invoiceId, invoiceNumber) => {
         try {
             setDownloadingId(invoiceId);
 
-            // We must tell Axios we expect binary data (a blob) back, not JSON
+            
             const res = await api.get(`/invoices/${invoiceId}/pdf`, {
                 responseType: 'blob',
             });
 
-            // Create a temporary local URL for the binary data
+            
             const url = window.URL.createObjectURL(
                 new Blob([res.data], { type: 'application/pdf' })
             );
 
-            // Create an invisible anchor tag, click it, and remove it
+            
             const link = document.createElement('a');
             link.href = url;
             link.setAttribute('download', `Tax_Invoice_${invoiceNumber}.pdf`);
@@ -56,7 +56,7 @@ const Invoices = () => {
             link.click();
             link.remove();
 
-            // Clean up memory
+            
             window.URL.revokeObjectURL(url);
 
             toast.success('Invoice downloaded successfully', { position: 'bottom-right' });

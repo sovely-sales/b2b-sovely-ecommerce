@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useCartStore } from '../store/cartStore';
 
-// Highlight matches in search results cleanly
+
 const HighlightText = ({ text = '', highlight = '' }) => {
     if (!highlight.trim()) return <span>{text}</span>;
     const regex = new RegExp(`(${highlight})`, 'gi');
@@ -123,7 +123,7 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
         <nav className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 font-sans shadow-sm backdrop-blur-xl supports-[backdrop-filter]:bg-white/80">
             <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 items-center justify-between gap-4">
-                    {/* LEFT: Branding & Navigation */}
+                    {}
                     <div className="flex items-center gap-6 xl:gap-8">
                         <div className="flex items-center gap-4">
                             <button
@@ -133,7 +133,7 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                                 <Menu size={20} strokeWidth={2.5} />
                             </button>
 
-                            {/* RESTORED LOGO */}
+                            {}
                             <Link to={ROUTES.HOME} className="group flex items-center gap-2">
                                 <img
                                     src="https://m.media-amazon.com/images/X/bxt1/M/Bbxt1BI1cNpD5ln._SL160_QL95_FMwebp_.png"
@@ -239,7 +239,7 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                         </ul>
                     </div>
 
-                    {/* CENTER/RIGHT: Search Bar */}
+                    {}
                     <div ref={searchRef} className="relative hidden max-w-2xl flex-1 px-4 sm:block">
                         <div
                             className={`flex w-full items-center rounded-lg border px-3 py-2 transition-all ${isSearchOpen ? 'border-emerald-500 bg-white shadow-md ring-2 ring-emerald-500/20' : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100'}`}
@@ -276,7 +276,7 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                             )}
                         </div>
 
-                        {/* Live Search Data Table */}
+                        {}
                         <AnimatePresence>
                             {isSearchOpen && searchInput.trim().length >= 2 && (
                                 <motion.div
@@ -397,7 +397,7 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                         </AnimatePresence>
                     </div>
 
-                    {/* FAR RIGHT: Actions & Profile */}
+                    {}
                     <div className="flex shrink-0 items-center gap-2 sm:gap-4">
                         {isAdmin && (
                             <Link
@@ -505,7 +505,7 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                 </div>
             </div>
 
-            {/* The Cart Drawer that we upgraded earlier remains here */}
+            {}
             <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
         </nav>
     );

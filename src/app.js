@@ -4,7 +4,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
-// --- Route Imports ---
+
 import healthRouter from './routes/health.routes.js';
 import authRouter from './routes/auth.routes.js';
 import userRouter from './routes/user.routes.js';
@@ -23,9 +23,9 @@ import webhookRouter from './routes/webhook.routes.js';
 const app = express();
 app.set('trust proxy', 1);
 
-// ==========================================
-// 1. Security & Utility Middlewares
-// ==========================================
+
+
+
 app.use(helmet());
 
 const allowedOrigins = [
@@ -47,13 +47,13 @@ app.use(
                 callback(new Error('Not allowed by CORS'));
             }
         },
-        credentials: true, // Crucial for reading the JWT cookies!
+        credentials: true, 
         exposedHeaders: ['Content-Disposition'],
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     })
 );
 
-// Rate Limiter: Prevent API abuse (1000 requests per 15 mins)
+
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 1000,
@@ -61,53 +61,53 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// DEBUG LOGGING MIDDLEWARE: Logs every request to server console
+
 app.use((req, res, next) => {
     console.log(`📡 [${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
     next();
 });
 
-// ==========================================
-// 2. Body Parsers & Static Files
-// ==========================================
+
+
+
 app.use(express.json({ limit: '20kb' }));
 app.use(express.urlencoded({ extended: true, limit: '16kb' }));
 app.use(cookieParser());
 app.use(express.static('public'));
 app.use('/api/webhooks', webhookRouter);
 
-// ==========================================
-// 3. Mount B2B API Routes
-// ==========================================
+
+
+
 const apiVersion = '/api/v1';
 app.use(`${apiVersion}/products`, productRouter);
 
-// Identity & Platform Health
+
 app.use(`${apiVersion}/health`, healthRouter);
 app.use(`${apiVersion}/auth`, authRouter);
 app.use(`${apiVersion}/users`, userRouter);
 
-// Other B2B Routes
+
 app.use(`${apiVersion}/categories`, categoryRouter);
 app.use(`${apiVersion}/wishlist`, wishlistRouter);
 
-// The Purchasing Pipeline (Our newly rewritten engine)
+
 app.use(`${apiVersion}/cart`, cartRouter);
 app.use(`${apiVersion}/orders`, orderRouter);
 
-// Financials & Compliance
+
 app.use(`${apiVersion}/invoices`, invoiceRouter);
 app.use(`${apiVersion}/payments`, paymentRouter);
 app.use(`${apiVersion}/wallet`, walletRouter);
 
-// Admin Analytics
+
 app.use(`${apiVersion}/analytics`, analyticsRouter);
 
-// ==========================================
-// 4. Global 404 & Error Handlers
-// ==========================================
 
-// Catch-all for routes that don't exist
+
+
+
+
 app.use((req, res, next) => {
     console.log(`❌ 404 Not Found: ${req.method} ${req.originalUrl}`);
     res.status(404).json({
@@ -124,7 +124,7 @@ app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internal Server Error';
 
-    // Only log severe/unexpected errors in the console (ignore 401 Unauthorized)
+    
     if (statusCode !== 401) {
         console.error('🔥 Global Error Caught:', err);
     }

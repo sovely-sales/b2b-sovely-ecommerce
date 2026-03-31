@@ -16,7 +16,7 @@ export const authValidation = {
                         /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[A-Z0-9]{1}[0-9A-Z]{1}$/,
                         'Invalid GSTIN format'
                     )
-                    .optional(), // Optional initially, but needed for KYC approval later
+                    .optional(), 
             })
             .refine((data) => data.email || data.phoneNumber, {
                 message: 'Either Email or Phone Number is required',

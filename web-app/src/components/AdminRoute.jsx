@@ -8,7 +8,7 @@ const AdminRoute = ({ children }) => {
 
     if (loading) return <LoadingScreen />;
 
-    // If not logged in, or not an admin, kick them back to the catalog
+    
     if (!user || !isAdmin) {
         return <Navigate to="/catalog" replace />;
     }

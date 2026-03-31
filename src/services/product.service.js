@@ -6,10 +6,7 @@ import { Category } from '../models/Category.js';
 import { ApiError } from '../utils/ApiError.js';
 
 export class ProductService {
-    /**
-     * @desc Process CSV/Excel files for Bulk B2B Product Uploads
-     */
-    static async processBulkUpload(file) {
+        static async processBulkUpload(file) {
         if (!file) throw new ApiError(400, 'No file uploaded');
 
         const filePath = file.path;
@@ -49,7 +46,7 @@ export class ProductService {
                     productCategory: row['Product Category'] || row['category'],
                     tags: row['Tags'] ? row['Tags'].split(',').map((t) => t.trim()) : [],
 
-                    // --- New B2B Mappings ---
+                    
                     dropshipBasePrice:
                         parseFloat(row['Base Price'] || row['dropshipBasePrice']) || 0,
                     suggestedRetailPrice:
@@ -99,7 +96,7 @@ export class ProductService {
             const bulkOperations = [];
 
             for (const data of productsMap.values()) {
-                if (!data.title || data.dropshipBasePrice === 0) continue; // Skip invalid rows
+                if (!data.title || data.dropshipBasePrice === 0) continue; 
 
                 let finalCatId = defCat._id;
                 if (data.productCategory) {
@@ -125,7 +122,7 @@ export class ProductService {
                                 categoryId: finalCatId,
                                 images: data.images,
 
-                                // B2B Fields
+                                
                                 dropshipBasePrice: data.dropshipBasePrice,
                                 suggestedRetailPrice: data.suggestedRetailPrice,
                                 weightGrams: data.weightGrams,
@@ -134,7 +131,7 @@ export class ProductService {
                                 moq: data.moq,
                                 status: data.status,
                                 shippingDays: '3-5',
-                                deletedAt: null, // Ensure it's not soft-deleted
+                                deletedAt: null, 
                             },
                             $setOnInsert: { inventory: { stock: 0, alertThreshold: 10 } },
                         },

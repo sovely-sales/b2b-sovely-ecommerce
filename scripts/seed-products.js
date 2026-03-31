@@ -6,7 +6,7 @@ import { Product } from '../src/models/Product.js';
 
 dotenv.config();
 
-// Helper to generate a beautiful, rich HTML product description
+
 const generateRichHTML = (productName, material, vendor, weight, dimensions, hsn) => {
     return `
         <div class="product-description">
@@ -77,7 +77,7 @@ const seedProducts = async () => {
                 { minQty: 100, pricePerUnit: Math.round(basePrice * 0.85) }            
             ];
 
-            // Generate physical traits early so we can pass them to the HTML generator
+            
             const productName = faker.commerce.productName();
             const vendor = `${faker.company.name()} Mfg`;
             const material = faker.commerce.productMaterial();
@@ -114,7 +114,7 @@ const seedProducts = async () => {
             };
         });
 
-        // Insert in chunks to avoid memory limits while still triggering Mongoose hooks
+        
         console.log('⏳ Inserting products into database (this might take a few seconds)...');
         for (const productData of products) {
             await Product.create(productData);

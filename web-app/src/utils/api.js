@@ -3,10 +3,10 @@ import { API_BASE_URL } from './apiBaseUrl.js';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
-    withCredentials: true, // CRITICAL: Allows sending/receiving httpOnly cookies
+    withCredentials: true, 
 });
 
-// Variables to manage the refresh token queue
+
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -33,25 +33,25 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // Catch 401 Unauthorized errors
+        
         if (error.response?.status === 401 && !originalRequest._retry) {
-            // THE FIX: Do not intercept 401s from /auth/me!
-            // This allows guests to visit the site without being violently redirected.
+            
+            
             if (
                 originalRequest.url.includes('/auth/login') ||
                 originalRequest.url.includes('/auth/register') ||
                 originalRequest.url.includes('/auth/refresh-token') ||
-                originalRequest.url.includes('/auth/me') // <--- Added this line
+                originalRequest.url.includes('/auth/me') 
             ) {
                 return Promise.reject(error);
             }
 
-            // Prevent infinite loops if the refresh token endpoint itself fails
+            
             if (originalRequest.url.includes('/auth/refresh-token')) {
                 return Promise.reject(error);
             }
 
-            // If a refresh is already happening, queue this request until it's done
+            
             if (isRefreshing) {
                 return new Promise(function (resolve, reject) {
                     failedQueue.push({ resolve, reject });
@@ -68,19 +68,19 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                // Call our backend endpoint to refresh the httpOnly cookie
+                
                 await api.post('/auth/refresh-token');
 
                 isRefreshing = false;
                 processQueue(null);
 
-                // Retry the original failed request
+                
                 return api(originalRequest);
             } catch (refreshError) {
                 isRefreshing = false;
                 processQueue(refreshError);
 
-                // If the refresh token is dead, force the user to log out
+                
                 window.dispatchEvent(new Event('auth:unauthorized'));
                 return Promise.reject(refreshError);
             }

@@ -46,13 +46,13 @@ const productSchema = new mongoose.Schema(
             },
         ],
 
-        // --- B2B & Dropshipping Pricing Engine ---
+        
         dropshipBasePrice: { type: Number, required: true },
         suggestedRetailPrice: { type: Number, required: true },
         estimatedMarginPercent: { type: Number, default: 0 },
         tieredPricing: [tieredPriceSchema],
 
-        // --- Logistics & Shipping ---
+        
         weightGrams: { type: Number, required: true },
         dimensions: dimensionsSchema,
         hsnCode: { type: String, required: true },
@@ -65,16 +65,16 @@ const productSchema = new mongoose.Schema(
             default: 'NO_RETURNS',
         },
 
-        // Predictive Analytics
+        
         historicalRtoRate: {
             type: Number,
             default: 0,
             index: true,
         },
 
-        // --- Status, Tracking & Soft Deletes ---
+        
         status: { type: String, enum: ['active', 'draft', 'archived'], default: 'active' },
-        deletedAt: { type: Date, default: null }, // NEW: True soft deletes for audit integrity
+        deletedAt: { type: Date, default: null }, 
 
         moq: { type: Number, default: 1 },
         inventory: inventorySchema,
@@ -82,12 +82,12 @@ const productSchema = new mongoose.Schema(
         averageRating: { type: Number, default: 0, min: 0, max: 5 },
         reviewCount: { type: Number, default: 0 },
     },
-    // NEW: optimisticConcurrency protects against race conditions on product edits
+    
     { timestamps: true, optimisticConcurrency: true }
 );
 
-// Search Indexes
-// productSchema.index({ sku: 1 });
+
+
 productSchema.index({ title: 1 });
 productSchema.index({ tags: 1 });
 productSchema.index({ vendor: 1 });
@@ -95,7 +95,7 @@ productSchema.index({ categoryId: 1 });
 productSchema.index({ status: 1 });
 productSchema.index({ 'inventory.stock': 1 });
 
-// Auto-calculate the estimated profit margin percentage
+
 productSchema.pre('save', function () {
     if (this.suggestedRetailPrice > this.dropshipBasePrice && this.dropshipBasePrice > 0) {
         this.estimatedMarginPercent = Math.round(

@@ -10,15 +10,15 @@ connectDB()
         app.listen(process.env.PORT || 8000, () => {
             console.log(`⚙️ Server is running at port : ${process.env.PORT}`);
 
-            // --- NEW: Schedule Nightly Jobs ---
-            // Runs at 02:00 AM every day
+            
+            
             cron.schedule(
                 '0 2 * * *',
                 () => {
                     syncProductRtoRates();
                 },
                 {
-                    timezone: 'Asia/Kolkata', // Crucial for Indian dropshipping platforms!
+                    timezone: 'Asia/Kolkata', 
                 }
             );
         });

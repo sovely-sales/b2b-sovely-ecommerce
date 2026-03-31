@@ -4,24 +4,29 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
-// --- NEW: Client's Logistics Engine ---
-const calculateFreightAndPackaging = (product, qty) => {
-    // 1. Actual Weight in Kg
-    const actualWeightKg = (product.weightGrams || 0) / 1000;
 
-    // 2. Volumetric Weight in Kg (L * W * H / 5000)
+const calculateItemWeights = (product, qty) => {
+    const actualWeightKg = (product.weightGrams || 0) / 1000;
     const l = product.dimensions?.length || 0;
     const w = product.dimensions?.width || 0;
     const h = product.dimensions?.height || 0;
     const volWeightKg = (l * w * h) / 5000;
 
-    // 3. Chargeable Weight (Greater of the two)
     const chargeableWeightPerUnit = Math.max(actualWeightKg, volWeightKg);
 
-    // 4. Total Chargeable Weight for this cart line item
-    const totalWt = chargeableWeightPerUnit * qty;
+    return {
+        actualWeight: actualWeightKg * qty,
+        volumetricWeight: volWeightKg * qty,
+        billableWeight: chargeableWeightPerUnit * qty,
+    };
+};
 
-    // 5. Determine Weight Slab
+
+
+const calculateSlabCharge = (totalWt) => {
+    
+    if (totalWt <= 0) totalWt = 0.5;
+
     let slab = 0;
     if (totalWt <= 0.5) slab = 0.5;
     else if (totalWt <= 1.0) slab = 1;
@@ -29,9 +34,8 @@ const calculateFreightAndPackaging = (product, qty) => {
     else if (totalWt <= 3.0) slab = 3;
     else if (totalWt <= 4.0) slab = 4;
     else if (totalWt <= 5.0) slab = 5;
-    else slab = Math.ceil(totalWt); // Fallback: rounds up to nearest kg for >5kg
+    else slab = Math.ceil(totalWt);
 
-    // 6. Calculate Delivery Charge (Based on Client's SWITCH)
     let deliveryCharge = 0;
     switch (slab) {
         case 0.5:
@@ -48,15 +52,14 @@ const calculateFreightAndPackaging = (product, qty) => {
             break;
         case 4:
             deliveryCharge = 145;
-            break; // Interpolated (Missing in client data)
+            break; 
         case 5:
             deliveryCharge = 160;
             break;
         default:
-            deliveryCharge = 160 + (slab - 5) * 30; // +₹30 per extra kg above 5kg
+            deliveryCharge = 160 + (slab - 5) * 30;
     }
 
-    // 7. Calculate Packaging/Product Charge (Based on Client's SWITCH)
     let packingCharge = 0;
     switch (slab) {
         case 0.5:
@@ -73,40 +76,35 @@ const calculateFreightAndPackaging = (product, qty) => {
             break;
         case 4:
             packingCharge = 28;
-            break; // Interpolated (Missing in client data)
+            break; 
         case 5:
             packingCharge = 30;
             break;
         default:
-            packingCharge = 30 + (slab - 5) * 5; // +₹5 per extra kg above 5kg
+            packingCharge = 30 + (slab - 5) * 5;
     }
 
-    return {
-        deliveryCharge,
-        packingCharge,
-        totalShippingCost: deliveryCharge + packingCharge,
-        // --- NEW: Expose the math ---
-        actualWeightKg,
-        volWeightKg,
-        chargeableWeightPerUnit,
-        totalWt, // This is the billable weight for this line item
-    };
+    return { deliveryCharge, packingCharge, totalShippingCost: deliveryCharge + packingCharge };
 };
 
 const recalculateCart = async (cart) => {
     let subTotal = 0;
     let totalTax = 0;
-    let totalShippingCost = 0;
     let totalExpectedProfit = 0;
 
-    // --- NEW: Tracking aggregations ---
     let totalActualWeight = 0;
     let totalVolumetricWeight = 0;
     let totalBillableWeight = 0;
 
+    
+    const weightGroups = {
+        WHOLESALE: { billableWeight: 0, shippingCost: 0 },
+        DROPSHIP: { billableWeight: 0, shippingCost: 0 },
+    };
+
+    
     for (let i = 0; i < cart.items.length; i++) {
         let item = cart.items[i];
-
         if (!item.productId) continue;
 
         const productId = item.productId._id ? item.productId._id : item.productId;
@@ -117,44 +115,83 @@ const recalculateCart = async (cart) => {
             continue;
         }
 
+        
         let unitCost = product.dropshipBasePrice;
-
-        if (
-            item.orderType === 'WHOLESALE' &&
-            product.tieredPricing &&
-            product.tieredPricing.length > 0
-        ) {
+        if (item.orderType === 'WHOLESALE' && product.tieredPricing?.length > 0) {
             const applicableTier = [...product.tieredPricing]
                 .sort((a, b) => b.minQty - a.minQty)
                 .find((tier) => item.qty >= tier.minQty);
-
-            if (applicableTier) {
-                unitCost = applicableTier.pricePerUnit;
-            }
+            if (applicableTier) unitCost = applicableTier.pricePerUnit;
         }
 
         item.platformUnitCost = unitCost;
         item.gstSlab = product.gstSlab;
         item.taxAmountPerUnit = Number(((unitCost * product.gstSlab) / 100).toFixed(2));
 
-        // --- UPDATED: Catch the weight metrics ---
-        const freightData = calculateFreightAndPackaging(product, item.qty);
-        item.shippingCost = freightData.totalShippingCost;
+        
+        const weights = calculateItemWeights(product, item.qty);
+        item.actualWeight = weights.actualWeight;
+        item.volumetricWeight = weights.volumetricWeight;
+        item.billableWeight = weights.billableWeight;
 
-        item.actualWeight = freightData.actualWeightKg * item.qty;
-        item.volumetricWeight = freightData.volWeightKg * item.qty;
-        item.billableWeight = freightData.totalWt;
+        
+        totalActualWeight += item.actualWeight;
+        totalVolumetricWeight += item.volumetricWeight;
+        totalBillableWeight += item.billableWeight;
+
+        
+        weightGroups[item.orderType].billableWeight += item.billableWeight;
+    }
+
+    cart.items = cart.items.filter((item) => !item.toBeRemoved);
+
+    
+    let dropshipCharges = { deliveryCharge: 0, packingCharge: 0, totalShippingCost: 0 };
+    if (weightGroups.DROPSHIP.billableWeight > 0) {
+        dropshipCharges = calculateSlabCharge(weightGroups.DROPSHIP.billableWeight);
+    }
+
+    let wholesaleCharges = { deliveryCharge: 0, packingCharge: 0, totalShippingCost: 0 };
+    if (weightGroups.WHOLESALE.billableWeight > 0) {
+        wholesaleCharges = calculateSlabCharge(weightGroups.WHOLESALE.billableWeight);
+    }
+
+    weightGroups.DROPSHIP.shippingCost = dropshipCharges.totalShippingCost;
+    weightGroups.WHOLESALE.shippingCost = wholesaleCharges.totalShippingCost;
+
+    const totalShippingCost =
+        weightGroups.WHOLESALE.shippingCost + weightGroups.DROPSHIP.shippingCost;
+
+    
+    cart.totalDeliveryCharge = dropshipCharges.deliveryCharge + wholesaleCharges.deliveryCharge;
+    cart.totalPackingCharge = dropshipCharges.packingCharge + wholesaleCharges.packingCharge;
+
+    
+    for (let i = 0; i < cart.items.length; i++) {
+        let item = cart.items[i];
+
+        
+        const groupTotalWeight = weightGroups[item.orderType].billableWeight;
+        if (groupTotalWeight > 0) {
+            const weightRatio = item.billableWeight / groupTotalWeight;
+            item.shippingCost = Number(
+                (weightGroups[item.orderType].shippingCost * weightRatio).toFixed(2)
+            );
+        } else {
+            item.shippingCost = 0;
+        }
 
         item.totalItemPlatformCost = Number(
-            ((unitCost + item.taxAmountPerUnit) * item.qty).toFixed(2)
+            ((item.platformUnitCost + item.taxAmountPerUnit) * item.qty).toFixed(2)
         );
 
         if (item.orderType === 'DROPSHIP') {
+            
             const minimumSellingPrice =
-                unitCost + item.taxAmountPerUnit + item.shippingCost / item.qty;
+                item.platformUnitCost + item.taxAmountPerUnit + item.shippingCost / item.qty;
 
             if (item.resellerSellingPrice < minimumSellingPrice) {
-                item.resellerSellingPrice = minimumSellingPrice;
+                item.resellerSellingPrice = Number(minimumSellingPrice.toFixed(2));
             }
 
             const profitPerUnit = item.resellerSellingPrice - minimumSellingPrice;
@@ -164,18 +201,10 @@ const recalculateCart = async (cart) => {
             item.resellerSellingPrice = 0;
         }
 
-        subTotal += unitCost * item.qty;
+        subTotal += item.platformUnitCost * item.qty;
         totalTax += item.taxAmountPerUnit * item.qty;
-        totalShippingCost += item.shippingCost;
         totalExpectedProfit += item.expectedProfit;
-
-        // --- NEW: Aggregate totals ---
-        totalActualWeight += item.actualWeight;
-        totalVolumetricWeight += item.volumetricWeight;
-        totalBillableWeight += item.billableWeight;
     }
-
-    cart.items = cart.items.filter((item) => !item.toBeRemoved);
 
     cart.subTotalPlatformCost = Number(subTotal.toFixed(2));
     cart.totalTax = Number(totalTax.toFixed(2));
@@ -183,7 +212,6 @@ const recalculateCart = async (cart) => {
     cart.grandTotalPlatformCost = Number((subTotal + totalTax + totalShippingCost).toFixed(2));
     cart.totalExpectedProfit = Number(totalExpectedProfit.toFixed(2));
 
-    // --- NEW: Save cart-level weights to the document ---
     cart.totalActualWeight = Number(totalActualWeight.toFixed(3));
     cart.totalVolumetricWeight = Number(totalVolumetricWeight.toFixed(3));
     cart.totalBillableWeight = Number(totalBillableWeight.toFixed(3));
@@ -195,7 +223,7 @@ const recalculateCart = async (cart) => {
 export const getCart = asyncHandler(async (req, res) => {
     let cart = await Cart.findOne({ resellerId: req.user._id }).populate(
         'items.productId',
-        'title images sku inventory moq weightGrams dimensions dropshipBasePrice suggestedRetailPrice' // Added dimensions
+        'title images sku inventory moq weightGrams dimensions dropshipBasePrice suggestedRetailPrice' 
     );
 
     if (!cart) {
@@ -316,7 +344,7 @@ export const removeFromCart = asyncHandler(async (req, res) => {
 });
 
 export const clearCart = asyncHandler(async (req, res) => {
-    // Forcefully wipe the cart at the DB level and return the newly empty document
+    
     const emptyCart = await Cart.findOneAndUpdate(
         { resellerId: req.user._id },
         {
@@ -329,7 +357,7 @@ export const clearCart = asyncHandler(async (req, res) => {
                 totalExpectedProfit: 0,
             },
         },
-        { new: true } // Returns the updated, empty document
+        { new: true } 
     );
 
     if (!emptyCart) {
