@@ -6,6 +6,7 @@ import {
     resellerActionOnNDR,
     getOrderById,
     getAllAdminOrders,
+    exportAdminOrdersToCsv,
 } from '../controllers/order.controller.js';
 import { verifyJWT, authorizeRoles, requireKycApproved } from '../middlewares/auth.middleware.js';
 
@@ -15,8 +16,9 @@ const router = Router();
 router.use(verifyJWT);
 
 // --- Admin Only Routes ---
-// Must come BEFORE /:id so Express doesn't think "all" is an order ID
+// Must come BEFORE /:id so Express doesn't think "all" or "export" is an order ID
 router.get('/all', authorizeRoles('ADMIN'), getAllAdminOrders);
+router.get('/export', authorizeRoles('ADMIN'), exportAdminOrdersToCsv);
 router.put('/:id/status', authorizeRoles('ADMIN'), updateOrderStatus);
 
 // --- Reseller / User Routes ---

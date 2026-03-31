@@ -13,6 +13,8 @@ import {
     AlertOctagon,
     ShieldCheck,
     ShoppingCart,
+    Download,
+    Calendar,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../utils/api.js';
@@ -33,6 +35,12 @@ const AdminOrders = () => {
     const [viewMode, setViewMode] = useState(false);
     const [editForm, setEditForm] = useState({});
     const [isSaving, setIsSaving] = useState(false);
+
+    // Export State
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [exportStartDate, setExportStartDate] = useState('');
+    const [exportEndDate, setExportEndDate] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
@@ -109,6 +117,41 @@ const AdminOrders = () => {
         }
     };
 
+    const handleExportOrders = async () => {
+        if (!exportStartDate || !exportEndDate) {
+            toast.error('Please select both start and end dates');
+            return;
+        }
+        if (new Date(exportStartDate) > new Date(exportEndDate)) {
+            toast.error('Start date cannot be after end date');
+            return;
+        }
+
+        setIsExporting(true);
+        try {
+            const res = await api.get('/orders/export', {
+                params: { startDate: exportStartDate, endDate: exportEndDate },
+                responseType: 'blob',
+            });
+
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `orders_export_${exportStartDate}_to_${exportEndDate}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            
+            toast.success('Export downloaded successfully!');
+            setIsExportModalOpen(false);
+        } catch (err) {
+            console.error('Export failed:', err);
+            toast.error('Failed to export orders. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div className="w-full">
             {/* Command Bar */}
@@ -116,6 +159,13 @@ const AdminOrders = () => {
                 <h2 className="text-xl font-black text-slate-900">Order Fulfillment</h2>
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <button
+                        onClick={() => setIsExportModalOpen(true)}
+                        className="flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 border border-indigo-200 shadow-sm transition-colors hover:bg-indigo-100"
+                    >
+                        <Download size={16} /> Export CSV
+                    </button>
+
                     <div className="flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 shadow-sm focus-within:border-slate-500 focus-within:ring-1 focus-within:ring-slate-500">
                         <Search size={16} className="text-slate-400" />
                         <input
@@ -699,6 +749,78 @@ const AdminOrders = () => {
                                             {isSaving ? 'Processing...' : 'Save Update'}
                                         </button>
                                     )}
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+
+                    {/* Export Modal */}
+                    {isExportModalOpen && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsExportModalOpen(false)}
+                                className="fixed inset-0 z-40 bg-slate-900/40"
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl bg-white shadow-2xl"
+                            >
+                                <div className="border-b border-slate-100 bg-slate-50 px-6 py-4 flex items-center justify-between">
+                                    <h3 className="flex items-center gap-2 text-sm font-black text-slate-800 uppercase tracking-wider">
+                                        <Calendar size={16} className="text-indigo-600" /> Export Orders
+                                    </h3>
+                                    <button
+                                        onClick={() => setIsExportModalOpen(false)}
+                                        className="rounded-full bg-slate-200/50 p-1.5 text-slate-500 hover:bg-slate-200 hover:text-slate-900"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                                
+                                <div className="p-6 flex flex-col gap-4">
+                                    <div>
+                                        <label className="mb-1.5 block text-[10px] font-extrabold tracking-wider text-slate-500 uppercase">
+                                            Start Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={exportStartDate}
+                                            onChange={(e) => setExportStartDate(e.target.value)}
+                                            className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1.5 block text-[10px] font-extrabold tracking-wider text-slate-500 uppercase">
+                                            End Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={exportEndDate}
+                                            onChange={(e) => setExportEndDate(e.target.value)}
+                                            className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-slate-100 bg-slate-50 px-6 py-4 flex gap-3">
+                                    <button
+                                        onClick={() => setIsExportModalOpen(false)}
+                                        className="flex-1 rounded-lg border border-slate-300 bg-white py-2 text-xs font-extrabold text-slate-600 hover:bg-slate-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleExportOrders}
+                                        disabled={isExporting}
+                                        className="flex-1 rounded-lg bg-indigo-600 py-2 text-xs font-extrabold text-white hover:bg-indigo-700 flex items-center justify-center gap-2 disabled:opacity-50"
+                                    >
+                                        {isExporting ? 'Downloading...' : 'Download CSV'}
+                                    </button>
                                 </div>
                             </motion.div>
                         </>
