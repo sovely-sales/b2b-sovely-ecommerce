@@ -32,7 +32,7 @@ export default function DropshipProducts({
     const [sort, setSort] = useState('default');
     const [minPrice, setMinPrice] = useState('');
     const [maxPrice, setMaxPrice] = useState('');
-    const [selectedGst, setSelectedGst] = useState([]);
+
     const [maxDispatchDays, setMaxDispatchDays] = useState('');
     const [verifiedOnly, setVerifiedOnly] = useState(false);
     const [b2bFilters, setB2bFilters] = useState({
@@ -100,10 +100,9 @@ export default function DropshipProducts({
             sort,
             debouncedMinPrice,
             debouncedMaxPrice,
-            selectedGst,
             maxDispatchDays,
             verifiedOnly,
-            b2bFilters.moq, 
+            b2bFilters.moq,
             b2bFilters.readyToShip,
             b2bFilters.lowRtoRisk,
             b2bFilters.vendor,
@@ -116,7 +115,7 @@ export default function DropshipProducts({
             if (sort !== 'default') params.append('sort', sort);
             if (debouncedMinPrice) params.append('minBasePrice', debouncedMinPrice);
             if (debouncedMaxPrice) params.append('maxBasePrice', debouncedMaxPrice);
-            if (selectedGst.length > 0) params.append('gstSlab', selectedGst.join(','));
+
             if (maxDispatchDays) params.append('maxShippingDays', maxDispatchDays);
             if (verifiedOnly) params.append('isVerifiedSupplier', 'true');
 
@@ -184,7 +183,7 @@ export default function DropshipProducts({
     const resetAdvancedFilters = () => {
         setMinPrice('');
         setMaxPrice('');
-        setSelectedGst([]);
+
         setMaxDispatchDays('');
         setVerifiedOnly(false);
     };
@@ -263,8 +262,7 @@ export default function DropshipProducts({
                     setMinPrice={setMinPrice}
                     maxPrice={maxPrice}
                     setMaxPrice={setMaxPrice}
-                    selectedGst={selectedGst}
-                    setSelectedGst={setSelectedGst}
+
                     maxDispatchDays={maxDispatchDays}
                     setMaxDispatchDays={setMaxDispatchDays}
                     verifiedOnly={verifiedOnly}

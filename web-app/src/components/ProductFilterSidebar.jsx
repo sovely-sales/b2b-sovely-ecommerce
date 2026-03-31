@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Box, Check, Receipt, Truck, ShieldCheck, Zap } from 'lucide-react';
+import { X, Box, Check, Truck, ShieldCheck, Zap } from 'lucide-react';
 
 export default function ProductFilterSidebar({
     isMobileFilterOpen,
@@ -11,8 +11,6 @@ export default function ProductFilterSidebar({
     setMinPrice,
     maxPrice,
     setMaxPrice,
-    selectedGst,
-    setSelectedGst,
     maxDispatchDays,
     setMaxDispatchDays,
     verifiedOnly,
@@ -21,11 +19,7 @@ export default function ProductFilterSidebar({
     setB2bFilters,
     resetAll,
 }) {
-    const toggleGst = (slab) => {
-        setSelectedGst((prev) =>
-            prev.includes(slab) ? prev.filter((g) => g !== slab) : [...prev, slab]
-        );
-    };
+
 
     return (
         <aside
@@ -102,28 +96,7 @@ export default function ProductFilterSidebar({
                     </div>
                 </div>
 
-                {}
-                <div className="space-y-3 border-t border-slate-100 pt-5">
-                    <h4 className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                        <Receipt size={14} /> GST Slab
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2">
-                        {[5, 12, 18, 28].map((slab) => (
-                            <label
-                                key={slab}
-                                className={`flex cursor-pointer items-center justify-center gap-1 rounded-lg border py-2 transition-all ${selectedGst.includes(slab) ? 'border-emerald-500 bg-emerald-50 font-bold text-emerald-700' : 'border-slate-200 bg-white font-medium text-slate-600 hover:border-slate-300'}`}
-                            >
-                                <input
-                                    type="checkbox"
-                                    className="sr-only"
-                                    checked={selectedGst.includes(slab)}
-                                    onChange={() => toggleGst(slab)}
-                                />
-                                <span className="text-sm">{slab}%</span>
-                            </label>
-                        ))}
-                    </div>
-                </div>
+
 
                 {}
                 <div className="space-y-3 border-t border-slate-100 pt-5">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, ShoppingBag, AlertCircle, Users, ShieldAlert } from 'lucide-react';
+import { DollarSign, ShoppingBag, AlertCircle, Users, ShieldAlert, Calendar } from 'lucide-react';
 import {
     AreaChart,
     Area,
@@ -20,13 +20,15 @@ import api from '../../utils/api.js';
 const AdminOverview = ({ setActiveTab }) => {
     const [analytics, setAnalytics] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [range, setRange] = useState('month'); // Default to month
 
     useEffect(() => {
         const fetchAnalytics = async () => {
             setLoading(true);
             try {
-                
-                const res = await api.get('/analytics/dashboard');
+                const res = await api.get('/analytics/dashboard', {
+                    params: { range },
+                });
                 setAnalytics(res.data.data);
             } catch (err) {
                 console.error('Failed to fetch analytics:', err);
@@ -35,7 +37,7 @@ const AdminOverview = ({ setActiveTab }) => {
             }
         };
         fetchAnalytics();
-    }, []);
+    }, [range]);
 
     if (loading || !analytics) {
         return (
@@ -52,39 +54,76 @@ const AdminOverview = ({ setActiveTab }) => {
     const outOfStockData = inventoryHealth.find((item) => item.name === 'Out of Stock');
     const totalAlerts = (lowStockData?.value || 0) + (outOfStockData?.value || 0);
 
-    
     const getStatusColor = (status) => {
         switch (status?.toUpperCase()) {
             case 'DELIVERED':
-                return '#10b981'; 
+                return '#10b981';
             case 'PROCESSING':
-                return '#f59e0b'; 
+                return '#f59e0b';
             case 'SHIPPED':
-                return '#3b82f6'; 
+                return '#3b82f6';
             case 'PENDING':
-                return '#8b5cf6'; 
+                return '#8b5cf6';
             case 'CANCELLED':
-                return '#ef4444'; 
+                return '#ef4444';
             default:
-                return '#64748b'; 
+                return '#64748b';
         }
+    };
+
+    const rangeLabels = {
+        today: 'Today',
+        week: 'Weekly',
+        month: 'Monthly',
+        '3months': 'Past 3 Months',
+        '6months': 'Past 6 Months',
+        yearly: 'Yearly',
+    };
+
+    const rangeLabels = {
+        today: 'Today',
+        week: 'Weekly',
+        month: 'Monthly',
+        '3months': 'Past 3 Months',
+        '6months': 'Past 6 Months',
+        yearly: 'Yearly',
     };
 
     return (
         <div className="flex flex-col gap-6">
-            {}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
-                {}
-                <div className="flex cursor-default items-center gap-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-green-500 hover:shadow-md">
-                    <div className="rounded-2xl bg-green-50 p-4">
+            {/* Header with Range Picker */}
+            <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+                <h2 className="text-xl font-black text-slate-900">Dashboard Metrics</h2>
+                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm focus-within:border-indigo-500">
+                    <Calendar size={16} className="text-slate-400" />
+                    <select
+                        value={range}
+                        onChange={(e) => setRange(e.target.value)}
+                        className="cursor-pointer border-none bg-transparent text-xs font-bold text-slate-700 outline-none"
+                    >
+                        <option value="today">Today</option>
+                        <option value="week">Weekly</option>
+                        <option value="month">Monthly</option>
+                        <option value="3months">Past 3 Months</option>
+                        <option value="6months">Past 6 Months</option>
+                        <option value="yearly">Yearly</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* KPI GRID */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {/* Dynamic Revenue Card */}
+                <div className="flex min-w-0 cursor-default items-center gap-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:border-green-500 hover:shadow-md md:p-6">
+                    <div className="shrink-0 rounded-2xl bg-green-50 p-4">
                         <DollarSign size={24} className="text-green-600" />
                     </div>
-                    <div>
-                        <p className="mb-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                            Total Revenue
+                    <div className="min-w-0 flex-1">
+                        <p className="mb-1 truncate text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                            Revenue ({rangeLabels[range]})
                         </p>
-                        <h3 className="text-xl font-black text-slate-900">
-                            ₹{kpis.totalRevenue?.toLocaleString('en-IN') || 0}
+                        <h3 className="break-all text-xl font-black text-slate-900 lg:text-2xl">
+                            ₹{kpis.periodRevenue?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || 0}
                         </h3>
                     </div>
                 </div>
@@ -92,16 +131,16 @@ const AdminOverview = ({ setActiveTab }) => {
                 {}
                 <div
                     onClick={() => setActiveTab('users')}
-                    className="group flex cursor-pointer items-center gap-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-blue-500 hover:shadow-md"
+                    className="group flex min-w-0 cursor-pointer items-center gap-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:border-blue-500 hover:shadow-md md:p-6"
                 >
-                    <div className="rounded-2xl bg-blue-50 p-4 transition-colors group-hover:bg-blue-100">
+                    <div className="shrink-0 rounded-2xl bg-blue-50 p-4 transition-colors group-hover:bg-blue-100">
                         <Users size={24} className="text-blue-600" />
                     </div>
-                    <div>
-                        <p className="mb-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                    <div className="min-w-0 flex-1">
+                        <p className="mb-1 truncate text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                             Total Customers
                         </p>
-                        <h3 className="text-xl font-black text-slate-900">
+                        <h3 className="break-all text-xl font-black text-slate-900 lg:text-2xl">
                             {kpis.totalCustomers?.toLocaleString('en-IN') || 0}
                         </h3>
                     </div>
@@ -110,16 +149,16 @@ const AdminOverview = ({ setActiveTab }) => {
                 {}
                 <div
                     onClick={() => setActiveTab('orders')}
-                    className="group flex cursor-pointer items-center gap-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-indigo-500 hover:shadow-md"
+                    className="group flex min-w-0 cursor-pointer items-center gap-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:border-indigo-500 hover:shadow-md md:p-6"
                 >
-                    <div className="rounded-2xl bg-indigo-50 p-4 transition-colors group-hover:bg-indigo-100">
+                    <div className="shrink-0 rounded-2xl bg-indigo-50 p-4 transition-colors group-hover:bg-indigo-100">
                         <ShoppingBag size={24} className="text-indigo-600" />
                     </div>
-                    <div>
-                        <p className="mb-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                    <div className="min-w-0 flex-1">
+                        <p className="mb-1 truncate text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                             Orders Processing
                         </p>
-                        <h3 className="text-xl font-black text-slate-900">
+                        <h3 className="break-all text-xl font-black text-slate-900 lg:text-2xl">
                             {kpis.processingOrders || 0}
                         </h3>
                     </div>
@@ -128,32 +167,34 @@ const AdminOverview = ({ setActiveTab }) => {
                 {}
                 <div
                     onClick={() => setActiveTab('products')}
-                    className="group flex cursor-pointer items-center gap-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:border-red-500 hover:shadow-md"
+                    className="group flex min-w-0 cursor-pointer items-center gap-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm transition-all hover:border-red-500 hover:shadow-md md:p-6"
                 >
-                    <div className="rounded-2xl bg-red-50 p-4 transition-colors group-hover:bg-red-100">
+                    <div className="shrink-0 rounded-2xl bg-red-50 p-4 transition-colors group-hover:bg-red-100">
                         <AlertCircle size={24} className="text-red-600" />
                     </div>
-                    <div>
-                        <p className="mb-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                    <div className="min-w-0 flex-1">
+                        <p className="mb-1 truncate text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                             Stock Alerts
                         </p>
-                        <h3 className="text-xl font-black text-slate-900">{totalAlerts} Items</h3>
+                        <h3 className="break-all text-xl font-black text-slate-900 lg:text-2xl">
+                            {totalAlerts} Items
+                        </h3>
                     </div>
                 </div>
 
-                {}
+                {/* Pending KYC Card */}
                 <div
                     onClick={() => setActiveTab('users')}
-                    className="group flex cursor-pointer items-center gap-4 rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm transition-all hover:bg-amber-100 hover:shadow-md"
+                    className="group flex min-w-0 cursor-pointer items-center gap-4 rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm transition-all hover:bg-amber-100 hover:shadow-md md:p-6"
                 >
-                    <div className="rounded-2xl bg-amber-200/50 p-4 transition-colors group-hover:bg-amber-200">
+                    <div className="shrink-0 rounded-2xl bg-amber-200/50 p-4 transition-colors group-hover:bg-amber-200">
                         <ShieldAlert size={24} className="text-amber-700" />
                     </div>
-                    <div>
-                        <p className="mb-1 text-[10px] font-bold tracking-wider text-amber-700 uppercase">
+                    <div className="min-w-0 flex-1">
+                        <p className="mb-1 truncate text-[10px] font-bold tracking-wider text-amber-700 uppercase">
                             Pending KYC
                         </p>
-                        <h3 className="text-xl font-black text-amber-900">
+                        <h3 className="break-all text-xl font-black text-amber-900 lg:text-2xl">
                             {kpis.pendingKycCount || 0} Req
                         </h3>
                     </div>
@@ -165,7 +206,7 @@ const AdminOverview = ({ setActiveTab }) => {
                 {}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm lg:col-span-2">
                     <h3 className="mb-6 text-sm font-bold tracking-wider text-slate-900 uppercase">
-                        30-Day Revenue Trend
+                        {rangeLabels[range]} Revenue Trend
                     </h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -218,10 +259,10 @@ const AdminOverview = ({ setActiveTab }) => {
                     </div>
                 </div>
 
-                {}
+                {/* Order Status Distribution */}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                     <h3 className="mb-6 text-sm font-bold tracking-wider text-slate-900 uppercase">
-                        Lifetime Order Status
+                        Order Status ({rangeLabels[range]})
                     </h3>
                     <div className="flex h-[300px] w-full flex-col items-center justify-center">
                         <ResponsiveContainer width="100%" height="100%">

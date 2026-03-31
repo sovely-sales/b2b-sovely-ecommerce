@@ -841,3 +841,125 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
         );
     }
 });
+
+/**
+ * @desc    Export Admin Orders to CSV
+ * @route   GET /api/orders/export
+ */
+export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    const query = {};
+    if (startDate && endDate) {
+        query.createdAt = {
+            $gte: new Date(startDate),
+            $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)),
+        };
+    }
+
+    const orders = await Order.find(query)
+        .sort({ createdAt: -1 })
+        .populate('resellerId', 'name companyName email phone');
+
+    // Helper to safely format CSV values
+    const escapeCsv = (val) => {
+        if (val === null || val === undefined) return '';
+        // Prefix long numeric sequences with a tab to force string type in Excel
+        let str = String(val).replace(/"/g, '""');
+        if (/^\+?\d{10,}$/.test(str) || /^\d{5,6}$/.test(str)) {
+            str = `\t${str}`;
+        }
+        return `"${str}"`;
+    };
+
+    const headers = [
+        'Order ID',
+        'Order Date',
+        'Status',
+        'Order Type',
+        'Payment Method',
+        'Reseller Name',
+        'Reseller Email',
+        'Reseller Company',
+        'Reseller Phone',
+        'Customer Name',
+        'Customer Phone',
+        'Customer Street',
+        'Customer City',
+        'Customer State',
+        'Customer ZIP',
+        'Items (SKU | Title | HSN | Qty | GST)',
+        'Total Actual Weight (kg)',
+        'Total Volumetric Weight (kg)',
+        'Total Billable Weight (kg)',
+        'Weight Type',
+        'Base Product Cost',
+        'Tax Amount',
+        'Shipping Charge',
+        'COD Charge',
+        'Total Platform Cost',
+        'Reseller Profit Margin',
+        'COD to Collect',
+        'AWB Number',
+        'Courier',
+        'Tracking Number',
+        'Tracking URL',
+        'NDR Attempt Count',
+        'NDR Reason',
+        'NDR Reseller Action',
+    ];
+
+    let csvContent = headers.map((h) => `"${h}"`).join(',') + '\n';
+
+    orders.forEach((order) => {
+        const isDropship = !!order.endCustomerDetails?.name;
+
+        // Create a more descriptive items breakdown
+        const itemsStr = order.items
+            .map((i) => `${i.sku} | ${i.title} (x${i.qty}) | HSN:${i.hsnCode} | GST:${i.gstSlab}%`)
+            .join(' || ');
+
+        const row = [
+            order.orderId,
+            new Date(order.createdAt).toISOString().split('T')[0],
+            order.status,
+            isDropship ? 'DROPSHIP' : 'WHOLESALE',
+            order.paymentMethod,
+            order.resellerId?.name || '',
+            order.resellerId?.email || '',
+            order.resellerId?.companyName || '',
+            order.resellerId?.phone || '',
+            isDropship ? order.endCustomerDetails?.name || '' : '',
+            isDropship ? order.endCustomerDetails?.phone || '' : '',
+            isDropship ? order.endCustomerDetails?.address?.street || '' : '',
+            isDropship ? order.endCustomerDetails?.address?.city || '' : '',
+            isDropship ? order.endCustomerDetails?.address?.state || '' : '',
+            isDropship ? order.endCustomerDetails?.address?.zip || '' : '',
+            itemsStr,
+            order.totalActualWeight || 0,
+            order.totalVolumetricWeight || 0,
+            order.totalBillableWeight || 0,
+            order.weightType || 'N/A',
+            order.subTotal || 0,
+            order.taxTotal || 0,
+            order.shippingTotal || 0,
+            order.codCharge || 0,
+            order.totalPlatformCost || 0,
+            order.resellerProfitMargin || 0,
+            order.amountToCollect || 0,
+            order.tracking?.awbNumber || '',
+            order.tracking?.courierName || '',
+            order.tracking?.trackingNumber || '',
+            order.tracking?.trackingUrl || '',
+            order.ndrDetails?.attemptCount || 0,
+            order.ndrDetails?.reason || '',
+            order.ndrDetails?.resellerAction || '',
+        ];
+
+        csvContent += row.map(escapeCsv).join(',') + '\n';
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="orders_export.csv"');
+    return res.status(200).send(csvContent);
+});
