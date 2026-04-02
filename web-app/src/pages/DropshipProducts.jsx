@@ -183,6 +183,13 @@ export default function DropshipProducts({
     const resetAll = () => {
         setCategory('All Categories');
         setSort('default');
+        setB2bFilters({
+            moq: 'all',
+            margin: 0,
+            readyToShip: false,
+            lowRtoRisk: false,
+            vendor: 'all',
+        });
         resetAdvancedFilters();
     };
 

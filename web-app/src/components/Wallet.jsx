@@ -344,6 +344,16 @@ const Wallet = () => {
                                                                 day: 'numeric',
                                                                 year: 'numeric',
                                                             })}
+                                                            <span className="ml-1 opacity-70">
+                                                                •{' '}
+                                                                {new Date(
+                                                                    txn.createdAt
+                                                                ).toLocaleTimeString('en-IN', {
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit',
+                                                                    hour12: true,
+                                                                })}
+                                                            </span>
                                                         </p>
                                                         <span className="text-slate-300">•</span>
                                                         <p className="font-mono text-[10px] font-bold text-slate-400 uppercase">

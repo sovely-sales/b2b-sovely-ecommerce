@@ -80,7 +80,10 @@ export default function ProductFilterSidebar({
                             type="number"
                             placeholder="Min"
                             value={minPrice}
-                            onChange={(e) => setMinPrice(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0);
+                                setMinPrice(val);
+                            }}
                             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
                         />
                         <span className="text-slate-300">-</span>
@@ -88,7 +91,10 @@ export default function ProductFilterSidebar({
                             type="number"
                             placeholder="Max"
                             value={maxPrice}
-                            onChange={(e) => setMaxPrice(e.target.value)}
+                            onChange={(e) => {
+                                const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0);
+                                setMaxPrice(val);
+                            }}
                             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
                         />
                     </div>

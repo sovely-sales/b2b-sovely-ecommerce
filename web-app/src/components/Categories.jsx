@@ -86,9 +86,14 @@ function Categories({ onSelectCategory }) {
                                 >
                                     <cat.Icon size={28} strokeWidth={1.8} />
                                 </div>
-                                <span className="text-center text-sm font-bold text-slate-700 transition-colors group-hover:text-slate-900">
-                                    {cat.name}
-                                </span>
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-center text-sm font-bold text-slate-700 transition-colors group-hover:text-slate-900">
+                                        {cat.name}
+                                    </span>
+                                    <span className="text-center text-[10px] font-bold text-slate-400">
+                                        {dbCategories.find(c => c.name === cat.name)?.productCount || 0}+ Products
+                                    </span>
+                                </div>
                             </button>
                         ))}
                     </div>

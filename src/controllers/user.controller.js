@@ -5,6 +5,7 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 const cookieOptions = {
     httpOnly: true,
@@ -23,12 +24,12 @@ export const sendSignupOtp = asyncHandler(async (req, res) => {
     const existingUser = await User.findOne({ phoneNumber });
     if (existingUser) throw new ApiError(409, 'Phone number already registered');
 
-    const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
     await OtpToken.updateMany({ identifier: phoneNumber, isUsed: false }, { isUsed: true });
     await OtpToken.create({
         identifier: phoneNumber,
         otpCode,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
 
     console.log(`\n📱 SMS SENT TO ${phoneNumber}: Your Sovely SIGNUP OTP is ${otpCode}\n`);
@@ -42,12 +43,12 @@ export const sendLoginOtp = asyncHandler(async (req, res) => {
     const existingUser = await User.findOne({ phoneNumber });
     if (!existingUser) throw new ApiError(404, 'Phone number not registered. Please sign up.');
 
-    const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
     await OtpToken.updateMany({ identifier: phoneNumber, isUsed: false }, { isUsed: true });
     await OtpToken.create({
         identifier: phoneNumber,
         otpCode,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
 
     console.log(`\n📱 SMS SENT TO ${phoneNumber}: Your Sovely LOGIN OTP is ${otpCode}\n`);

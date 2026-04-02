@@ -15,4 +15,8 @@ export const ROUTES = {
     INVOICES: '/invoices',
     QUICK_ORDER: '/quick-order',
     ADMIN: '/admin',
+    PRIVACY: '/privacy',
+    CAREERS: '/careers',
+    SERVICES: '/services',
+    CATEGORY: (name) => `/category/${name}`,
 };

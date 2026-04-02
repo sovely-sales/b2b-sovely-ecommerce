@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom';
+import { ROUTES } from '../utils/routes';
+
 function Footer() {
     return (
         <footer
@@ -5,11 +8,11 @@ function Footer() {
             id="footer"
         >
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                {}
+                {/* Main Links Grid */}
                 <div className="mb-16 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-6 lg:gap-8">
-                    {}
+                    {/* Brand Section */}
                     <div className="space-y-6 lg:col-span-2">
-                        <a href="#" className="group flex inline-flex items-center gap-3">
+                        <Link to={ROUTES.HOME} className="group flex inline-flex items-center gap-3">
                             <div className="rounded-lg bg-white p-1.5 transition-transform group-hover:scale-105">
                                 <img
                                     src="https://m.media-amazon.com/images/X/bxt1/M/Bbxt1BI1cNpD5ln._SL160_QL95_FMwebp_.png"
@@ -20,10 +23,10 @@ function Footer() {
                             <span className="text-2xl font-extrabold tracking-tight text-white">
                                 Sovely
                             </span>
-                        </a>
+                        </Link>
                         <p className="max-w-sm text-sm leading-relaxed font-medium">
-                            Amet minim mollit non deserunt ullamco est sit aliqua dolor do amet
-                            sint. Velit officia consequat duis enim velit mollit.
+                            The standard for B2B procurement and dropshipping. Empowerment for 
+                            modern e-commerce entrepreneurs worldwide.
                         </p>
                         <div className="flex items-center gap-4 pt-2">
                             <a
@@ -57,43 +60,43 @@ function Footer() {
                         </div>
                     </div>
 
-                    {}
+                    {/* Quick Link Groups */}
                     <div className="space-y-6">
                         <h4 className="text-xs font-extrabold tracking-wider text-white uppercase">
                             Shop
                         </h4>
                         <ul className="space-y-3 text-sm font-medium">
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to={ROUTES.CATEGORY('Electronics')}
+                                    className="inline-block transition-all hover:translate-x-1 hover:text-white"
+                                >
+                                    Electronics
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    to={ROUTES.CATEGORY('Fashion')}
+                                    className="inline-block transition-all hover:translate-x-1 hover:text-white"
+                                >
+                                    Fashion
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    to={ROUTES.CATEGORY('Home & Kitchen')}
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     Home & Kitchen
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="#"
-                                    className="inline-block transition-all hover:translate-x-1 hover:text-white"
-                                >
-                                    Home Improvement
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href="#"
-                                    className="inline-block transition-all hover:translate-x-1 hover:text-white"
-                                >
-                                    Health & Care
-                                </a>
-                            </li>
-                            <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to={ROUTES.CATEGORY('Industrial')}
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     Industrial
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -104,36 +107,36 @@ function Footer() {
                         </h4>
                         <ul className="space-y-3 text-sm font-medium">
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to={ROUTES.HOME}
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     About Sovely
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to={ROUTES.CAREERS}
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     Careers
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to="#"
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     News & Blog
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to="#"
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     Help Center
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -144,36 +147,36 @@ function Footer() {
                         </h4>
                         <ul className="space-y-3 text-sm font-medium">
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to={ROUTES.SERVICES}
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
-                                    Gift Card
-                                </a>
+                                    Our Services
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to="#"
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     Mobile App
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to="#"
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     Shipping
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to="#"
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     Order Pickup
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
@@ -184,45 +187,45 @@ function Footer() {
                         </h4>
                         <ul className="space-y-3 text-sm font-medium">
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to="#"
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     Sovely Help
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to="#"
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     Returns
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to={ROUTES.ORDERS}
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     Track Orders
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a
-                                    href="#"
+                                <Link
+                                    to="#"
                                     className="inline-block transition-all hover:translate-x-1 hover:text-white"
                                 >
                                     Contact Us
-                                </a>
+                                </Link>
                             </li>
                         </ul>
                     </div>
                 </div>
 
-                {}
+                {/* Seller Section */}
                 <div className="grid grid-cols-1 gap-4 border-t border-slate-900 pt-10 pb-10 md:grid-cols-3">
-                    <a
-                        href="#"
+                    <Link
+                        to="#"
                         className="hover:border-accent group flex items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-4 transition-all hover:bg-slate-900"
                     >
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-800 text-xl transition-transform group-hover:scale-110">
@@ -236,9 +239,9 @@ function Footer() {
                                 Open your store today
                             </span>
                         </div>
-                    </a>
-                    <a
-                        href="#"
+                    </Link>
+                    <Link
+                        to="#"
                         className="hover:border-accent group flex items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-4 transition-all hover:bg-slate-900"
                     >
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-800 text-xl transition-transform group-hover:scale-110">
@@ -250,9 +253,9 @@ function Footer() {
                                 Perfect for everyone
                             </span>
                         </div>
-                    </a>
-                    <a
-                        href="#"
+                    </Link>
+                    <Link
+                        to="#"
                         className="hover:border-accent group flex items-center gap-4 rounded-2xl border border-slate-800 bg-slate-900/50 p-4 transition-all hover:bg-slate-900"
                     >
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-800 text-xl transition-transform group-hover:scale-110">
@@ -264,10 +267,10 @@ function Footer() {
                                 Get support 24/7
                             </span>
                         </div>
-                    </a>
+                    </Link>
                 </div>
 
-                {}
+                {/* Copyright & Legal */}
                 <div className="flex flex-col items-center justify-between gap-6 border-t border-slate-900 pt-6 md:flex-row">
                     <p className="text-xs font-medium">© 2024 Sovely. All rights reserved.</p>
 
@@ -276,7 +279,7 @@ function Footer() {
                             We Accept
                         </span>
                         <div className="flex gap-2">
-                            {}
+                            {/* Visa */}
                             <svg
                                 viewBox="0 0 32 20"
                                 className="h-auto w-10 text-slate-600 transition-colors hover:text-white"
@@ -294,7 +297,7 @@ function Footer() {
                                     fill="currentColor"
                                 />
                             </svg>
-                            {}
+                            {/* Mastercard */}
                             <svg
                                 viewBox="0 0 32 20"
                                 className="h-auto w-10 text-slate-600 transition-colors hover:text-white"
@@ -331,12 +334,12 @@ function Footer() {
                     </div>
 
                     <div className="flex items-center gap-6 text-xs font-medium">
-                        <a href="#" className="transition-colors hover:text-white">
+                        <Link to="/terms" className="transition-colors hover:text-white">
                             Terms of Service
-                        </a>
-                        <a href="#" className="transition-colors hover:text-white">
+                        </Link>
+                        <Link to={ROUTES.PRIVACY} className="transition-colors hover:text-white">
                             Privacy Policy
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </div>

@@ -26,6 +26,9 @@ const Wallet = lazy(() => import('./components/Wallet'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const SearchResults = lazy(() => import('./components/SearchResults'));
 const Terms = lazy(() => import('./components/Terms'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
+const Careers = lazy(() => import('./components/Careers'));
+const Services = lazy(() => import('./components/Services'));
 const KycSubmit = lazy(() => import('./components/KycSubmit'));
 
 const NotFound = () => (
@@ -88,7 +91,9 @@ function App() {
                     <Route element={<PublicLayout />}>
                         <Route path={ROUTES.HOME} element={<HomeRouter />} />
                         <Route path="/terms" element={<Terms />} />
-                        <Route path="/privacy" element={<Terms />} />
+                        <Route path={ROUTES.PRIVACY} element={<PrivacyPolicy />} />
+                        <Route path={ROUTES.CAREERS} element={<Careers />} />
+                        <Route path={ROUTES.SERVICES} element={<Services />} />
                     </Route>
 
                     {}
@@ -101,6 +106,7 @@ function App() {
                         <Route element={<MainLayout />}>
                             {}
                             <Route path={ROUTES.CATALOG} element={<LandingPage />} />
+                            <Route path="/category/:categoryName" element={<LandingPage />} />
                             <Route path="/product/:productId" element={<ProductPage />} />
                             <Route path={ROUTES.SEARCH} element={<SearchResults />} />
 

@@ -7,6 +7,8 @@ import {
     refreshAccessToken,
     sendOtp,
     loginWithOtp,
+    forgotPassword,
+    resetPassword,
 } from '../controllers/auth.controller.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
@@ -19,6 +21,8 @@ router.post('/refresh-token', refreshAccessToken);
 router.post('/send-otp', sendOtp);
 router.post('/login-otp', loginWithOtp);
 router.post('/register', registerUser);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 router.post('/logout', verifyJWT, logoutUser);
 router.get('/me', verifyJWT, getCurrentUser);

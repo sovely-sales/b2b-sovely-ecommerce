@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import DropshipProducts from '../pages/DropshipProducts';
 import B2BFilterBar from './B2BFilterBar';
@@ -7,6 +7,7 @@ import { PackageSearch, Search, X } from 'lucide-react';
 
 function LandingPage() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const { categoryName } = useParams();
     const globalSearchQuery = searchParams.get('search') || '';
 
     const [b2bFilters, setB2bFilters] = useState({
@@ -88,7 +89,11 @@ function LandingPage() {
 
                 {}
                 <div className="mx-auto w-full max-w-[1600px] px-4 pt-6 sm:px-6 lg:px-8">
-                    <DropshipProducts filters={b2bFilters} globalSearchQuery={globalSearchQuery} />
+                    <DropshipProducts
+                        filters={b2bFilters}
+                        globalSearchQuery={globalSearchQuery}
+                        initialCategory={categoryName ? decodeURIComponent(categoryName) : 'All Categories'}
+                    />
                 </div>
             </main>
         </div>

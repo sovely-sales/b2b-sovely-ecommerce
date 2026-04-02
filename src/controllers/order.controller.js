@@ -110,6 +110,10 @@ export const createOrder = asyncHandler(async (req, res) => {
                 (acc, item) => acc + item.billableWeight,
                 0
             );
+
+            // Bug fix: Calculate shipping specifically for wholesale items
+            const whFreight = calculateSlabCharge(whBillableWeight);
+
             ordersToCreate.push({
                 orderId: whOrderId,
                 resellerId,
@@ -118,8 +122,8 @@ export const createOrder = asyncHandler(async (req, res) => {
                 subTotal: whSubTotal,
                 taxTotal: whTaxTotal,
                 shippingTotal: whShippingTotal,
-                deliveryCharge: cart.totalDeliveryCharge,
-                packingCharge: cart.totalPackingCharge,
+                deliveryCharge: whFreight.deliveryCharge,
+                packingCharge: whFreight.packingCharge,
                 totalPlatformCost: whTotalCost,
 
                 totalActualWeight: whActualWeight,
@@ -342,6 +346,18 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         };
     }
 
+    const statusComment = {
+        PENDING: 'Order placed and awaiting confirmation',
+        PROCESSING: 'Order is being processed and packed',
+        SHIPPED: awbNumber
+            ? `Order shipped via ${courierName} (AWB: ${awbNumber})`
+            : 'Order shipped',
+        NDR: `Delivery attempt failed: ${ndrReason || 'Customer Unavailable'}`,
+        DELIVERED: 'Order delivered to customer',
+        RTO: 'Order returned to origin (RTO)',
+        CANCELLED: 'Order has been cancelled',
+    };
+
     if (['CANCELLED', 'RTO'].includes(status) && !['CANCELLED', 'RTO'].includes(order.status)) {
         const session = await mongoose.startSession();
         session.startTransaction();
@@ -390,6 +406,12 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                 );
             }
 
+            // Push status before processing refund status to avoid "REFUND_PROCESSED" coming before the actual status change in history
+            order.statusHistory.push({
+                status,
+                comment: statusComment[status],
+            });
+
             order.statusHistory.push({
                 status: 'REFUND_PROCESSED',
                 comment: `₹${refundAmount} refunded to wallet.`,
@@ -432,7 +454,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                     { session }
                 );
 
-                order.statusHistory.push({ status: 'DELIVERED', comment: 'Order delivered' });
+                order.statusHistory.push({ status: 'DELIVERED', comment: statusComment['DELIVERED'] });
                 order.statusHistory.push({
                     status: 'PROFIT_CREDITED',
                     comment: `₹${order.payoutOnDelivery} (Principal + Profit) credited to wallet`,
@@ -455,28 +477,20 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         }
     }
 
-    const statusComment = {
-        PENDING: 'Order placed and awaiting confirmation',
-        PROCESSING: 'Order is being processed and packed',
-        SHIPPED: awbNumber
-            ? `Order shipped via ${courierName} (AWB: ${awbNumber})`
-            : 'Order shipped',
-        NDR: `Delivery attempt failed: ${ndrReason || 'Customer Unavailable'}`,
-        DELIVERED: 'Order delivered to customer',
-        RTO: 'Order returned to origin (RTO)',
-        CANCELLED: 'Order has been cancelled',
-    };
-
-    order.statusHistory.push({
-        status,
-        comment: statusComment[status] || `Status updated to ${status}`,
-    });
+    // Only push if it wasn't already handled in the special blocks above
+    if (!['CANCELLED', 'RTO', 'DELIVERED'].includes(status) || (status === 'DELIVERED' && order.paymentMethod !== 'COD')) {
+        order.statusHistory.push({
+            status,
+            comment: statusComment[status] || `Status updated to ${status}`,
+        });
+    }
 
     order.status = status;
     await order.save();
 
     return res.status(200).json(new ApiResponse(200, order, `Order status updated to ${status}`));
 });
+
 
 export const resellerActionOnNDR = asyncHandler(async (req, res) => {
     const { action, updatedPhone } = req.body;
@@ -779,11 +793,14 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
         );
 
         for (const inputOrder of orders) {
-            await Product.findByIdAndUpdate(
-                inputOrder.productId,
+            const updatedProduct = await Product.findOneAndUpdate(
+                { _id: inputOrder.productId, 'inventory.stock': { $gte: inputOrder.qty } },
                 { $inc: { 'inventory.stock': -inputOrder.qty } },
-                { session }
+                { session, returnDocument: 'after' }
             );
+            if (!updatedProduct) {
+                throw new ApiError(400, `Insufficient stock for product ID: ${inputOrder.productId}`);
+            }
         }
 
         await session.commitTransaction();

@@ -39,14 +39,14 @@ export const sendOtp = asyncHandler(async (req, res) => {
         }
     }
 
-    const otpCode = crypto.randomInt(1000, 10000).toString();
+    const otpCode = crypto.randomInt(100000, 1000000).toString(); // Standardize to 6-digit OTP
 
     await OtpToken.deleteMany({ identifier: phoneNumber, isUsed: false });
 
     await OtpToken.create({
         identifier: phoneNumber,
         otpCode,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes expiry
     });
 
     console.log(`[SMS MOCK] Sent OTP ${otpCode} to ${phoneNumber}`);
@@ -227,4 +227,57 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
     } catch (error) {
         throw new ApiError(401, error?.message || 'Invalid refresh token');
     }
+});
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    if (!email) throw new ApiError(400, 'Email is required');
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) throw new ApiError(404, 'No account found with this email');
+
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
+
+    await OtpToken.deleteMany({ identifier: email.toLowerCase(), isUsed: false });
+    await OtpToken.create({
+        identifier: email.toLowerCase(),
+        otpCode,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+
+    console.log(`\n📧 EMAIL SENT TO ${email}: Your Sovely Password Reset OTP is ${otpCode}\n`);
+
+    return res.status(200).json(new ApiResponse(200, null, 'OTP sent to your email'));
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+    const { email, otpCode, newPassword } = req.body;
+    if (!email || !otpCode || !newPassword) {
+        throw new ApiError(400, 'Email, OTP, and new password are required');
+    }
+
+    const validOtp = await OtpToken.findOneAndUpdate(
+        {
+            identifier: email.toLowerCase(),
+            otpCode,
+            isUsed: false,
+            expiresAt: { $gt: new Date() },
+        },
+        { isUsed: true },
+        { new: true }
+    );
+
+    if (!validOtp) throw new ApiError(400, 'Invalid or expired OTP');
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) throw new ApiError(404, 'User not found');
+
+    // Assuming User model has a mechanism for password hashing (either via pre-save or explicit hash)
+    // The current passwordHash is updated.
+    const salt = await import('bcrypt').then((b) => b.default.genSalt(10));
+    user.passwordHash = await import('bcrypt').then((b) => b.default.hash(newPassword, salt));
+    
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json(new ApiResponse(200, null, 'Password reset successfully'));
 });
