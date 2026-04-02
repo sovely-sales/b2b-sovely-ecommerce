@@ -212,11 +212,18 @@ export const updateMyProfile = asyncHandler(async (req, res) => {
     } = req.body;
 
     const updateData = {};
-    if (name) updateData.name = name;
-    if (email) updateData.email = email;
-    if (companyName) updateData.companyName = companyName;
-    if (gstin) updateData.gstin = gstin;
-    if (billingAddress) updateData.billingAddress = billingAddress;
+    if (name !== undefined) updateData.name = name.trim();
+    if (email !== undefined) updateData.email = email.trim().toLowerCase();
+    if (companyName !== undefined) updateData.companyName = companyName.trim();
+    if (gstin !== undefined) updateData.gstin = gstin.trim().toUpperCase();
+    if (billingAddress) {
+        updateData.billingAddress = {
+            street: billingAddress.street?.trim() || '',
+            city: billingAddress.city?.trim() || '',
+            state: billingAddress.state?.trim() || '',
+            zip: billingAddress.zip?.trim() || '',
+        };
+    }
 
     if (emailNotifications !== undefined) updateData.emailNotifications = emailNotifications;
     if (orderSms !== undefined) updateData.orderSms = orderSms;
@@ -254,6 +261,9 @@ export const updateAvatar = asyncHandler(async (req, res) => {
 export const updatePassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body;
     if (!oldPassword || !newPassword) throw new ApiError(400, 'Both passwords are required');
+    if (oldPassword === newPassword) {
+        throw new ApiError(400, 'New password must be different from current password');
+    }
 
     const user = await User.findById(req.user._id);
 

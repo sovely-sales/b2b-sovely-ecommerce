@@ -23,6 +23,13 @@ import { ROUTES } from '../utils/routes';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
 
+const NAME_REGEX = /^[A-Za-z][A-Za-z .'-]{1,59}$/;
+const CITY_STATE_REGEX = /^[A-Za-z][A-Za-z .'-]{1,59}$/;
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z][A-Z0-9][0-9A-Z]$/;
+const PIN_REGEX = /^[1-9][0-9]{5}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,64}$/;
+
 const AccountSettings = () => {
     const { user, logout, refreshUser } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -51,6 +58,8 @@ const AccountSettings = () => {
     });
 
     const [securityData, setSecurityData] = useState({ oldPassword: '', newPassword: '' });
+    const [profileErrors, setProfileErrors] = useState({});
+    const [securityErrors, setSecurityErrors] = useState({});
 
     useEffect(() => {
         if (user) {
@@ -73,6 +82,90 @@ const AccountSettings = () => {
             if (user.twoFactorEnabled) setIs2FAEnabled(true);
         }
     }, [user]);
+
+    const sanitizeName = (value) => value.replace(/[^A-Za-z .'-]/g, '').slice(0, 60);
+    const sanitizeCityState = (value) => value.replace(/[^A-Za-z .'-]/g, '').slice(0, 60);
+    const sanitizeCompanyName = (value) => value.replace(/\s+/g, ' ').slice(0, 100);
+    const sanitizeGstin = (value) =>
+        value
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '')
+            .slice(0, 15);
+    const sanitizePin = (value) => value.replace(/\D/g, '').slice(0, 6);
+
+    const validateProfileData = () => {
+        const nextErrors = {};
+        const trimmedName = profileData.name.trim();
+        const trimmedEmail = profileData.email.trim().toLowerCase();
+        const trimmedCompany = profileData.companyName.trim();
+        const trimmedGstin = profileData.gstin.trim().toUpperCase();
+        const trimmedStreet = profileData.street.trim();
+        const trimmedCity = profileData.city.trim();
+        const trimmedState = profileData.state.trim();
+        const trimmedZip = profileData.zip.trim();
+
+        if (!NAME_REGEX.test(trimmedName)) {
+            nextErrors.name = 'Use 2-60 letters only (spaces, dot, apostrophe allowed).';
+        }
+
+        if (!EMAIL_REGEX.test(trimmedEmail)) {
+            nextErrors.email = 'Enter a valid email address.';
+        }
+
+        if (!isBusinessLocked) {
+            if (trimmedCompany && trimmedCompany.length < 2) {
+                nextErrors.companyName = 'Company name must be at least 2 characters.';
+            }
+            if (trimmedGstin && !GSTIN_REGEX.test(trimmedGstin)) {
+                nextErrors.gstin = 'Enter a valid 15-character GSTIN.';
+            }
+            if (trimmedStreet.length > 200) {
+                nextErrors.street = 'Street address must be at most 200 characters.';
+            }
+            if (trimmedCity && !CITY_STATE_REGEX.test(trimmedCity)) {
+                nextErrors.city = 'City must be 2-60 letters only.';
+            }
+            if (trimmedState && !CITY_STATE_REGEX.test(trimmedState)) {
+                nextErrors.state = 'State must be 2-60 letters only.';
+            }
+            if (trimmedZip && !PIN_REGEX.test(trimmedZip)) {
+                nextErrors.zip = 'PIN code must be a valid 6-digit Indian PIN.';
+            }
+        }
+
+        setProfileErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
+    };
+
+    const validateSecurityData = () => {
+        const nextErrors = {};
+        const oldPassword = securityData.oldPassword || '';
+        const newPassword = securityData.newPassword || '';
+
+        if (!oldPassword.trim()) {
+            nextErrors.oldPassword = 'Current password is required.';
+        }
+
+        if (!STRONG_PASSWORD_REGEX.test(newPassword)) {
+            nextErrors.newPassword =
+                'Use 8+ chars with uppercase, lowercase, number, and special character.';
+        } else if (oldPassword && oldPassword === newPassword) {
+            nextErrors.newPassword = 'New password must be different from current password.';
+        }
+
+        setSecurityErrors(nextErrors);
+        return Object.keys(nextErrors).length === 0;
+    };
+
+    const updateProfileField = (key, value) => {
+        setProfileData((prev) => ({ ...prev, [key]: value }));
+        setProfileErrors((prev) => {
+            if (!prev[key]) return prev;
+            const next = { ...prev };
+            delete next[key];
+            return next;
+        });
+    };
 
     const handleAvatarChange = async (e) => {
         const file = e.target.files[0];
@@ -105,26 +198,35 @@ const AccountSettings = () => {
 
     const handleProfileSubmit = async (e) => {
         e.preventDefault();
+        if (!validateProfileData()) {
+            toast.error('Please fix the highlighted profile fields.');
+            return;
+        }
+
+        const payload = {
+            name: profileData.name.trim(),
+            email: profileData.email.trim().toLowerCase(),
+            emailNotifications: profileData.emailNotifications,
+            orderSms: profileData.orderSms,
+            promotionalEmails: profileData.promotionalEmails,
+        };
+
+        if (!isBusinessLocked) {
+            payload.companyName = profileData.companyName.trim();
+            payload.gstin = profileData.gstin.trim().toUpperCase();
+            payload.billingAddress = {
+                street: profileData.street.trim(),
+                city: profileData.city.trim(),
+                state: profileData.state.trim(),
+                zip: profileData.zip.trim(),
+            };
+        }
+
         setIsLoading(true);
         try {
-            await api.put('/users/profile', {
-                name: profileData.name,
-                email: profileData.email,
-                ...(!isBusinessLocked && {
-                    companyName: profileData.companyName,
-                    gstin: profileData.gstin,
-                    billingAddress: {
-                        street: profileData.street,
-                        city: profileData.city,
-                        state: profileData.state,
-                        zip: profileData.zip,
-                    },
-                }),
-                emailNotifications: profileData.emailNotifications,
-                orderSms: profileData.orderSms,
-                promotionalEmails: profileData.promotionalEmails,
-            });
+            await api.put('/users/profile', payload);
             toast.success('Profile updated successfully!');
+            setProfileErrors({});
             await refreshUser();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to update profile');
@@ -135,11 +237,19 @@ const AccountSettings = () => {
 
     const handleSecuritySubmit = async (e) => {
         e.preventDefault();
+        if (!validateSecurityData()) {
+            toast.error('Please fix password requirements before submitting.');
+            return;
+        }
         setIsLoading(true);
         try {
-            await api.put('/users/security/password', securityData);
+            await api.put('/users/security/password', {
+                oldPassword: securityData.oldPassword,
+                newPassword: securityData.newPassword,
+            });
             toast.success('Password updated successfully!');
             setSecurityData({ oldPassword: '', newPassword: '' });
+            setSecurityErrors({});
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to update password');
         } finally {
@@ -295,14 +405,17 @@ const AccountSettings = () => {
                                             type="text"
                                             value={profileData.name}
                                             onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    name: e.target.value,
-                                                })
+                                                updateProfileField('name', sanitizeName(e.target.value))
                                             }
                                             className={inputClasses}
                                             required
+                                            maxLength={60}
                                         />
+                                        {profileErrors.name && (
+                                            <p className="mt-1 text-xs font-semibold text-red-600">
+                                                {profileErrors.name}
+                                            </p>
+                                        )}
                                     </div>
                                     <div>
                                         <label className={labelClasses}>Email Address</label>
@@ -310,14 +423,16 @@ const AccountSettings = () => {
                                             type="email"
                                             value={profileData.email}
                                             onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    email: e.target.value,
-                                                })
+                                                updateProfileField('email', e.target.value.trimStart())
                                             }
                                             className={inputClasses}
                                             required
                                         />
+                                        {profileErrors.email && (
+                                            <p className="mt-1 text-xs font-semibold text-red-600">
+                                                {profileErrors.email}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="md:col-span-2">
                                         <label className={labelClasses}>
@@ -373,13 +488,19 @@ const AccountSettings = () => {
                                             disabled={isBusinessLocked}
                                             value={profileData.companyName}
                                             onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    companyName: e.target.value,
-                                                })
+                                                updateProfileField(
+                                                    'companyName',
+                                                    sanitizeCompanyName(e.target.value)
+                                                )
                                             }
                                             className={inputClasses}
+                                            maxLength={100}
                                         />
+                                        {profileErrors.companyName && (
+                                            <p className="mt-1 text-xs font-semibold text-red-600">
+                                                {profileErrors.companyName}
+                                            </p>
+                                        )}
                                     </div>
                                     <div>
                                         <label className={labelClasses}>GSTIN Number</label>
@@ -388,14 +509,16 @@ const AccountSettings = () => {
                                             disabled={isBusinessLocked}
                                             value={profileData.gstin}
                                             onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    gstin: e.target.value,
-                                                })
+                                                updateProfileField('gstin', sanitizeGstin(e.target.value))
                                             }
                                             className={`${inputClasses} uppercase`}
                                             maxLength={15}
                                         />
+                                        {profileErrors.gstin && (
+                                            <p className="mt-1 text-xs font-semibold text-red-600">
+                                                {profileErrors.gstin}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="md:col-span-2">
                                         <label className={labelClasses}>Street Address</label>
@@ -403,15 +526,16 @@ const AccountSettings = () => {
                                             type="text"
                                             disabled={isBusinessLocked}
                                             value={profileData.street}
-                                            onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    street: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => updateProfileField('street', e.target.value)}
                                             className={inputClasses}
                                             placeholder="Building, Floor, Street"
+                                            maxLength={200}
                                         />
+                                        {profileErrors.street && (
+                                            <p className="mt-1 text-xs font-semibold text-red-600">
+                                                {profileErrors.street}
+                                            </p>
+                                        )}
                                     </div>
                                     <div>
                                         <label className={labelClasses}>City</label>
@@ -420,13 +544,19 @@ const AccountSettings = () => {
                                             disabled={isBusinessLocked}
                                             value={profileData.city}
                                             onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    city: e.target.value,
-                                                })
+                                                updateProfileField(
+                                                    'city',
+                                                    sanitizeCityState(e.target.value)
+                                                )
                                             }
                                             className={inputClasses}
+                                            maxLength={60}
                                         />
+                                        {profileErrors.city && (
+                                            <p className="mt-1 text-xs font-semibold text-red-600">
+                                                {profileErrors.city}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
@@ -436,13 +566,19 @@ const AccountSettings = () => {
                                                 disabled={isBusinessLocked}
                                                 value={profileData.state}
                                                 onChange={(e) =>
-                                                    setProfileData({
-                                                        ...profileData,
-                                                        state: e.target.value,
-                                                    })
+                                                    updateProfileField(
+                                                        'state',
+                                                        sanitizeCityState(e.target.value)
+                                                    )
                                                 }
                                                 className={inputClasses}
+                                                maxLength={60}
                                             />
+                                            {profileErrors.state && (
+                                                <p className="mt-1 text-xs font-semibold text-red-600">
+                                                    {profileErrors.state}
+                                                </p>
+                                            )}
                                         </div>
                                         <div>
                                             <label className={labelClasses}>PIN Code</label>
@@ -451,13 +587,17 @@ const AccountSettings = () => {
                                                 disabled={isBusinessLocked}
                                                 value={profileData.zip}
                                                 onChange={(e) =>
-                                                    setProfileData({
-                                                        ...profileData,
-                                                        zip: e.target.value,
-                                                    })
+                                                    updateProfileField('zip', sanitizePin(e.target.value))
                                                 }
                                                 className={inputClasses}
+                                                inputMode="numeric"
+                                                maxLength={6}
                                             />
+                                            {profileErrors.zip && (
+                                                <p className="mt-1 text-xs font-semibold text-red-600">
+                                                    {profileErrors.zip}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -494,14 +634,27 @@ const AccountSettings = () => {
                                         type="password"
                                         value={securityData.oldPassword}
                                         onChange={(e) =>
-                                            setSecurityData({
-                                                ...securityData,
-                                                oldPassword: e.target.value,
-                                            })
+                                            {
+                                                setSecurityData((prev) => ({
+                                                    ...prev,
+                                                    oldPassword: e.target.value,
+                                                }));
+                                                setSecurityErrors((prev) => {
+                                                    if (!prev.oldPassword) return prev;
+                                                    const next = { ...prev };
+                                                    delete next.oldPassword;
+                                                    return next;
+                                                });
+                                            }
                                         }
                                         className={inputClasses}
                                         required
                                     />
+                                    {securityErrors.oldPassword && (
+                                        <p className="mt-1 text-xs font-semibold text-red-600">
+                                            {securityErrors.oldPassword}
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className={labelClasses}>New Password</label>
@@ -509,15 +662,32 @@ const AccountSettings = () => {
                                         type="password"
                                         value={securityData.newPassword}
                                         onChange={(e) =>
-                                            setSecurityData({
-                                                ...securityData,
-                                                newPassword: e.target.value,
-                                            })
+                                            {
+                                                setSecurityData((prev) => ({
+                                                    ...prev,
+                                                    newPassword: e.target.value,
+                                                }));
+                                                setSecurityErrors((prev) => {
+                                                    if (!prev.newPassword) return prev;
+                                                    const next = { ...prev };
+                                                    delete next.newPassword;
+                                                    return next;
+                                                });
+                                            }
                                         }
                                         className={inputClasses}
                                         required
                                         minLength={8}
                                     />
+                                    {securityErrors.newPassword && (
+                                        <p className="mt-1 text-xs font-semibold text-red-600">
+                                            {securityErrors.newPassword}
+                                        </p>
+                                    )}
+                                    <p className="mt-1 text-xs font-medium text-slate-500">
+                                        Must include uppercase, lowercase, number, and special
+                                        character.
+                                    </p>
                                 </div>
                                 <div className="pt-2">
                                     <button
