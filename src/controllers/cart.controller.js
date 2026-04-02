@@ -4,6 +4,37 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
+const MAX_DROPSHIP_SELLING_PRICE = 999999;
+
+const validatePositiveInteger = (value, fieldName) => {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        throw new ApiError(400, `${fieldName} must be a positive integer`);
+    }
+    return parsed;
+};
+
+const parseDropshipSellingPrice = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        throw new ApiError(400, 'Dropship selling price must be a valid number');
+    }
+
+    const normalized = Math.floor(parsed);
+    if (normalized < 0) {
+        throw new ApiError(400, 'Dropship selling price cannot be negative');
+    }
+
+    if (normalized > MAX_DROPSHIP_SELLING_PRICE) {
+        throw new ApiError(
+            400,
+            `Dropship selling price cannot exceed ₹${MAX_DROPSHIP_SELLING_PRICE.toLocaleString('en-IN')}`
+        );
+    }
+
+    return normalized;
+};
+
 const calculateItemWeights = (product, qty) => {
     const actualWeightKg = (product.weightGrams || 0) / 1000;
     const l = product.dimensions?.length || 0;
@@ -224,15 +255,16 @@ export const addToCart = asyncHandler(async (req, res) => {
     if (!productId || !qty || !orderType) {
         throw new ApiError(400, 'Product ID, Quantity, and Order Type are required');
     }
+    const parsedQty = validatePositiveInteger(qty, 'Quantity');
 
     const product = await Product.findById(productId);
     if (!product) throw new ApiError(404, 'Product not found');
 
-    if (product.inventory.stock < qty) {
+    if (product.inventory.stock < parsedQty) {
         throw new ApiError(400, `Only ${product.inventory.stock} units available in stock`);
     }
 
-    if (orderType === 'WHOLESALE' && qty < product.moq) {
+    if (orderType === 'WHOLESALE' && parsedQty < product.moq) {
         throw new ApiError(
             400,
             `Minimum Order Quantity (MOQ) for this wholesale product is ${product.moq} units.`
@@ -247,19 +279,28 @@ export const addToCart = asyncHandler(async (req, res) => {
     const existingItemIndex = cart.items.findIndex(
         (item) => item.productId.toString() === String(productId) && item.orderType === orderType
     );
+    const hasDropshipPriceInput =
+        resellerSellingPrice !== undefined &&
+        resellerSellingPrice !== null &&
+        resellerSellingPrice !== '';
 
     if (existingItemIndex > -1) {
-        cart.items[existingItemIndex].qty += qty;
-        if (orderType === 'DROPSHIP' && resellerSellingPrice) {
-            cart.items[existingItemIndex].resellerSellingPrice = resellerSellingPrice;
+        cart.items[existingItemIndex].qty += parsedQty;
+        if (orderType === 'DROPSHIP' && hasDropshipPriceInput) {
+            cart.items[existingItemIndex].resellerSellingPrice =
+                parseDropshipSellingPrice(resellerSellingPrice);
         }
     } else {
         cart.items.push({
             productId,
-            qty,
+            qty: parsedQty,
             orderType,
             resellerSellingPrice:
-                orderType === 'DROPSHIP' ? resellerSellingPrice || product.suggestedRetailPrice : 0,
+                orderType === 'DROPSHIP'
+                    ? hasDropshipPriceInput
+                        ? parseDropshipSellingPrice(resellerSellingPrice)
+                        : parseDropshipSellingPrice(product.suggestedRetailPrice || 0)
+                    : 0,
         });
     }
 
@@ -285,17 +326,26 @@ export const updateCartItem = asyncHandler(async (req, res) => {
     if (itemIndex === -1) throw new ApiError(404, 'Item not found in cart');
 
     const product = await Product.findById(productId);
-    if (qty > product.inventory.stock) {
-        throw new ApiError(400, `Cannot exceed available stock (${product.inventory.stock} units)`);
-    }
+    if (qty !== undefined) {
+        const parsedQty = validatePositiveInteger(qty, 'Quantity');
+        if (parsedQty > product.inventory.stock) {
+            throw new ApiError(
+                400,
+                `Cannot exceed available stock (${product.inventory.stock} units)`
+            );
+        }
 
-    if (cart.items[itemIndex].orderType === 'WHOLESALE' && qty < product.moq) {
-        throw new ApiError(400, `Quantity cannot be less than the MOQ of ${product.moq} units.`);
-    }
+        if (cart.items[itemIndex].orderType === 'WHOLESALE' && parsedQty < product.moq) {
+            throw new ApiError(
+                400,
+                `Quantity cannot be less than the MOQ of ${product.moq} units.`
+            );
+        }
 
-    if (qty > 0) cart.items[itemIndex].qty = qty;
-    if (resellerSellingPrice && cart.items[itemIndex].orderType === 'DROPSHIP') {
-        cart.items[itemIndex].resellerSellingPrice = resellerSellingPrice;
+        cart.items[itemIndex].qty = parsedQty;
+    }
+    if (resellerSellingPrice !== undefined && cart.items[itemIndex].orderType === 'DROPSHIP') {
+        cart.items[itemIndex].resellerSellingPrice = parseDropshipSellingPrice(resellerSellingPrice);
     }
 
     cart = await recalculateCart(cart);

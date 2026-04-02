@@ -24,6 +24,8 @@ import api from '../utils/api';
 import { useCartStore } from '../store/cartStore';
 import LoadingScreen from './LoadingScreen';
 
+const MAX_DROPSHIP_SELLING_PRICE = 999999;
+
 const fadeUp = {
     hidden: { opacity: 0, y: 15 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
@@ -35,6 +37,22 @@ const staggerContainer = {
         opacity: 1,
         transition: { staggerChildren: 0.1 },
     },
+};
+
+const sanitizeSellingPriceInput = (rawValue) => {
+    const normalized = String(rawValue ?? '').trim();
+    if (normalized.startsWith('-')) return '';
+
+    const digitsOnly = normalized.replace(/\D/g, '');
+    if (digitsOnly === '') return '';
+    return String(Math.min(Number(digitsOnly), MAX_DROPSHIP_SELLING_PRICE));
+};
+
+const parseSellingPrice = (value) => {
+    if (value === '' || value === undefined || value === null) return 0;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) return 0;
+    return Math.min(Math.floor(parsed), MAX_DROPSHIP_SELLING_PRICE);
 };
 
 const ProductPage = () => {
@@ -49,7 +67,7 @@ const ProductPage = () => {
 
     const [orderType, setOrderType] = useState('WHOLESALE');
     const [quantity, setQuantity] = useState(1);
-    const [customSellingPrice, setCustomSellingPrice] = useState(0);
+    const [customSellingPriceInput, setCustomSellingPriceInput] = useState('');
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const [activeTab, setActiveTab] = useState('description');
 
@@ -60,7 +78,9 @@ const ProductPage = () => {
                 const data = res.data.data;
                 setProduct(data);
                 setQuantity(data.moq || 10);
-                setCustomSellingPrice(data.suggestedRetailPrice || 0);
+                setCustomSellingPriceInput(
+                    sanitizeSellingPriceInput(data.suggestedRetailPrice || 0)
+                );
             } catch (err) {
                 setError(err.response?.data?.message || 'Failed to load product');
             } finally {
@@ -78,6 +98,7 @@ const ProductPage = () => {
         );
 
     let currentUnitCost = product.dropshipBasePrice;
+    const customSellingPrice = parseSellingPrice(customSellingPriceInput);
 
     if (orderType === 'WHOLESALE' && product.tieredPricing?.length > 0) {
         const applicableTier = [...product.tieredPricing]
@@ -290,6 +311,9 @@ const ProductPage = () => {
                             onClick={() => {
                                 setOrderType('DROPSHIP');
                                 setQuantity(1);
+                                setCustomSellingPriceInput(
+                                    sanitizeSellingPriceInput(product.suggestedRetailPrice || 0)
+                                );
                                 setAddToCartSuccess(false);
                             }}
                             className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-3 text-sm font-bold transition-all ${orderType === 'DROPSHIP' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
@@ -494,14 +518,32 @@ const ProductPage = () => {
                                             ₹
                                         </span>
                                         <input
-                                            type="number"
-                                            value={customSellingPrice}
-                                            onChange={(e) =>
-                                                setCustomSellingPrice(Number(e.target.value))
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={customSellingPriceInput}
+                                            onChange={(e) => {
+                                                setAddToCartSuccess(false);
+                                                setCustomSellingPriceInput(
+                                                    sanitizeSellingPriceInput(e.target.value)
+                                                );
+                                            }}
+                                            onBlur={() =>
+                                                setCustomSellingPriceInput((prev) =>
+                                                    prev === '' ? '0' : sanitizeSellingPriceInput(prev)
+                                                )
                                             }
+                                            onKeyDown={(e) => {
+                                                if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                             className="w-full rounded-xl border border-slate-300 bg-white py-3 pr-4 pl-10 text-xl font-bold shadow-sm transition-all outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                                         />
                                     </div>
+                                    <p className="mt-2 text-[11px] font-semibold text-slate-500">
+                                        Max allowed: ₹
+                                        {MAX_DROPSHIP_SELLING_PRICE.toLocaleString('en-IN')}
+                                    </p>
                                 </div>
                                 <div
                                     className={`flex w-full flex-col justify-center rounded-xl p-4 shadow-sm transition-colors sm:w-1/2 ${estimatedProfit > 0 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}
@@ -509,7 +551,7 @@ const ProductPage = () => {
                                     <span className="text-xs font-bold tracking-wider uppercase opacity-90">
                                         Estimated Net Profit
                                     </span>
-                                    <span className="text-3xl font-black">
+                                    <span className="break-all text-3xl leading-none font-black">
                                         {estimatedProfit > 0 ? '+' : ''}₹
                                         {estimatedProfit.toLocaleString('en-IN', {
                                             maximumFractionDigits: 0,
