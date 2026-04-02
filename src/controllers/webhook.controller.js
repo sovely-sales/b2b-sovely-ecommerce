@@ -5,6 +5,7 @@ import { User } from '../models/User.js';
 import { WalletTransaction } from '../models/WalletTransaction.js';
 import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
+import { Product } from '../models/Product.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -209,7 +210,7 @@ export const razorpayWebhook = async (req, res) => {
 
         try {
             const existingPayment = await Payment.findOne({
-                referenceId: razorpayPaymentId,
+                gatewayPaymentId: razorpayPaymentId,
             }).session(session);
             if (existingPayment) {
                 await session.abortTransaction();
@@ -231,11 +232,13 @@ export const razorpayWebhook = async (req, res) => {
             await Payment.create(
                 [
                     {
-                        userId: invoice.resellerId,
-                        invoiceId: invoice._id,
-                        paymentMethod: 'RAZORPAY',
-                        status: 'SUCCESS',
-                        referenceId: razorpayPaymentId,
+                        resellerId: invoice.resellerId,
+                        gatewayOrderId: razorpayOrderId,
+                        gatewayPaymentId: razorpayPaymentId,
+                        amount: invoice.grandTotal,
+                        paymentMethod: 'UNKNOWN',
+                        purpose: invoice.invoiceType === 'WALLET_TOPUP' ? 'WALLET_RECHARGE' : 'DIRECT_ORDER_PAYMENT',
+                        status: 'CAPTURED',
                     },
                 ],
                 { session }
