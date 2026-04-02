@@ -60,6 +60,11 @@ const AccountSettings = () => {
     const [securityData, setSecurityData] = useState({ oldPassword: '', newPassword: '' });
     const [profileErrors, setProfileErrors] = useState({});
     const [securityErrors, setSecurityErrors] = useState({});
+    const [sessions, setSessions] = useState([]);
+    const [sessionsLoading, setSessionsLoading] = useState(false);
+    const [revokeSessionId, setRevokeSessionId] = useState('');
+    const [revokingOthers, setRevokingOthers] = useState(false);
+    const [sessionDetailsOpen, setSessionDetailsOpen] = useState({});
 
     useEffect(() => {
         if (user) {
@@ -166,6 +171,103 @@ const AccountSettings = () => {
             return next;
         });
     };
+
+    const formatLastActive = (lastSeenAt) => {
+        if (!lastSeenAt) return 'Last active recently';
+        const diffMs = Date.now() - new Date(lastSeenAt).getTime();
+        if (diffMs <= 2 * 60 * 1000) return 'Active Now';
+        const mins = Math.floor(diffMs / (60 * 1000));
+        if (mins < 60) return `Last active ${mins} minute${mins === 1 ? '' : 's'} ago`;
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) return `Last active ${hours} hour${hours === 1 ? '' : 's'} ago`;
+        const days = Math.floor(hours / 24);
+        return `Last active ${days} day${days === 1 ? '' : 's'} ago`;
+    };
+
+    const formatSignedIn = (createdAt) => {
+        if (!createdAt) return 'Signed in recently';
+        const diffMs = Date.now() - new Date(createdAt).getTime();
+        const mins = Math.floor(diffMs / (60 * 1000));
+        if (mins < 60) return `Signed in ${mins} minute${mins === 1 ? '' : 's'} ago`;
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) return `Signed in ${hours} hour${hours === 1 ? '' : 's'} ago`;
+        const days = Math.floor(hours / 24);
+        return `Signed in ${days} day${days === 1 ? '' : 's'} ago`;
+    };
+
+    const getIpLabel = (ip) => {
+        const normalized = String(ip || '').trim();
+        if (!normalized) return 'Unknown network';
+        if (normalized === '::1' || normalized === '127.0.0.1') return 'Localhost';
+        if (normalized.startsWith('::ffff:127.0.0.1')) return 'Localhost';
+        return 'Network session';
+    };
+
+    const loadSessions = async () => {
+        setSessionsLoading(true);
+        try {
+            const response = await api.get('/auth/sessions');
+            setSessions(response.data?.data?.sessions || []);
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to load active sessions');
+        } finally {
+            setSessionsLoading(false);
+        }
+    };
+
+    const handleRevokeSession = async (sessionId, isCurrent) => {
+        if (!sessionId) return;
+        const confirmationText = isCurrent
+            ? 'This will sign out this current device. Continue?'
+            : 'Sign out this device?';
+        if (!window.confirm(confirmationText)) return;
+
+        setRevokeSessionId(sessionId);
+        try {
+            const response = await api.delete(`/auth/sessions/${sessionId}`);
+            const signedOut = Boolean(response.data?.data?.signedOut);
+            toast.success(
+                signedOut ? 'Current session revoked. Signing out...' : 'Session revoked successfully'
+            );
+            if (signedOut || isCurrent) {
+                await logout();
+                return;
+            }
+            await loadSessions();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to revoke session');
+        } finally {
+            setRevokeSessionId('');
+        }
+    };
+
+    const handleRevokeOtherSessions = async () => {
+        if (!window.confirm('Sign out all other devices and keep only this current device active?')) {
+            return;
+        }
+
+        setRevokingOthers(true);
+        try {
+            const response = await api.delete('/auth/sessions/others');
+            const revokedCount = response.data?.data?.revokedCount ?? 0;
+            toast.success(
+                revokedCount > 0
+                    ? `${revokedCount} session${revokedCount === 1 ? '' : 's'} signed out`
+                    : 'No other active sessions found'
+            );
+            await loadSessions();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to sign out other sessions');
+        } finally {
+            setRevokingOthers(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'security' && user?._id) {
+            loadSessions();
+        }
+    }, [activeTab, user?._id]);
 
     const handleAvatarChange = async (e) => {
         const file = e.target.files[0];
@@ -728,41 +830,95 @@ const AccountSettings = () => {
                                 {is2FAEnabled ? 'Manage 2FA Settings' : 'Set Up 2FA'}
                             </button>
                         </div>
-
                         <div className="rounded-2xl border border-slate-100 p-6">
-                            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
-                                <Monitor className="text-emerald-500" size={20} /> Active Sessions
-                            </h3>
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-900">
-                                            Windows • Chrome
-                                        </p>
-                                        <p className="text-xs font-medium text-slate-500">
-                                            Bengaluru, India • Active Now
-                                        </p>
-                                    </div>
-                                    <span className="text-xs font-bold text-emerald-600">
-                                        Current Device
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-white p-4">
-                                    <div>
-                                        <p className="text-sm font-bold text-slate-900">
-                                            iOS • Safari
-                                        </p>
-                                        <p className="text-xs font-medium text-slate-500">
-                                            Mumbai, India • Last active 2 hours ago
-                                        </p>
-                                    </div>
-                                    <button className="text-xs font-bold text-red-600 hover:underline">
-                                        Revoke
-                                    </button>
-                                </div>
+                            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                                <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                                    <Monitor className="text-emerald-500" size={20} /> Active Sessions
+                                </h3>
+                                <button
+                                    onClick={handleRevokeOtherSessions}
+                                    disabled={revokingOthers || sessionsLoading || sessions.length <= 1}
+                                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    {revokingOthers ? 'Signing Out...' : 'Sign Out Other Devices'}
+                                </button>
                             </div>
-                        </div>
+                            {sessionsLoading ? (
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm font-medium text-slate-600">
+                                    <Loader2 size={16} className="animate-spin" />
+                                    Loading active sessions...
+                                </div>
+                            ) : sessions.length === 0 ? (
+                                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm font-medium text-slate-600">
+                                    No active sessions found.
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {sessions.map((session) => {
+                                        const isCurrent = Boolean(session.isCurrent);
+                                        const deviceType = session.deviceType || 'Device';
+                                        const title = `${deviceType} - ${session.os || 'Unknown OS'} - ${session.browser || 'Unknown Browser'}`;
+                                        const subtitle = isCurrent
+                                            ? `Current session - ${formatLastActive(session.lastSeenAt)}`
+                                            : `${formatLastActive(session.lastSeenAt)} - ${formatSignedIn(session.createdAt)}`;
+                                        const isRevoking = revokeSessionId === session.id;
+                                        const showDetails = Boolean(sessionDetailsOpen[session.id]);
 
+                                        return (
+                                            <div
+                                                key={session.id}
+                                                className={`flex items-center justify-between rounded-xl border p-4 ${isCurrent ? 'border-emerald-100 bg-emerald-50/50' : 'border-slate-100 bg-white'}`}
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-bold text-slate-900">
+                                                        {title}
+                                                    </p>
+                                                    <p className="text-xs font-medium text-slate-500">
+                                                        {subtitle}
+                                                    </p>
+                                                    {showDetails && (
+                                                        <p className="mt-1 text-xs font-medium text-slate-400">
+                                                            {`Network: ${getIpLabel(session.ipAddress)} (${session.ipAddress || 'Unknown'})`}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                                <div className="ml-4 flex shrink-0 items-center gap-3">
+                                                    <button
+                                                        onClick={() =>
+                                                            setSessionDetailsOpen((prev) => ({
+                                                                ...prev,
+                                                                [session.id]: !prev[session.id],
+                                                            }))
+                                                        }
+                                                        className="text-xs font-bold text-slate-500 hover:underline"
+                                                    >
+                                                        {showDetails ? 'Hide Details' : 'Details'}
+                                                    </button>
+                                                    {isCurrent ? (
+                                                        <span className="text-xs font-bold text-emerald-600">
+                                                            Current Device
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() =>
+                                                                handleRevokeSession(
+                                                                    session.id,
+                                                                    isCurrent
+                                                                )
+                                                            }
+                                                            disabled={isRevoking}
+                                                            className="text-xs font-bold text-red-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                                                        >
+                                                            {isRevoking ? 'Revoking...' : 'Revoke'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
                         <div className="rounded-2xl border border-slate-100 p-6">
                             <h4 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900">
                                 <ShieldCheck className="text-emerald-500" size={20} /> Privacy &

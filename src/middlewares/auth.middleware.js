@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
+import { UserSession } from '../models/UserSession.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -17,6 +18,21 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
             process.env.ACCESS_TOKEN_SECRET || 'fallback_secret'
         );
 
+        if (decodedToken?.sid) {
+            const session = await UserSession.findOne({
+                _id: decodedToken.sid,
+                userId: decodedToken._id,
+                isRevoked: false,
+                expiresAt: { $gt: new Date() },
+            });
+
+            if (!session) {
+                throw new ApiError(401, 'Session expired or revoked. Please login again.');
+            }
+
+            req.authSessionId = decodedToken.sid;
+        }
+
         const user = await User.findOne({
             _id: decodedToken._id,
             isActive: true,
@@ -28,6 +44,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         }
 
         req.user = user;
+        req.authTokenPayload = decodedToken;
         next();
     } catch (error) {
         throw new ApiError(401, error?.message || 'Invalid access token');

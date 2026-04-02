@@ -7,6 +7,9 @@ import {
     refreshAccessToken,
     sendOtp,
     loginWithOtp,
+    getMySessions,
+    revokeMySession,
+    revokeOtherSessions,
 } from '../controllers/auth.controller.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
@@ -22,5 +25,8 @@ router.post('/register', registerUser);
 
 router.post('/logout', verifyJWT, logoutUser);
 router.get('/me', verifyJWT, getCurrentUser);
+router.get('/sessions', verifyJWT, getMySessions);
+router.delete('/sessions/others', verifyJWT, revokeOtherSessions);
+router.delete('/sessions/:sessionId', verifyJWT, validate(authValidation.revokeSession), revokeMySession);
 
 export default router;
