@@ -206,10 +206,6 @@ const recalculateCart = async (cart) => {
             const minimumSellingPrice =
                 item.platformUnitCost + item.taxAmountPerUnit + item.shippingCost / item.qty;
 
-            if (item.resellerSellingPrice < minimumSellingPrice) {
-                item.resellerSellingPrice = Number(minimumSellingPrice.toFixed(2));
-            }
-
             const profitPerUnit = item.resellerSellingPrice - minimumSellingPrice;
             item.expectedProfit = Number((profitPerUnit * item.qty).toFixed(2));
         } else {

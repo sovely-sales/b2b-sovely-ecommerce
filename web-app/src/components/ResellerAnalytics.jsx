@@ -39,6 +39,9 @@ const ResellerAnalytics = () => {
 
     const maxProfit = Math.max(...data.profitTrend.map((d) => d.profit), 1);
 
+    // FIX: Dynamically calculate the number of days for the chart title
+    const daysInTrend = data.profitTrend?.length || 15;
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -48,7 +51,8 @@ const ResellerAnalytics = () => {
             {/* Header with Range Selector */}
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
-                    <h2 className="text-2xl font-black text-slate-900">Performance Overview</h2>
+                    {/* FIX: Reduced the font size here to clearly make it a subsection of the Hub */}
+                    <h2 className="text-xl font-bold text-slate-800">Performance Overview</h2>
                     <p className="text-sm font-medium text-slate-500">
                         Monitor your margins and operational health.
                     </p>
@@ -58,11 +62,10 @@ const ResellerAnalytics = () => {
                         <button
                             key={r}
                             onClick={() => setRange(r)}
-                            className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-                                range === r
+                            className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${range === r
                                     ? 'bg-white text-slate-900 shadow-sm'
                                     : 'text-slate-500 hover:text-slate-700'
-                            }`}
+                                }`}
                         >
                             {r === 'week' ? '7 Days' : r === 'month' ? '30 Days' : '90 Days'}
                         </button>
@@ -96,9 +99,8 @@ const ResellerAnalytics = () => {
                 </div>
             )}
 
-            {}
+            {/* Metric Cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                     <div className="mb-4 flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
@@ -116,7 +118,6 @@ const ResellerAnalytics = () => {
                     </p>
                 </div>
 
-                {}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                     <div className="mb-4 flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
@@ -134,7 +135,6 @@ const ResellerAnalytics = () => {
                     </p>
                 </div>
 
-                {}
                 <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm sm:col-span-2 lg:col-span-1">
                     <div className="mb-4 flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600">
@@ -165,10 +165,11 @@ const ResellerAnalytics = () => {
                 </div>
             </div>
 
-            {}
+            {/* Chart Section */}
             <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
                 <div className="mb-6">
-                    <h3 className="text-lg font-extrabold text-slate-900">15-Day Margin Trend</h3>
+                    {/* FIX: Title is now dynamically based on the array length */}
+                    <h3 className="text-lg font-extrabold text-slate-900">{daysInTrend}-Day Margin Trend</h3>
                     <p className="text-sm font-medium text-slate-500">
                         Your total expected margins generated per day.
                     </p>
@@ -182,20 +183,21 @@ const ResellerAnalytics = () => {
                                 key={idx}
                                 className="group relative flex h-full flex-1 flex-col items-center justify-end"
                             >
-                                {}
+                                {/* Tooltip */}
                                 <div className="absolute -top-10 z-10 scale-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold whitespace-nowrap text-white opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
                                     ₹{day.profit.toLocaleString('en-IN')}
                                 </div>
-                                {}
+                                {/* Bar */}
                                 <motion.div
                                     initial={{ height: 0 }}
                                     animate={{ height: `${heightPct}%` }}
                                     transition={{ duration: 0.5, delay: idx * 0.05 }}
                                     className="w-full rounded-t-md bg-emerald-200 transition-colors group-hover:bg-emerald-500"
                                 ></motion.div>
-                                {}
+                                {/* Label */}
                                 <span className="mt-2 hidden text-[10px] font-bold text-slate-400 sm:block">
-                                    {idx % 2 === 0 ? day.date : ''}
+                                    {/* For 90 days, we don't want to show every single date label, it gets too crowded */}
+                                    {(daysInTrend > 30 ? (idx % 5 === 0) : (idx % 2 === 0)) ? day.date : ''}
                                 </span>
                             </div>
                         );

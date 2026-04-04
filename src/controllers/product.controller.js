@@ -263,10 +263,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, product, 'Product updated successfully'));
 });
-/**
- * @desc    Soft Delete a Product (ADMIN ONLY)
- * @route   DELETE /api/products/:id
- */
+
 export const deleteProduct = asyncHandler(async (req, res) => {
     const product = await Product.findOne({ _id: req.params.id, deletedAt: null });
 
@@ -284,9 +281,34 @@ export const deleteProduct = asyncHandler(async (req, res) => {
 });
 
 export const getAllAdminProducts = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 20, search } = req.query;
+    const { page = 1, limit = 20, search, status, price, stock } = req.query;
 
     const query = {};
+
+    // Strictly apply Admin Status Filter
+    if (status && status !== 'ALL') {
+        query.status = status;
+    }
+
+    // Strictly apply Admin Price Filter
+    if (price && price !== 'ALL') {
+        if (price === 'UNDER_500') {
+            query.dropshipBasePrice = { $lt: 500 };
+        } else if (price === 'OVER_1000') {
+            query.dropshipBasePrice = { $gte: 1000 };
+        }
+    }
+
+    // Strictly apply Admin Stock Filter
+    if (stock && stock !== 'ALL') {
+        if (stock === 'IN_STOCK') {
+            query['inventory.stock'] = { $gt: 10 };
+        } else if (stock === 'LOW_STOCK') {
+            query['inventory.stock'] = { $gt: 0, $lte: 10 };
+        } else if (stock === 'OUT_OF_STOCK') {
+            query['inventory.stock'] = { $lte: 0 };
+        }
+    }
 
     if (search) {
         const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -4,6 +4,7 @@ import { AuthContext } from '../AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCategoryIcon } from '../utils/categoryIcons';
+import { getAvatarUrl } from '../utils/getAvatarUrl'; // We import our globally fixed util
 import { ROUTES } from '../utils/routes';
 import api from '../utils/api';
 import CartDrawer from './CartDrawer';
@@ -54,6 +55,7 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [addedSku, setAddedSku] = useState(null);
+    const [avatarError, setAvatarError] = useState(false);
 
     const searchRef = useRef(null);
     const inputRef = useRef(null);
@@ -64,6 +66,11 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
         const timer = setTimeout(() => setDebouncedSearch(searchInput), 250);
         return () => clearTimeout(timer);
     }, [searchInput]);
+
+    // Reset avatar error when a new avatar arrives from context
+    useEffect(() => {
+        if (user?.avatar) setAvatarError(false);
+    }, [user?.avatar]);
 
     const { data: dbCategories = [] } = useQuery({
         queryKey: ['categories'],
@@ -122,7 +129,6 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
         <nav className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 font-sans shadow-sm backdrop-blur-xl supports-[backdrop-filter]:bg-white/80">
             <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 items-center justify-between gap-4">
-                    {}
                     <div className="flex items-center gap-6 xl:gap-8">
                         <div className="flex items-center gap-4">
                             <button
@@ -132,7 +138,6 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                                 <Menu size={20} strokeWidth={2.5} />
                             </button>
 
-                            {}
                             <Link to={ROUTES.HOME} className="group flex items-center gap-2">
                                 <img
                                     src="https://m.media-amazon.com/images/X/bxt1/M/Bbxt1BI1cNpD5ln._SL160_QL95_FMwebp_.png"
@@ -238,7 +243,6 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                         </ul>
                     </div>
 
-                    {}
                     <div ref={searchRef} className="relative hidden max-w-2xl flex-1 px-4 sm:block">
                         <div
                             className={`flex w-full items-center rounded-lg border px-3 py-2 transition-all ${isSearchOpen ? 'border-emerald-500 bg-white shadow-md ring-2 ring-emerald-500/20' : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100'}`}
@@ -275,7 +279,6 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                             )}
                         </div>
 
-                        {}
                         <AnimatePresence>
                             {isSearchOpen && searchInput.trim().length >= 2 && (
                                 <motion.div
@@ -396,7 +399,6 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                         </AnimatePresence>
                     </div>
 
-                    {}
                     <div className="flex shrink-0 items-center gap-2 sm:gap-4">
                         {isAdmin && (
                             <Link
@@ -451,11 +453,12 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                                         to={ROUTES.MY_ACCOUNT}
                                         className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-slate-100 bg-slate-100 shadow-sm transition-transform hover:scale-105"
                                     >
-                                        {user?.avatar ? (
+                                        {user?.avatar && !avatarError ? (
                                             <img
-                                                src={user.avatar}
+                                                src={getAvatarUrl(user.avatar)}
                                                 alt={user.name}
                                                 className="h-full w-full object-cover"
+                                                onError={() => setAvatarError(true)}
                                             />
                                         ) : (
                                             <span className="text-[10px] font-black text-slate-500">
@@ -504,7 +507,6 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                 </div>
             </div>
 
-            {}
             <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
         </nav>
     );

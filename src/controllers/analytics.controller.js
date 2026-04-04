@@ -134,14 +134,12 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
     ]);
     const periodRevenue = periodRevenueAgg[0]?.total || 0;
 
-    // Fixed Comparisons (Always show 30d/7d for secondary metrics if needed, but here we just return period total)
-    // Period-specific KPIs (Now reactive to the selected time range)
-    const totalCustomers = await User.countDocuments({ 
-        role: 'RESELLER', 
+    const totalCustomers = await User.countDocuments({
+        role: 'RESELLER',
         deletedAt: null,
-        createdAt: { $gte: startDate } 
+        createdAt: { $gte: startDate }
     });
-    const processingOrders = await Order.countDocuments({ 
+    const processingOrders = await Order.countDocuments({
         status: 'PROCESSING',
         createdAt: { $gte: startDate }
     });
@@ -179,7 +177,7 @@ export const getResellerAnalytics = asyncHandler(async (req, res) => {
     let startDate = new Date();
     startDate.setUTCHours(0, 0, 0, 0);
 
-    let intervals = 30; // Default days
+    let intervals = 30;
     let labelFormat = { month: 'short', day: 'numeric' };
 
     switch (range) {
@@ -220,8 +218,22 @@ export const getResellerAnalytics = asyncHandler(async (req, res) => {
                 pendingProfit: {
                     $sum: {
                         $cond: [
-                            { $in: ['$status', ['SHIPPED', 'DELIVERED', 'PROCESSING']] },
-                            '$resellerProfitMargin',
+                            {
+                                $and: [
+                                    // FIX: Include PENDING and NDR to match frontend logic
+                                    { $in: ['$status', ['PENDING', 'PROCESSING', 'SHIPPED', 'NDR', 'DELIVERED']] },
+                                    // FIX: Only count margins for COD orders (Prepaid are collected directly by reseller)
+                                    { $eq: ['$paymentMethod', 'COD'] }
+                                ]
+                            },
+                            {
+                                // FIX: Calculate dynamic margin fallback for older glitched orders where DB saved 0
+                                $cond: [
+                                    { $gt: ['$resellerProfitMargin', 0] },
+                                    '$resellerProfitMargin',
+                                    { $subtract: ['$amountToCollect', '$totalPlatformCost'] }
+                                ]
+                            },
                             0,
                         ],
                     },
@@ -258,7 +270,6 @@ export const getResellerAnalytics = asyncHandler(async (req, res) => {
     const rtoRate =
         kpis.totalOrders > 0 ? Math.round((kpis.rtoOrders / kpis.totalOrders) * 100) : 0;
 
-    // 2. Profit Trend Based on Selected Range
     const trendAggregation = await Order.aggregate([
         {
             $match: {
@@ -294,7 +305,8 @@ export const getResellerAnalytics = asyncHandler(async (req, res) => {
             {
                 kpis: {
                     realizedProfit: kpis.realizedProfit,
-                    pendingProfit: kpis.pendingProfit,
+                    // Ensure we don't send back negative pending profit due to glitched legacy data
+                    pendingProfit: Math.max(0, kpis.pendingProfit),
                     rtoRate,
                     ndrActionRequired: kpis.ndrActionRequired,
                 },

@@ -86,7 +86,6 @@ const CartDrawer = ({ isOpen, onClose }) => {
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-[100] flex justify-end font-sans">
-                    {}
                     <motion.div
                         variants={overlayVariants}
                         initial="hidden"
@@ -97,7 +96,6 @@ const CartDrawer = ({ isOpen, onClose }) => {
                         aria-hidden="true"
                     />
 
-                    {}
                     <motion.div
                         variants={drawerVariants}
                         initial="hidden"
@@ -159,6 +157,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                                 item.productId?.tieredPricing
                                             );
                                             const isDropship = item.orderType === 'DROPSHIP';
+
                                             return (
                                                 <motion.div
                                                     layout
@@ -237,18 +236,18 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                                                         updateCartItem(
                                                                             item.productId?._id,
                                                                             item.qty -
-                                                                                (isDropship
-                                                                                    ? 1
-                                                                                    : item.productId
-                                                                                          ?.moq)
+                                                                            (isDropship
+                                                                                ? 1
+                                                                                : item.productId
+                                                                                    ?.moq)
                                                                         )
                                                                     }
                                                                     disabled={
                                                                         item.qty <=
-                                                                            (isDropship
-                                                                                ? 1
-                                                                                : item.productId
-                                                                                      ?.moq) ||
+                                                                        (isDropship
+                                                                            ? 1
+                                                                            : item.productId
+                                                                                ?.moq) ||
                                                                         isLoading
                                                                     }
                                                                     className="flex h-7 w-7 items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-30"
@@ -263,10 +262,10 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                                                         updateCartItem(
                                                                             item.productId?._id,
                                                                             item.qty +
-                                                                                (isDropship
-                                                                                    ? 1
-                                                                                    : item.productId
-                                                                                          ?.moq)
+                                                                            (isDropship
+                                                                                ? 1
+                                                                                : item.productId
+                                                                                    ?.moq)
                                                                         )
                                                                     }
                                                                     disabled={isLoading}
@@ -280,13 +279,12 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                                             {isDropship ? (
                                                                 <div className="flex flex-col items-end gap-0.5">
                                                                     <span className="text-[10px] font-bold text-slate-400">
-                                                                        Est. Margin
+                                                                        Est. Net Margin
                                                                     </span>
-                                                                    <span className="text-sm font-bold text-emerald-600">
-                                                                        +₹
-                                                                        {item.expectedProfit?.toLocaleString(
-                                                                            'en-IN'
-                                                                        )}
+                                                                    {/* Restored backend expectedProfit sync here */}
+                                                                    <span className={`text-sm font-bold ${(item.expectedProfit || 0) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                                        {(item.expectedProfit || 0) >= 0 ? '+' : '-'}₹
+                                                                        {Math.abs(item.expectedProfit || 0)?.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                                                                     </span>
                                                                 </div>
                                                             ) : (
@@ -334,7 +332,7 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                                     {!isDropship &&
                                                         !nudge &&
                                                         item.productId?.tieredPricing?.length >
-                                                            0 && (
+                                                        0 && (
                                                             <div className="flex items-center gap-1.5 border-t border-slate-100 bg-slate-50 px-4 py-2 text-[10px] font-semibold text-slate-500">
                                                                 <CheckCircle
                                                                     size={12}
@@ -422,6 +420,17 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                             })}
                                         </span>
                                     </div>
+                                    {cart.totalShippingCost > 0 && (
+                                        <div className="flex justify-between text-xs font-semibold text-slate-500">
+                                            <span>Est. Shipping & Handling</span>
+                                            <span>
+                                                + ₹
+                                                {cart.totalShippingCost?.toLocaleString('en-IN', {
+                                                    minimumFractionDigits: 2,
+                                                })}
+                                            </span>
+                                        </div>
+                                    )}
                                     <div className="my-3 border-t border-dashed border-slate-200" />
                                     <div className="flex items-end justify-between">
                                         <span className="text-sm font-bold text-slate-900">
@@ -436,13 +445,14 @@ const CartDrawer = ({ isOpen, onClose }) => {
                                     </div>
                                 </div>
 
-                                {cart.totalExpectedProfit > 0 && (
-                                    <div className="mb-5 flex items-center justify-between rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2.5 text-emerald-800">
+                                {/* Restored backend cart.totalExpectedProfit sync here */}
+                                {typeof cart.totalExpectedProfit === 'number' && hasDropshipItems && (
+                                    <div className={`mb-5 flex items-center justify-between rounded-lg border px-3 py-2.5 ${cart.totalExpectedProfit >= 0 ? 'border-emerald-100 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
                                         <div className="flex items-center gap-1.5 text-xs font-bold">
                                             <TrendingUp size={16} /> Total Dropship Margin
                                         </div>
                                         <span className="text-sm font-bold">
-                                            +₹{cart.totalExpectedProfit?.toLocaleString('en-IN')}
+                                            {cart.totalExpectedProfit >= 0 ? '+' : '-'}₹{Math.abs(cart.totalExpectedProfit)?.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                                         </span>
                                     </div>
                                 )}

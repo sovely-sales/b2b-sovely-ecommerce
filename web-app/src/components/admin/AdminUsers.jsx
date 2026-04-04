@@ -16,6 +16,7 @@ import {
     X,
 } from 'lucide-react';
 import api from '../../utils/api.js';
+import { getAvatarUrl } from '../../utils/getAvatarUrl';
 
 const AdminUsers = () => {
     const [users, setUsers] = useState([]);
@@ -234,7 +235,7 @@ const AdminUsers = () => {
                                                     <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-100 bg-slate-100">
                                                         {u.avatar ? (
                                                             <img
-                                                                src={u.avatar}
+                                                                src={getAvatarUrl(u.avatar)}
                                                                 alt={u.name}
                                                                 className="h-full w-full object-cover"
                                                             />
@@ -385,7 +386,7 @@ const AdminUsers = () => {
                                 <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 shadow-sm">
                                     {viewKycUser.avatar ? (
                                         <img
-                                            src={viewKycUser.avatar}
+                                            src={getAvatarUrl(viewKycUser.avatar)}
                                             alt={viewKycUser.name}
                                             className="h-full w-full object-cover"
                                         />

@@ -45,7 +45,6 @@ export const createOrder = asyncHandler(async (req, res) => {
     session.startTransaction();
 
     try {
-        // 1. Initial reseller balance pull
         const resellerCheck = await User.findById(resellerId).session(session);
         if (!resellerCheck) throw new ApiError(404, 'Reseller account not found.');
 
@@ -111,7 +110,6 @@ export const createOrder = asyncHandler(async (req, res) => {
                 0
             );
 
-            // Bug fix: Calculate shipping specifically for wholesale items
             const whFreight = calculateSlabCharge(whBillableWeight);
 
             ordersToCreate.push({
@@ -157,27 +155,26 @@ export const createOrder = asyncHandler(async (req, res) => {
             const dsOrderId = `OD-DS-${Math.floor(1000000 + Math.random() * 9000000)}`;
             generatedOrderIds.push(dsOrderId);
 
+            // FIX: Always calculate totalCustomerPayment and margin regardless of Payment Method
+            const totalCustomerPayment = dropshipItems.reduce(
+                (acc, item) => acc + item.resellerSellingPrice * item.qty,
+                0
+            );
+
             let amountToCollect = 0;
-            let resellerProfitMargin = 0;
             let resellerPayoutOnDelivery = 0;
+            let resellerProfitMargin = totalCustomerPayment - dsTotalCost;
 
             if (paymentMethod === 'COD') {
-                amountToCollect = dropshipItems.reduce(
-                    (acc, item) => acc + item.resellerSellingPrice * item.qty,
-                    0
+                amountToCollect = totalCustomerPayment;
+                resellerPayoutOnDelivery = dsSubTotal + dsTaxTotal + dsShippingTotal + resellerProfitMargin;
+            }
+
+            if (resellerProfitMargin < 0) {
+                throw new ApiError(
+                    400,
+                    `Selling price is too low. You are losing ₹${Math.abs(resellerProfitMargin)} on this order.`
                 );
-
-                resellerProfitMargin = amountToCollect - dsTotalCost;
-
-                resellerPayoutOnDelivery =
-                    dsSubTotal + dsTaxTotal + dsShippingTotal + resellerProfitMargin;
-
-                if (resellerProfitMargin < 0) {
-                    throw new ApiError(
-                        400,
-                        `Selling price is too low. You are losing ₹${Math.abs(resellerProfitMargin)} on this COD order.`
-                    );
-                }
             }
 
             const dsActualWeight = dropshipItems.reduce((acc, item) => acc + item.actualWeight, 0);
@@ -217,7 +214,6 @@ export const createOrder = asyncHandler(async (req, res) => {
             });
         }
 
-        // --- NEW: Calculate True Platform Cost Across All Orders ---
         const totalWholesaleCost = ordersToCreate
             .filter((o) => o.orderId.startsWith('OD-WH'))
             .reduce((acc, o) => acc + o.totalPlatformCost, 0);
@@ -227,7 +223,6 @@ export const createOrder = asyncHandler(async (req, res) => {
 
         const calculatedFinalTotal = totalWholesaleCost + totalDropshipCost;
 
-        // --- NEW: Final Balance Check with Recalculated Total ---
         if (resellerCheck.walletBalance < calculatedFinalTotal) {
             throw new ApiError(
                 400,
@@ -457,7 +452,6 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                 );
             }
 
-            // Push status before processing refund status to avoid "REFUND_PROCESSED" coming before the actual status change in history
             order.statusHistory.push({
                 status,
                 comment: statusComment[status],
@@ -528,7 +522,6 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         }
     }
 
-    // Only push if it wasn't already handled in the special blocks above
     if (!['CANCELLED', 'RTO', 'DELIVERED'].includes(status) || (status === 'DELIVERED' && order.paymentMethod !== 'COD')) {
         order.statusHistory.push({
             status,
@@ -541,7 +534,6 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, order, `Order status updated to ${status}`));
 });
-
 
 export const resellerActionOnNDR = asyncHandler(async (req, res) => {
     const { action, updatedPhone } = req.body;
@@ -567,7 +559,6 @@ export const resellerActionOnNDR = asyncHandler(async (req, res) => {
     order.ndrDetails.resellerAction = action;
     if (updatedPhone) {
         order.ndrDetails.updatedCustomerPhone = updatedPhone;
-
         order.endCustomerDetails.phone = updatedPhone;
     }
 
@@ -582,6 +573,7 @@ export const resellerActionOnNDR = asyncHandler(async (req, res) => {
         .status(200)
         .json(new ApiResponse(200, order, `NDR action '${action}' submitted successfully.`));
 });
+
 export const getAllAdminOrders = asyncHandler(async (req, res) => {
     const { page = 1, limit = 20, status, search } = req.query;
 
@@ -735,22 +727,22 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
 
             grandTotalWalletDeduction += totalPlatformCost;
 
+            // FIX: Calculate totalCustomerPayment & margin for both payment methods
+            const totalCustomerPayment = inputOrder.resellerSellingPrice * inputOrder.qty;
             let amountToCollect = 0;
-            let resellerProfitMargin = 0;
             let payoutOnDelivery = 0;
+            let resellerProfitMargin = totalCustomerPayment - totalPlatformCost;
 
             if (inputOrder.paymentMethod === 'COD') {
-                amountToCollect = inputOrder.resellerSellingPrice * inputOrder.qty;
-                resellerProfitMargin = amountToCollect - totalPlatformCost;
-                payoutOnDelivery =
-                    subTotal + taxTotal + freight.totalShippingCost + resellerProfitMargin;
+                amountToCollect = totalCustomerPayment;
+                payoutOnDelivery = subTotal + taxTotal + freight.totalShippingCost + resellerProfitMargin;
+            }
 
-                if (resellerProfitMargin < 0) {
-                    throw new ApiError(
-                        400,
-                        `Selling price for ${product.sku} is too low. You would lose money.`
-                    );
-                }
+            if (resellerProfitMargin < 0) {
+                throw new ApiError(
+                    400,
+                    `Selling price for ${product.sku} is too low. You would lose money.`
+                );
             }
 
             const dsOrderId = `OD-BLK-${Math.floor(1000000 + Math.random() * 9000000)}`;
@@ -878,11 +870,11 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
 });
 
 export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
+    // ... [existing export logic remains the same] ...
     const { startDate, endDate } = req.query;
 
     const query = {};
     if (startDate && endDate) {
-        // Ensure we cover the full range of the selected start and end dates
         const start = new Date(startDate);
         start.setUTCHours(0, 0, 0, 0);
         const end = new Date(endDate);
@@ -900,7 +892,6 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
 
     const escapeCsv = (val) => {
         if (val === null || val === undefined) return '';
-        // Prefix long numeric sequences with a tab to force string type in Excel
         let str = String(val).replace(/"/g, '""');
         if (/^\+?\d{10,}$/.test(str) || /^\d{5,6}$/.test(str)) {
             str = `\t${str}`;
@@ -924,14 +915,12 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
         'Status',
     ];
 
-    // Add UTF-8 BOM for Excel compatibility
     let csvContent = '\uFEFF' + headers.map(escapeCsv).join(',') + '\n';
 
     orders.forEach((order) => {
         const isDropship = !!order.endCustomerDetails?.name;
         const reseller = order.resellerId || {};
 
-        // Fallback to Reseller Details if it's not a Dropship order
         const fullName = (isDropship ? order.endCustomerDetails?.name : reseller.name) || '';
         const nameParts = fullName.trim().split(/\s+/);
         const firstName = nameParts[0] || '';
@@ -944,7 +933,6 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
         const state = (isDropship ? order.endCustomerDetails?.address?.state : reseller.billingAddress?.state) || '';
         const pincode = (isDropship ? order.endCustomerDetails?.address?.zip : reseller.billingAddress?.zip) || '';
 
-        // Generate one row per item
         order.items.forEach((item) => {
             const row = [
                 order.orderId,

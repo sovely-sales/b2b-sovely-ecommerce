@@ -76,7 +76,18 @@ const Orders = () => {
                 if (debouncedSearchTerm.trim()) params.search = debouncedSearchTerm.trim();
 
                 const res = await api.get('/orders', { params });
-                const apiOrders = Array.isArray(res.data?.data?.orders) ? res.data.data.orders : [];
+
+                const apiOrders = Array.isArray(res.data?.data?.orders) ? res.data.data.orders.map(ord => {
+                    let computedMargin = ord.resellerProfitMargin || 0;
+                    if (computedMargin === 0 && ord.endCustomerDetails && ord.items?.length > 0) {
+                        const totalSelling = ord.items.reduce((sum, item) => sum + ((item.resellerSellingPrice || 0) * item.qty), 0);
+                        if (totalSelling > 0) {
+                            computedMargin = totalSelling - ord.totalPlatformCost;
+                        }
+                    }
+                    return { ...ord, computedMargin };
+                }) : [];
+
                 const pagination = res.data?.data?.pagination || {};
                 const serverTotalPages = Math.max(1, Number(pagination.pages) || 1);
 
@@ -107,9 +118,13 @@ const Orders = () => {
         setSearchParams(next, { replace: true });
     }, [filter, page, searchTerm, setSearchParams, sortOrder]);
 
+    // FIX: Include PENDING, PROCESSING, and NDR orders in the incoming profit calculator
     const pendingProfit = orders
-        .filter((ord) => ['SHIPPED', 'DELIVERED'].includes(ord.status))
-        .reduce((sum, ord) => sum + (ord.resellerProfitMargin || 0), 0);
+        .filter((ord) =>
+            ['PENDING', 'PROCESSING', 'SHIPPED', 'NDR', 'DELIVERED'].includes(ord.status) &&
+            ord.paymentMethod === 'COD'
+        )
+        .reduce((sum, ord) => sum + (ord.computedMargin || 0), 0);
 
     const ndrOrders = orders.filter((ord) => ord.status === 'NDR');
     const ndrCount = ndrOrders.length;
@@ -202,7 +217,6 @@ const Orders = () => {
 
     return (
         <div className="mx-auto mb-20 w-full max-w-7xl flex-1 px-4 py-8 font-sans text-slate-900 sm:px-6 md:mb-0 lg:px-8 lg:py-12">
-            {}
             <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <Link
@@ -226,7 +240,7 @@ const Orders = () => {
                         </div>
                         <div>
                             <span className="mb-0.5 block text-[10px] font-extrabold tracking-widest text-emerald-700 uppercase">
-                                Incoming Margins
+                                Incoming COD Margins
                             </span>
                             <div className="text-2xl font-black text-emerald-900">
                                 ₹
@@ -262,7 +276,6 @@ const Orders = () => {
                 </div>
             </div>
 
-            {}
             {ndrCount > 0 && (
                 <div className="mb-6 flex flex-col justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm sm:flex-row sm:items-center">
                     <div className="flex items-center gap-3">
@@ -321,9 +334,10 @@ const Orders = () => {
                         <option value="PENDING_PROCESSING">Pending / Processing</option>
                         <option value="SHIPPED">Shipped / In Transit</option>
                         <option value="NDR">NDR (Failed Delivery)</option>
-                        <option value="DELIVERED">Delivered (Pending Margin)</option>
+                        <option value="DELIVERED">Delivered</option>
                         <option value="PROFIT_CREDITED">Completed & Paid</option>
                         <option value="RTO">Returned (RTO)</option>
+                        <option value="CANCELLED">Cancelled</option>
                     </select>
                     <select
                         value={sortOrder}
@@ -342,7 +356,6 @@ const Orders = () => {
                 Showing {showingStart}-{showingEnd} of {totalCount} orders
             </p>
 
-            {}
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-24 text-slate-400">
                     <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-slate-800"></div>
@@ -373,7 +386,6 @@ const Orders = () => {
                                 key={ord._id}
                                 className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md"
                             >
-                                {}
                                 <div className="flex flex-col justify-between gap-6 border-b border-slate-100 p-5 md:p-6 lg:flex-row lg:items-center">
                                     <div className="flex-1">
                                         <div className="mb-3 flex flex-wrap items-center gap-3">
@@ -414,7 +426,6 @@ const Orders = () => {
                                         </div>
                                     </div>
 
-                                    {}
                                     <div
                                         className={`flex shrink-0 gap-6 rounded-xl border p-4 ${isDropship ? 'border-emerald-100 bg-emerald-50/50' : 'border-slate-100 bg-slate-50'}`}
                                     >
@@ -437,10 +448,10 @@ const Orders = () => {
                                                     <p className="mb-1 flex items-center gap-1 text-[10px] font-extrabold tracking-widest text-emerald-700 uppercase">
                                                         <TrendingUp size={12} /> Net Margin
                                                     </p>
-                                                    <p className="text-lg font-black text-emerald-600">
-                                                        +₹
+                                                    <p className={`text-lg font-black ${ord.computedMargin >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                        {ord.computedMargin >= 0 ? '+' : '-'}₹
                                                         {(
-                                                            ord.resellerProfitMargin || 0
+                                                            Math.abs(ord.computedMargin)
                                                         ).toLocaleString('en-IN', {
                                                             minimumFractionDigits: 2,
                                                         })}
@@ -451,7 +462,6 @@ const Orders = () => {
                                     </div>
                                 </div>
 
-                                {}
                                 <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50/80 px-6 py-4">
                                     <div className="flex items-center gap-3 text-sm">
                                         {ord.status === 'NDR' && (
@@ -487,10 +497,8 @@ const Orders = () => {
                                     </button>
                                 </div>
 
-                                {}
                                 {isExpanded && (
                                     <div className="grid grid-cols-1 gap-8 border-t border-slate-200 bg-white p-6 lg:grid-cols-12">
-                                        {}
                                         <div className="space-y-4 lg:col-span-7 xl:col-span-8">
                                             <h4 className="flex items-center gap-2 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
                                                 <Package size={16} /> Order Contents
@@ -543,7 +551,6 @@ const Orders = () => {
                                                 ))}
                                             </div>
 
-                                            {}
                                             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
                                                 <h4 className="mb-4 flex items-center gap-2 text-xs font-extrabold tracking-widest text-slate-500 uppercase">
                                                     <Receipt size={16} /> Financial Breakdown
@@ -572,7 +579,6 @@ const Orders = () => {
                                                         </span>
                                                     </div>
 
-                                                    {}
                                                     <div className="flex justify-between">
                                                         <span className="font-medium">
                                                             Delivery Charge
@@ -604,7 +610,6 @@ const Orders = () => {
                                                         </div>
                                                     )}
 
-                                                    {}
                                                     {ord.codCharge > 0 && (
                                                         <div className="flex justify-between text-amber-700">
                                                             <span className="font-medium">
@@ -632,11 +637,25 @@ const Orders = () => {
                                                             )}
                                                         </span>
                                                     </div>
+
+                                                    {isDropship && (
+                                                        <div className="mt-2 flex justify-between border-t border-slate-200 pt-3 text-base">
+                                                            <span className="font-extrabold text-emerald-700">
+                                                                Net Profit Margin
+                                                            </span>
+                                                            <span className={`font-black ${ord.computedMargin >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                                {ord.computedMargin >= 0 ? '+' : '-'}₹
+                                                                {Math.abs(ord.computedMargin).toLocaleString(
+                                                                    'en-IN',
+                                                                    { minimumFractionDigits: 2 }
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {}
                                         <div className="space-y-6 lg:col-span-5 xl:col-span-4">
                                             {isDropship && ord.endCustomerDetails ? (
                                                 <div>
@@ -741,11 +760,10 @@ const Orders = () => {
                                     key={pageNo}
                                     onClick={() => setPage(pageNo)}
                                     disabled={loading}
-                                    className={`rounded-lg border px-3 py-1.5 text-xs font-extrabold tracking-wide uppercase transition-colors ${
-                                        pageNo === page
+                                    className={`rounded-lg border px-3 py-1.5 text-xs font-extrabold tracking-wide uppercase transition-colors ${pageNo === page
                                             ? 'border-slate-900 bg-slate-900 text-white'
                                             : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                                    }`}
+                                        }`}
                                 >
                                     {pageNo}
                                 </button>

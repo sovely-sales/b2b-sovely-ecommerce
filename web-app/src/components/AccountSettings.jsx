@@ -22,6 +22,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../utils/routes';
 import api from '../utils/api';
 import toast from 'react-hot-toast';
+import { getAvatarUrl } from '../utils/getAvatarUrl'; // We import our globally fixed util
 
 const NAME_REGEX = /^[A-Za-z][A-Za-z .'-]{1,59}$/;
 const CITY_STATE_REGEX = /^[A-Za-z][A-Za-z .'-]{1,59}$/;
@@ -37,6 +38,8 @@ const AccountSettings = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     const [avatarPreview, setAvatarPreview] = useState(null);
+    const [avatarError, setAvatarError] = useState(false);
+
     const [is2FAEnabled, setIs2FAEnabled] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirmation, setDeleteConfirmation] = useState('');
@@ -83,7 +86,9 @@ const AccountSettings = () => {
                 promotionalEmails:
                     user.promotionalEmails !== undefined ? user.promotionalEmails : false,
             });
-            if (user.avatar) setAvatarPreview(user.avatar);
+
+            setAvatarPreview(user.avatar || null);
+            setAvatarError(false);
             if (user.twoFactorEnabled) setIs2FAEnabled(true);
         }
     }, [user]);
@@ -279,6 +284,7 @@ const AccountSettings = () => {
 
         const previewUrl = URL.createObjectURL(file);
         setAvatarPreview(previewUrl);
+        setAvatarError(false);
 
         const formData = new FormData();
         formData.append('avatar', file);
@@ -295,6 +301,7 @@ const AccountSettings = () => {
             setAvatarPreview(user?.avatar || null);
         } finally {
             setIsLoading(false);
+            e.target.value = '';
         }
     };
 
@@ -444,11 +451,12 @@ const AccountSettings = () => {
                                 className="group relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden rounded-full border-4 border-white bg-slate-200 shadow-md transition-transform hover:scale-105"
                                 onClick={() => document.getElementById('avatar-upload').click()}
                             >
-                                {avatarPreview ? (
+                                {avatarPreview && !avatarError ? (
                                     <img
-                                        src={avatarPreview}
+                                        src={getAvatarUrl(avatarPreview)}
                                         alt="Profile"
                                         className="h-full w-full object-cover"
+                                        onError={() => setAvatarError(true)}
                                     />
                                 ) : (
                                     <span className="text-3xl font-black text-slate-400">
@@ -484,7 +492,9 @@ const AccountSettings = () => {
                                     </button>
                                     {avatarPreview && (
                                         <button
-                                            onClick={() => setAvatarPreview(null)}
+                                            onClick={() => {
+                                                setAvatarPreview(null);
+                                            }}
                                             className="rounded-lg px-4 py-2 text-xs font-bold text-red-600 transition-colors hover:bg-red-50"
                                         >
                                             Remove
@@ -735,19 +745,18 @@ const AccountSettings = () => {
                                     <input
                                         type="password"
                                         value={securityData.oldPassword}
-                                        onChange={(e) =>
-                                            {
-                                                setSecurityData((prev) => ({
-                                                    ...prev,
-                                                    oldPassword: e.target.value,
-                                                }));
-                                                setSecurityErrors((prev) => {
-                                                    if (!prev.oldPassword) return prev;
-                                                    const next = { ...prev };
-                                                    delete next.oldPassword;
-                                                    return next;
-                                                });
-                                            }
+                                        onChange={(e) => {
+                                            setSecurityData((prev) => ({
+                                                ...prev,
+                                                oldPassword: e.target.value,
+                                            }));
+                                            setSecurityErrors((prev) => {
+                                                if (!prev.oldPassword) return prev;
+                                                const next = { ...prev };
+                                                delete next.oldPassword;
+                                                return next;
+                                            });
+                                        }
                                         }
                                         className={inputClasses}
                                         required
@@ -763,19 +772,18 @@ const AccountSettings = () => {
                                     <input
                                         type="password"
                                         value={securityData.newPassword}
-                                        onChange={(e) =>
-                                            {
-                                                setSecurityData((prev) => ({
-                                                    ...prev,
-                                                    newPassword: e.target.value,
-                                                }));
-                                                setSecurityErrors((prev) => {
-                                                    if (!prev.newPassword) return prev;
-                                                    const next = { ...prev };
-                                                    delete next.newPassword;
-                                                    return next;
-                                                });
-                                            }
+                                        onChange={(e) => {
+                                            setSecurityData((prev) => ({
+                                                ...prev,
+                                                newPassword: e.target.value,
+                                            }));
+                                            setSecurityErrors((prev) => {
+                                                if (!prev.newPassword) return prev;
+                                                const next = { ...prev };
+                                                delete next.newPassword;
+                                                return next;
+                                            });
+                                        }
                                         }
                                         className={inputClasses}
                                         required

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AuthContext } from '../AuthContext';
 import api from '../utils/api';
 import { getCategoryIcon } from '../utils/categoryIcons';
+import { getAvatarUrl } from '../utils/getAvatarUrl';
 import {
     Home,
     UploadCloud,
@@ -308,7 +309,7 @@ function Sidebar({ isOpen, onClose }) {
                                         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-50">
                                             {user?.avatar ? (
                                                 <img
-                                                    src={user.avatar}
+                                                    src={getAvatarUrl(user.avatar)}
                                                     alt="Avatar"
                                                     className="h-full w-full object-cover"
                                                 />

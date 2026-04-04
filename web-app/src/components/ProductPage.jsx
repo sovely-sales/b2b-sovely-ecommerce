@@ -25,6 +25,7 @@ import { useCartStore } from '../store/cartStore';
 import LoadingScreen from './LoadingScreen';
 
 const MAX_DROPSHIP_SELLING_PRICE = 999999;
+const DROPSHIP_SHIPPING_FLAT_FEE = 60; // Flat fee applied once per order
 
 const fadeUp = {
     hidden: { opacity: 0, y: 15 },
@@ -107,11 +108,14 @@ const ProductPage = () => {
         if (applicableTier) currentUnitCost = applicableTier.pricePerUnit;
     }
 
-    const estimatedTax = (currentUnitCost * product.gstSlab) / 100;
+    // Fix: Formula updated to match backend Cart exact math
+    const estimatedTaxPerUnit = (currentUnitCost * product.gstSlab) / 100;
     const estimatedProfit =
         orderType === 'DROPSHIP'
-            ? (customSellingPrice - (currentUnitCost + estimatedTax)) * quantity
+            ? (customSellingPrice * quantity) - ((currentUnitCost + estimatedTaxPerUnit) * quantity) - DROPSHIP_SHIPPING_FLAT_FEE
             : 0;
+
+    const totalDropshipCost = ((currentUnitCost + estimatedTaxPerUnit) * quantity) + DROPSHIP_SHIPPING_FLAT_FEE;
 
     const updateQuantity = (newQty) => {
         setAddToCartSuccess(false);
@@ -160,9 +164,7 @@ const ProductPage = () => {
                 variants={staggerContainer}
                 className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12"
             >
-                {}
                 <div className="space-y-6 lg:col-span-5">
-                    {}
                     <motion.div
                         variants={fadeUp}
                         className="group relative aspect-square w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
@@ -184,7 +186,6 @@ const ProductPage = () => {
                         )}
                     </motion.div>
 
-                    {}
                     {product.images?.length > 1 && (
                         <motion.div
                             variants={fadeUp}
@@ -194,11 +195,10 @@ const ProductPage = () => {
                                 <button
                                     key={idx}
                                     onClick={() => setSelectedImageIndex(idx)}
-                                    className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
-                                        selectedImageIndex === idx
+                                    className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${selectedImageIndex === idx
                                             ? 'border-indigo-600 ring-2 ring-indigo-100'
                                             : 'border-slate-200 opacity-70 hover:border-slate-300 hover:opacity-100'
-                                    }`}
+                                        }`}
                                 >
                                     <img
                                         src={img.url}
@@ -210,7 +210,6 @@ const ProductPage = () => {
                         </motion.div>
                     )}
 
-                    {}
                     <motion.div
                         variants={fadeUp}
                         className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
@@ -258,9 +257,7 @@ const ProductPage = () => {
                     </motion.div>
                 </div>
 
-                {}
                 <div className="flex flex-col space-y-8 lg:col-span-7">
-                    {}
                     <motion.div variants={fadeUp} className="border-b border-slate-200 pb-6">
                         <div className="mb-4 flex flex-wrap items-center gap-2">
                             <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
@@ -292,7 +289,6 @@ const ProductPage = () => {
                         </div>
                     </motion.div>
 
-                    {}
                     <motion.div
                         variants={fadeUp}
                         className="flex rounded-xl bg-slate-100 p-1.5 shadow-inner"
@@ -322,14 +318,68 @@ const ProductPage = () => {
                         </button>
                     </motion.div>
 
-                    {}
+                    <div className="w-full lg:w-auto border border-slate-100 rounded-xl p-4 bg-white">
+                        <label className="mb-3 flex items-center justify-between text-xs font-bold tracking-wider text-slate-500 uppercase">
+                            <span>Quantity {orderType === 'WHOLESALE' && `(MOQ: ${product.moq})`}</span>
+                        </label>
+
+                        <div className="flex flex-col gap-3">
+                            <div className="flex w-fit items-center rounded-lg border border-slate-200 bg-slate-50 p-1">
+                                <button
+                                    onClick={() =>
+                                        updateQuantity((quantity || 0) - (orderType === 'WHOLESALE' ? product.moq || 1 : 1))
+                                    }
+                                    className="rounded-md bg-white p-2 text-slate-500 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900"
+                                >
+                                    <Minus size={16} />
+                                </button>
+                                <input
+                                    type="number"
+                                    value={quantity}
+                                    onChange={(e) => updateQuantity(e.target.value)}
+                                    onBlur={() => {
+                                        if (quantity === '')
+                                            updateQuantity(orderType === 'WHOLESALE' ? product.moq || 1 : 1);
+                                    }}
+                                    className="hide-arrows w-16 bg-transparent text-center text-lg font-extrabold text-slate-900 outline-none"
+                                />
+                                <button
+                                    onClick={() =>
+                                        updateQuantity((quantity || 0) + (orderType === 'WHOLESALE' ? product.moq || 1 : 1))
+                                    }
+                                    className="rounded-md bg-white p-2 text-slate-500 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900"
+                                >
+                                    <Plus size={16} />
+                                </button>
+                            </div>
+
+                            {orderType === 'WHOLESALE' && (
+                                <div className="flex flex-wrap gap-2">
+                                    {[
+                                        product.moq || 10,
+                                        (product.moq || 10) * 5,
+                                        (product.moq || 10) * 10,
+                                        (product.moq || 10) * 20,
+                                    ].map((presetQty, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => updateQuantity(presetQty)}
+                                            className={`rounded border px-3 py-1 text-xs font-bold transition-all ${quantity === presetQty ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50'}`}
+                                        >
+                                            {presetQty}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     {orderType === 'WHOLESALE' && (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="space-y-6 rounded-2xl border border-indigo-100 bg-indigo-50/40 p-6"
                         >
-                            {}
                             <div className="space-y-3">
                                 <h3 className="text-xs font-bold tracking-wider text-indigo-900/60 uppercase">
                                     Volume Pricing
@@ -378,67 +428,8 @@ const ProductPage = () => {
                                 </div>
                             </div>
 
-                            {}
                             <div className="flex flex-col gap-6 rounded-xl border border-indigo-100 bg-white p-5 lg:flex-row lg:items-end lg:justify-between">
-                                <div className="w-full lg:w-auto">
-                                    <label className="mb-3 flex items-center justify-between text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                        <span>Quantity (MOQ: {product.moq})</span>
-                                    </label>
-
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex w-fit items-center rounded-lg border border-slate-200 bg-slate-50 p-1">
-                                            <button
-                                                onClick={() =>
-                                                    updateQuantity(
-                                                        (quantity || 0) - (product.moq || 1)
-                                                    )
-                                                }
-                                                className="rounded-md bg-white p-2 text-slate-500 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900"
-                                            >
-                                                <Minus size={16} />
-                                            </button>
-                                            <input
-                                                type="number"
-                                                value={quantity}
-                                                onChange={(e) => updateQuantity(e.target.value)}
-                                                onBlur={() => {
-                                                    if (quantity === '')
-                                                        updateQuantity(product.moq || 1);
-                                                }}
-                                                className="hide-arrows w-16 bg-transparent text-center text-lg font-extrabold text-slate-900 outline-none"
-                                            />
-                                            <button
-                                                onClick={() =>
-                                                    updateQuantity(
-                                                        (quantity || 0) + (product.moq || 1)
-                                                    )
-                                                }
-                                                className="rounded-md bg-white p-2 text-slate-500 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900"
-                                            >
-                                                <Plus size={16} />
-                                            </button>
-                                        </div>
-
-                                        <div className="flex flex-wrap gap-2">
-                                            {[
-                                                product.moq || 10,
-                                                (product.moq || 10) * 5,
-                                                (product.moq || 10) * 10,
-                                                (product.moq || 10) * 20,
-                                            ].map((presetQty, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => updateQuantity(presetQty)}
-                                                    className={`rounded border px-3 py-1 text-xs font-bold transition-all ${quantity === presetQty ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-200 hover:bg-indigo-50'}`}
-                                                >
-                                                    {presetQty}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex w-full flex-col items-start gap-4 border-t border-slate-100 pt-5 lg:w-auto lg:items-end lg:border-t-0 lg:pt-0">
+                                <div className="flex w-full flex-col items-start gap-4 lg:w-auto lg:items-end lg:border-t-0">
                                     <div className="text-left lg:text-right">
                                         <span className="block text-xs font-bold tracking-wider text-slate-400 uppercase">
                                             Subtotal (Excl. GST)
@@ -487,19 +478,19 @@ const ProductPage = () => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="rounded-xl border border-amber-100 bg-white p-4 shadow-sm">
-                                    <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                        Your Cost (Inc. GST)
+                                    <p className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
+                                        Total Order Cost (Inc. GST & Shipping)
                                     </p>
                                     <p className="mt-1 text-xl font-extrabold text-slate-900">
                                         ₹
-                                        {(product.dropshipBasePrice + estimatedTax).toLocaleString(
+                                        {totalDropshipCost.toLocaleString(
                                             'en-IN',
-                                            { maximumFractionDigits: 0 }
+                                            { maximumFractionDigits: 2 }
                                         )}
                                     </p>
                                 </div>
                                 <div className="rounded-xl border border-amber-100 bg-white p-4 shadow-sm">
-                                    <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    <p className="text-[11px] font-bold tracking-wider text-slate-500 uppercase">
                                         Market Retail Price
                                     </p>
                                     <p className="mt-1 text-xl font-extrabold text-slate-400 line-through">
@@ -511,7 +502,7 @@ const ProductPage = () => {
                             <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
                                 <div className="w-full sm:w-1/2">
                                     <label className="mb-2 block text-xs font-bold tracking-wider text-slate-600 uppercase">
-                                        Customer Selling Price (₹)
+                                        Customer Selling Price (₹) / Per Unit
                                     </label>
                                     <div className="relative">
                                         <span className="absolute top-1/2 left-4 -translate-y-1/2 text-lg font-bold text-slate-400">
@@ -546,15 +537,15 @@ const ProductPage = () => {
                                     </p>
                                 </div>
                                 <div
-                                    className={`flex w-full flex-col justify-center rounded-xl p-4 shadow-sm transition-colors sm:w-1/2 ${estimatedProfit > 0 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}
+                                    className={`flex w-full flex-col justify-center rounded-xl p-4 shadow-sm transition-colors sm:w-1/2 ${estimatedProfit >= 0 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}
                                 >
                                     <span className="text-xs font-bold tracking-wider uppercase opacity-90">
-                                        Estimated Net Profit
+                                        Total Estimated Net Profit
                                     </span>
                                     <span className="break-all text-3xl leading-none font-black">
-                                        {estimatedProfit > 0 ? '+' : ''}₹
-                                        {estimatedProfit.toLocaleString('en-IN', {
-                                            maximumFractionDigits: 0,
+                                        {estimatedProfit >= 0 ? '+' : '-'}₹
+                                        {Math.abs(estimatedProfit).toLocaleString('en-IN', {
+                                            maximumFractionDigits: 2,
                                         })}
                                     </span>
                                 </div>
@@ -564,8 +555,7 @@ const ProductPage = () => {
                                 onClick={handleAddToCart}
                                 disabled={
                                     isCartLoading ||
-                                    product.inventory?.stock <= 0 ||
-                                    estimatedProfit < 0
+                                    product.inventory?.stock <= 0
                                 }
                                 className={`w-full rounded-xl py-4 text-sm font-bold text-white shadow-md transition-all ${addToCartSuccess ? 'bg-emerald-500' : 'bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:shadow-none'}`}
                             >
@@ -581,32 +571,27 @@ const ProductPage = () => {
                         variants={fadeUp}
                         className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
                     >
-                        {/* Tab Headers */}
                         <div className="flex border-b border-slate-200 bg-slate-50 px-2 pt-2">
                             <button
                                 onClick={() => setActiveTab('description')}
-                                className={`px-6 py-3 text-sm font-bold transition-colors ${
-                                    activeTab === 'description'
+                                className={`px-6 py-3 text-sm font-bold transition-colors ${activeTab === 'description'
                                         ? 'rounded-t-lg border-b-2 border-indigo-600 bg-white text-indigo-700'
                                         : 'text-slate-500 hover:text-slate-800'
-                                }`}
+                                    }`}
                             >
                                 Product Overview
                             </button>
                             <button
                                 onClick={() => setActiveTab('policies')}
-                                className={`px-6 py-3 text-sm font-bold transition-colors ${
-                                    activeTab === 'policies'
+                                className={`px-6 py-3 text-sm font-bold transition-colors ${activeTab === 'policies'
                                         ? 'rounded-t-lg border-b-2 border-indigo-600 bg-white text-indigo-700'
                                         : 'text-slate-500 hover:text-slate-800'
-                                }`}
+                                    }`}
                             >
                                 Vendor Policies
                             </button>
                         </div>
 
-                        {}
-                        {}
                         <div className="p-6">
                             {activeTab === 'description' && (
                                 <StructuredDescription htmlContent={product.descriptionHTML} />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Upload, Loader2, Plus, Trash2 } from 'lucide-react';
+import { X, Upload, Loader2, Plus, Trash2, Package } from 'lucide-react';
 import api from '../../utils/api.js';
 
 const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
@@ -18,7 +18,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
         gstSlab: '18',
         status: 'active',
         descriptionHTML: '',
-        categoryId: '60d5ecb54ab24c001f3e3a4b',
+        categoryId: '60d5ecb54ab24c001f3e3a4b', // Provide a valid ID if needed, or let the user select
     });
 
     const [tiers, setTiers] = useState([]);
@@ -111,7 +111,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-8 p-6">
-                    {}
+                    {/* Core Info */}
                     <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50 p-5">
                         <h4 className="text-sm font-bold text-slate-900">Core Identity</h4>
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -142,7 +142,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                         </div>
                     </div>
 
-                    {}
+                    {/* Pricing */}
                     <div className="space-y-4 rounded-2xl border border-amber-100 bg-amber-50 p-5">
                         <h4 className="text-sm font-bold text-amber-900">
                             Dropship Pricing (Per Unit)
@@ -183,7 +183,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                         </p>
                     </div>
 
-                    {}
+                    {/* Tiered Pricing */}
                     <div className="space-y-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-5">
                         <div className="flex items-center justify-between">
                             <h4 className="text-sm font-bold text-indigo-900">
@@ -252,7 +252,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                         )}
                     </div>
 
-                    {}
+                    {/* Logistics */}
                     <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50 p-5">
                         <h4 className="text-sm font-bold text-slate-900">Logistics & Compliance</h4>
                         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -332,7 +332,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                         </div>
                     </div>
 
-                    {}
+                    {/* Images */}
                     <div>
                         <div className="group relative flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 transition-colors hover:border-slate-400">
                             <input
@@ -354,7 +354,7 @@ const CreateProductModal = ({ isOpen, onClose, onSuccess }) => {
                         </div>
                     </div>
 
-                    {}
+                    {/* Actions */}
                     <div className="flex justify-end gap-3 border-t border-slate-100 pt-6">
                         <button
                             type="button"
