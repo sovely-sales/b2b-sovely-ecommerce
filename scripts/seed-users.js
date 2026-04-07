@@ -66,7 +66,7 @@ const seedUsers = async () => {
                 }
             };
         });
-        // Using create instead of insertMany to ensure the pre('save') hook in the User model hashes the passwords
+        
         await User.create(b2bUsers);
 
         console.log('✅ Users Seeding Complete!');

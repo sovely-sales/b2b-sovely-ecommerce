@@ -29,7 +29,7 @@ export const createProduct = asyncHandler(async (req, res) => {
         images = req.files.map((file, index) => ({
             url: `${req.protocol}://${req.get('host')}/temp/${file.filename}`,
             position: index + 1,
-            altText: title
+            altText: title,
         }));
     }
 
@@ -80,6 +80,8 @@ export const getProducts = asyncHandler(async (req, res) => {
         minMargin,
         maxBasePrice,
         minBasePrice,
+        minWeight,
+        maxWeight,
         minMoq,
         maxMoq,
         inStock,
@@ -122,10 +124,10 @@ export const getProducts = asyncHandler(async (req, res) => {
         const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const searchRegex = new RegExp(safeSearch, 'i');
         query.$or = [
-            { title: { $regex: searchRegex } },
-            { sku: { $regex: searchRegex } },
-            { tags: { $regex: searchRegex } },
-            { vendor: { $regex: searchRegex } },
+            { title: searchRegex },
+            { sku: searchRegex },
+            { tags: searchRegex },
+            { vendor: searchRegex },
         ];
     }
 
@@ -143,6 +145,12 @@ export const getProducts = asyncHandler(async (req, res) => {
         query.dropshipBasePrice = {};
         if (parsedMinBasePrice !== null) query.dropshipBasePrice.$gte = parsedMinBasePrice;
         if (parsedMaxBasePrice !== null) query.dropshipBasePrice.$lte = parsedMaxBasePrice;
+    }
+
+    if (minWeight || maxWeight) {
+        query.weightGrams = {};
+        if (minWeight) query.weightGrams.$gte = Number(minWeight);
+        if (maxWeight) query.weightGrams.$lte = Number(maxWeight);
     }
 
     if (minMoq || maxMoq) {
@@ -211,8 +219,8 @@ export const getProducts = asyncHandler(async (req, res) => {
 
     let sortParams = { createdAt: -1 };
     if (sort === 'price-asc') sortParams = { dropshipBasePrice: 1 };
-    if (sort === 'price-desc') sortParams = { dropshipBasePrice: -1 };
-    if (sort === 'margin') sortParams = { estimatedMarginPercent: -1 };
+    else if (sort === 'price-desc') sortParams = { dropshipBasePrice: -1 };
+    else if (sort === 'margin') sortParams = { estimatedMarginPercent: -1 };
 
     const products = await Product.find(query, projection)
         .sort(sortParams)
@@ -260,10 +268,21 @@ export const updateProduct = asyncHandler(async (req, res) => {
         throw new ApiError(404, 'Product not found or has been removed');
     }
 
-    // Securely update nested inventory fields without overwriting other sub-properties
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+        req.body.images = req.files.map((file, index) => ({
+            url: `${req.protocol}://${req.get('host')}/temp/${file.filename}`,
+            position: index + 1,
+            altText: req.body.title || product.title,
+        }));
+    }
+
     if (req.body.inventory && typeof req.body.inventory === 'object') {
         Object.assign(product.inventory, req.body.inventory);
         delete req.body.inventory;
+    }
+
+    if (req.body.tieredPricing) {
+        product.tieredPricing = [];
     }
 
     Object.assign(product, req.body);
@@ -292,13 +311,12 @@ export const getAllAdminProducts = asyncHandler(async (req, res) => {
     const { page = 1, limit = 20, search, status, price, stock, sort } = req.query;
 
     const query = {};
+    let projection = {};
 
-    // Strictly apply Admin Status Filter
     if (status && status !== 'ALL') {
         query.status = status;
     }
 
-    // Strictly apply Admin Price Filter
     if (price && price !== 'ALL') {
         if (price === 'UNDER_500') {
             query.dropshipBasePrice = { $lt: 500 };
@@ -307,7 +325,6 @@ export const getAllAdminProducts = asyncHandler(async (req, res) => {
         }
     }
 
-    // Strictly apply Admin Stock Filter
     if (stock && stock !== 'ALL') {
         if (stock === 'IN_STOCK') {
             query['inventory.stock'] = { $gt: 10 };
@@ -321,29 +338,7 @@ export const getAllAdminProducts = asyncHandler(async (req, res) => {
     if (search) {
         const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const searchRegex = new RegExp(safeSearch, 'i');
-        query.$or = [
-            { title: { $regex: searchRegex } },
-            { sku: { $regex: searchRegex } },
-            { vendor: { $regex: searchRegex } },
-        ];
-    }
-
-    if (status) {
-        query.status = status;
-    }
-
-    if (price === 'UNDER_500') {
-        query.dropshipBasePrice = { $lt: 500 };
-    } else if (price === 'OVER_1000') {
-        query.dropshipBasePrice = { $gt: 1000 };
-    }
-
-    if (stock === 'IN_STOCK') {
-        query['inventory.stock'] = { $gt: 10 };
-    } else if (stock === 'LOW_STOCK') {
-        query['inventory.stock'] = { $gt: 0, $lte: 10 };
-    } else if (stock === 'OUT_OF_STOCK') {
-        query['inventory.stock'] = { $lte: 0 };
+        query.$or = [{ title: searchRegex }, { sku: searchRegex }, { vendor: searchRegex }];
     }
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -353,7 +348,7 @@ export const getAllAdminProducts = asyncHandler(async (req, res) => {
         sortParams = { 'inventory.stock': 1 };
     }
 
-    const products = await Product.find(query)
+    const products = await Product.find(query, projection)
         .sort(sortParams)
         .skip(skip)
         .limit(Number(limit))

@@ -12,6 +12,40 @@ const storeIntegrationSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const savedCustomerSchema = new mongoose.Schema(
+    {
+        name: { type: String, required: true },
+        phone: { type: String, required: true },
+        address: {
+            street: { type: String, required: true },
+            city: { type: String, required: true },
+            state: { type: String, required: true },
+            zip: { type: String, required: true },
+        },
+    },
+    { _id: true }
+);
+
+const branchSchema = new mongoose.Schema({
+    branchName: { type: String, required: true },
+    gstin: {
+        type: String,
+        trim: true,
+        uppercase: true,
+        match: [
+            /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[A-Z0-9]{1}[0-9A-Z]{1}$/,
+            'Invalid GSTIN',
+        ],
+    },
+    address: {
+        street: { type: String, required: true },
+        city: { type: String, required: true },
+        state: { type: String, required: true },
+        zip: { type: String, required: true },
+    },
+    isPrimary: { type: Boolean, default: false },
+});
+
 const userSchema = new mongoose.Schema(
     {
         name: { type: String, required: true },
@@ -25,8 +59,9 @@ const userSchema = new mongoose.Schema(
 
         role: { type: String, enum: ['ADMIN', 'RESELLER', 'CUSTOMER'], default: 'CUSTOMER' },
         refreshToken: { type: String },
-
+        savedCustomers: [savedCustomerSchema],
         companyName: { type: String, trim: true },
+        branches: [branchSchema],
         gstin: {
             type: String,
             trim: true,
@@ -42,12 +77,6 @@ const userSchema = new mongoose.Schema(
             uppercase: true,
             match: [/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Invalid PAN format'],
         },
-        kycStatus: {
-            type: String,
-            enum: ['PENDING', 'APPROVED', 'REJECTED'],
-            default: 'PENDING',
-        },
-        kycRejectionReason: { type: String, default: null },
 
         walletBalance: { type: Number, default: 0 },
         bankDetails: {
@@ -69,6 +98,18 @@ const userSchema = new mongoose.Schema(
         orderSms: { type: Boolean, default: true },
         promotionalEmails: { type: Boolean, default: false },
 
+        updateRequestStatus: {
+            type: String,
+            enum: ['NONE', 'PENDING', 'REJECTED'],
+            default: 'NONE',
+        },
+        updateRejectionReason: { type: String, default: null },
+        pendingUpdates: {
+            gstin: { type: String, uppercase: true, trim: true },
+            panNumber: { type: String, uppercase: true, trim: true },
+            companyName: { type: String, trim: true },
+        },
+
         isActive: { type: Boolean, default: true },
         deletedAt: { type: Date, default: null },
     },
@@ -86,6 +127,9 @@ userSchema.methods.isPasswordCorrect = async function (password) {
 };
 
 userSchema.methods.generateAccessToken = function (sessionId = null) {
+    if (!process.env.ACCESS_TOKEN_SECRET) {
+        throw new Error('ACCESS_TOKEN_SECRET is missing in environment variables');
+    }
     const expiry = process.env.ACCESS_TOKEN_EXPIRY?.trim() || '1d';
 
     return jwt.sign(
@@ -93,15 +137,18 @@ userSchema.methods.generateAccessToken = function (sessionId = null) {
             _id: this._id,
             email: this.email,
             role: this.role,
-            kycStatus: this.kycStatus,
             ...(sessionId ? { sid: String(sessionId) } : {}),
         },
-        process.env.ACCESS_TOKEN_SECRET || 'fallback_secret',
+        process.env.ACCESS_TOKEN_SECRET,
         { expiresIn: expiry }
     );
 };
 
 userSchema.methods.generateRefreshToken = function (sessionId = null) {
+    if (!process.env.REFRESH_TOKEN_SECRET) {
+        throw new Error('REFRESH_TOKEN_SECRET is missing in environment variables');
+    }
+
     const expiry = process.env.REFRESH_TOKEN_EXPIRY?.trim() || '10d';
 
     return jwt.sign(
@@ -109,7 +156,7 @@ userSchema.methods.generateRefreshToken = function (sessionId = null) {
             _id: this._id,
             ...(sessionId ? { sid: String(sessionId) } : {}),
         },
-        process.env.REFRESH_TOKEN_SECRET || 'fallback_refresh_secret',
+        process.env.REFRESH_TOKEN_SECRET,
         { expiresIn: expiry }
     );
 };

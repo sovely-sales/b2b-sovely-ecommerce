@@ -1,37 +1,49 @@
 import mongoose from 'mongoose';
 
-const cartItemSchema = new mongoose.Schema(
+const endCustomerSchema = new mongoose.Schema(
     {
-        productId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Product',
-            required: true,
+        name: { type: String },
+        phone: { type: String },
+        address: {
+            street: { type: String },
+            city: { type: String },
+            state: { type: String },
+            zip: { type: String },
         },
-        qty: {
-            type: Number,
-            required: true,
-            min: 1,
-        },
-        orderType: {
-            type: String,
-            enum: ['DROPSHIP', 'WHOLESALE'],
-            required: true,
-            default: 'DROPSHIP',
-        },
-        platformUnitCost: { type: Number, required: true },
-        resellerSellingPrice: { type: Number, default: 0 },
-        gstSlab: { type: Number, default: 0 },
-        taxAmountPerUnit: { type: Number, default: 0 },
-        shippingCost: { type: Number, default: 0 },
-        actualWeight: { type: Number, default: 0 },
-        volumetricWeight: { type: Number, default: 0 },
-        billableWeight: { type: Number, default: 0 },
-
-        totalItemPlatformCost: { type: Number, required: true },
-        expectedProfit: { type: Number, default: 0 },
     },
     { _id: false }
 );
+
+const cartItemSchema = new mongoose.Schema({
+    productId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+        required: true,
+    },
+    qty: {
+        type: Number,
+        required: true,
+        min: 1,
+    },
+    orderType: {
+        type: String,
+        enum: ['DROPSHIP', 'WHOLESALE'],
+        required: true,
+        default: 'DROPSHIP',
+    },
+    endCustomerDetails: { type: endCustomerSchema, default: null },
+    platformUnitCost: { type: Number, required: true },
+    resellerSellingPrice: { type: Number, default: 0 },
+    gstSlab: { type: Number, default: 0 },
+    taxAmountPerUnit: { type: Number, default: 0 },
+    shippingCost: { type: Number, default: 0 },
+    actualWeight: { type: Number, default: 0 },
+    volumetricWeight: { type: Number, default: 0 },
+    billableWeight: { type: Number, default: 0 },
+
+    totalItemPlatformCost: { type: Number, required: true },
+    expectedProfit: { type: Number, default: 0 },
+});
 
 const cartSchema = new mongoose.Schema(
     {

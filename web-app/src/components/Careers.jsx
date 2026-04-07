@@ -20,7 +20,7 @@ const Careers = () => {
                         Join the <span className="text-emerald-600">Sovely</span> Team
                     </h1>
                     <p className="mx-auto max-w-2xl text-lg font-medium text-slate-500">
-                        We're building the future of B2B e-commerce and dropshipping. We're looking 
+                        We're building the future of B2B e-commerce and dropshipping. We're looking
                         for passionate individuals to help us scale.
                     </p>
                 </div>
@@ -31,8 +31,8 @@ const Careers = () => {
                             <Star size={24} />
                         </div>
                         <h3 className="mb-2 text-xl font-bold text-slate-900">Culture first</h3>
-                        <p className="text-sm font-medium leading-relaxed text-slate-500">
-                            We believe in autonomy, ownership, and building a supportive environment 
+                        <p className="text-sm leading-relaxed font-medium text-slate-500">
+                            We believe in autonomy, ownership, and building a supportive environment
                             where everyone can thrive.
                         </p>
                     </div>
@@ -41,8 +41,8 @@ const Careers = () => {
                             <Target size={24} />
                         </div>
                         <h3 className="mb-2 text-xl font-bold text-slate-900">Big Impact</h3>
-                        <p className="text-sm font-medium leading-relaxed text-slate-500">
-                            Your work will directly enable thousands of small businesses to scale 
+                        <p className="text-sm leading-relaxed font-medium text-slate-500">
+                            Your work will directly enable thousands of small businesses to scale
                             and succeed in the digital economy.
                         </p>
                     </div>
@@ -51,8 +51,8 @@ const Careers = () => {
                             <Users size={24} />
                         </div>
                         <h3 className="mb-2 text-xl font-bold text-slate-900">Expert Team</h3>
-                        <p className="text-sm font-medium leading-relaxed text-slate-500">
-                            Work alongside some of the best minds in logistics, fintech, and 
+                        <p className="text-sm leading-relaxed font-medium text-slate-500">
+                            Work alongside some of the best minds in logistics, fintech, and
                             e-commerce technology.
                         </p>
                     </div>
@@ -62,10 +62,14 @@ const Careers = () => {
                     <h2 className="flex items-center gap-2 text-2xl font-black text-slate-900">
                         <Briefcase size={24} className="text-emerald-600" /> Open Roles
                     </h2>
-                    
+
                     <div className="space-y-4">
                         {[
-                            { title: 'Senior Frontend Engineer', dept: 'Engineering', type: 'Full-time' },
+                            {
+                                title: 'Senior Frontend Engineer',
+                                dept: 'Engineering',
+                                type: 'Full-time',
+                            },
                             { title: 'Product Manager', dept: 'Product', type: 'Full-time' },
                             { title: 'Operations Specialist', dept: 'Logistics', type: 'Remote' },
                         ].map((role) => (

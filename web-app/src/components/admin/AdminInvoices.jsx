@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Search,
     Filter,
@@ -9,6 +9,7 @@ import {
     Loader2,
     Wallet,
     Package,
+    Calendar,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../utils/api.js';
@@ -24,6 +25,32 @@ const AdminInvoices = () => {
     const [filterOption, setFilterOption] = useState('ALL');
     const [downloadingId, setDownloadingId] = useState(null);
 
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+    const searchInputRef = useRef(null);
+
+    // Global Keypress Listener for Search Autofocus
+    useEffect(() => {
+        const handleGlobalKeyDown = (e) => {
+            const activeTag = document.activeElement?.tagName;
+            if (
+                activeTag === 'INPUT' ||
+                activeTag === 'TEXTAREA' ||
+                document.activeElement?.isContentEditable
+            ) {
+                return;
+            }
+            if (e.ctrlKey || e.metaKey || e.altKey || e.key.length > 1) {
+                return;
+            }
+            if (searchInputRef.current) {
+                searchInputRef.current.focus();
+            }
+        };
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, []);
+
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
         return () => clearTimeout(timer);
@@ -31,7 +58,7 @@ const AdminInvoices = () => {
 
     useEffect(() => {
         setPage(1);
-    }, [debouncedSearch, filterOption]);
+    }, [debouncedSearch, filterOption, startDate, endDate]);
 
     const fetchInvoices = async () => {
         setLoading(true);
@@ -42,17 +69,23 @@ const AdminInvoices = () => {
                     limit: 10,
                     search: debouncedSearch,
                     status: filterOption === 'ALL' ? '' : filterOption,
+                    startDate,
+                    endDate,
                 },
             });
 
-            // Graceful data extraction
-            const data = res.data?.data?.invoices || res.data?.data?.data || [];
-            setInvoices(data);
+            // Explicitly extract the array.
+            // Depending on ApiResponse structure, it's usually res.data.data.data or res.data.data
+            const invoiceData = res.data?.data?.data || res.data?.data || [];
+
+            setInvoices(Array.isArray(invoiceData) ? invoiceData : []);
+
             setTotalPages(
                 res.data?.data?.pagination?.pages || res.data?.data?.pagination?.totalPages || 1
             );
         } catch (err) {
-            console.error(err);
+            console.error('Fetch error:', err);
+            setInvoices([]);
         } finally {
             setLoading(false);
         }
@@ -60,7 +93,7 @@ const AdminInvoices = () => {
 
     useEffect(() => {
         fetchInvoices();
-    }, [page, debouncedSearch, filterOption]);
+    }, [page, debouncedSearch, filterOption, startDate, endDate]);
 
     const markAsPaid = async (id) => {
         if (
@@ -98,29 +131,50 @@ const AdminInvoices = () => {
     return (
         <>
             {}
-            <div className="mb-6 flex flex-col gap-4 md:flex-row">
-                <div className="flex flex-1 items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-6">
+                <div className="flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900 md:col-span-2 lg:col-span-2">
                     <Search size={18} className="text-slate-400" />
                     <input
+                        ref={searchInputRef}
                         type="text"
-                        placeholder="Search Invoice #, Company Name, or GSTIN..."
+                        placeholder="Start typing to search Invoice #, Company, GSTIN..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="ml-3 w-full border-none text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400"
                     />
                 </div>
-                <div className="flex items-center rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
-                    <Filter size={18} className="mr-2 text-slate-400" />
+                <div className="flex items-center rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900 lg:col-span-2">
+                    <Filter size={18} className="mr-2 shrink-0 text-slate-400" />
                     <select
                         value={filterOption}
                         onChange={(e) => setFilterOption(e.target.value)}
-                        className="cursor-pointer border-none bg-transparent py-2.5 text-sm font-bold text-slate-700 outline-none"
+                        className="w-full cursor-pointer border-none bg-transparent py-2.5 text-sm font-bold text-slate-700 outline-none"
                     >
                         <option value="ALL">All Ledger Entries</option>
                         <option value="UNPAID">Unpaid / Outstanding</option>
                         <option value="PAID">Paid / Settled</option>
                         <option value="OVERDUE">Overdue (Net-30 etc.)</option>
                     </select>
+                </div>
+                <div className="flex items-center rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+                    <Calendar size={16} className="mr-2 shrink-0 text-slate-400" />
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full cursor-pointer border-none bg-transparent py-2.5 text-sm font-bold text-slate-700 outline-none"
+                        title="Start Date"
+                    />
+                </div>
+                <div className="flex items-center rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+                    <Calendar size={16} className="mr-2 shrink-0 text-slate-400" />
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full cursor-pointer border-none bg-transparent py-2.5 text-sm font-bold text-slate-700 outline-none"
+                        title="End Date"
+                    />
                 </div>
             </div>
 
@@ -168,7 +222,8 @@ const AdminInvoices = () => {
                             ) : null}
                             {invoices.map((inv, index) => {
                                 const isOverdue =
-                                    new Date(inv.dueDate) < new Date() && inv.status === 'UNPAID';
+                                    new Date(inv.dueDate) < new Date() &&
+                                    inv.paymentStatus === 'UNPAID';
                                 const isWallet = inv.invoiceType === 'WALLET_TOPUP';
 
                                 return (
@@ -240,20 +295,22 @@ const AdminInvoices = () => {
                                         <td className="p-4">
                                             <span
                                                 className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-extrabold tracking-widest uppercase ${
-                                                    inv.status === 'PAID'
+                                                    inv.paymentStatus === 'PAID'
                                                         ? 'bg-green-100 text-green-700'
-                                                        : inv.status === 'CANCELLED'
+                                                        : inv.paymentStatus === 'CANCELLED' ||
+                                                            inv.status === 'CANCELLED'
                                                           ? 'bg-red-100 text-red-700'
                                                           : isOverdue
                                                             ? 'bg-red-100 text-red-700 ring-1 ring-red-400'
                                                             : 'bg-amber-100 text-amber-700'
                                                 }`}
                                             >
-                                                {inv.status === 'CANCELLED'
+                                                {inv.paymentStatus === 'CANCELLED' ||
+                                                inv.status === 'CANCELLED'
                                                     ? 'CANCELLED'
                                                     : isOverdue
                                                       ? 'OVERDUE'
-                                                      : inv.status}
+                                                      : inv.paymentStatus}
                                             </span>
                                         </td>
                                         <td className="p-4">
@@ -277,7 +334,7 @@ const AdminInvoices = () => {
                                                     PDF
                                                 </button>
 
-                                                {inv.status === 'UNPAID' && (
+                                                {inv.paymentStatus === 'UNPAID' && (
                                                     <button
                                                         onClick={() => markAsPaid(inv._id)}
                                                         title="Mark as Paid (Bank Transfer/Offline Settlement)"
@@ -305,9 +362,20 @@ const AdminInvoices = () => {
                 >
                     <ChevronLeft size={16} /> Prev
                 </button>
-                <span className="text-sm font-bold text-slate-500">
-                    Page <span className="text-slate-900">{page}</span> of{' '}
-                    <span className="text-slate-900">{totalPages || 1}</span>
+                <span className="flex items-center gap-2 text-sm font-bold text-slate-500">
+                    Page
+                    <input
+                        type="number"
+                        min={1}
+                        max={totalPages || 1}
+                        value={page}
+                        onChange={(e) => {
+                            const val = e.target.value ? Number(e.target.value) : 1;
+                            setPage(Math.min(totalPages || 1, Math.max(1, val)));
+                        }}
+                        className="w-14 [appearance:textfield] rounded-lg border border-slate-200 bg-white py-1 text-center text-slate-900 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                    of <span className="text-slate-900">{totalPages || 1}</span>
                 </span>
                 <button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

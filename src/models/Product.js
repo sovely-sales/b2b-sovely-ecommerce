@@ -54,7 +54,7 @@ const productSchema = new mongoose.Schema(
         weightGrams: { type: Number, required: true },
         dimensions: dimensionsSchema,
         hsnCode: { type: String, required: true },
-        gstSlab: { type: Number, enum: [0, 5, 12, 18, 28], required: true },
+        gstSlab: { type: Number, enum: [0, 5, 18, 40], required: true },
         shippingDays: { type: String, default: '3-5' },
 
         returnPolicy: {
@@ -68,6 +68,7 @@ const productSchema = new mongoose.Schema(
             default: 0,
             index: true,
         },
+        isVerifiedSupplier: { type: Boolean, default: true },
 
         status: { type: String, enum: ['active', 'draft', 'archived'], default: 'active' },
         deletedAt: { type: Date, default: null },
@@ -82,12 +83,22 @@ const productSchema = new mongoose.Schema(
     { timestamps: true, optimisticConcurrency: true }
 );
 
-productSchema.index({ title: 1 });
-productSchema.index({ tags: 1 });
-productSchema.index({ vendor: 1 });
 productSchema.index({ categoryId: 1 });
 productSchema.index({ status: 1 });
 productSchema.index({ 'inventory.stock': 1 });
+
+productSchema.index(
+    {
+        title: 'text',
+        sku: 'text',
+        tags: 'text',
+        vendor: 'text',
+    },
+    {
+        weights: { title: 10, sku: 8, tags: 5, vendor: 2 },
+        name: 'B2B_Text_Index',
+    }
+);
 
 productSchema.pre('save', function () {
     if (this.suggestedRetailPrice > this.dropshipBasePrice && this.dropshipBasePrice > 0) {

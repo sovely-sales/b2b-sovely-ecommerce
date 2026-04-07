@@ -23,14 +23,17 @@ const BulkUpload = () => {
     const { isAdmin } = useContext(AuthContext);
 
     const [activeTab, setActiveTab] = useState('UPLOAD');
+
+    const [adminUploadType, setAdminUploadType] = useState('CATALOG');
+
     const [parsedData, setParsedData] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
     const [manualInput, setManualInput] = useState('');
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
     const [isImporting, setIsImporting] = useState(false);
-    const [importResult, setImportResult] = useState(null); // { inserted, updated, skipped, errors }
-    const [uploadedFile, setUploadedFile] = useState(null); // for admin: hold the actual File object
+    const [importResult, setImportResult] = useState(null);
+    const [uploadedFile, setUploadedFile] = useState(null);
     const fileInputRef = useRef(null);
 
     // ─── RESELLER: CSV Parsing Logic ─────────────────────────────────────────
@@ -70,7 +73,6 @@ const BulkUpload = () => {
         setImportResult(null);
 
         if (isAdmin) {
-            // Admin mode: hold file object for the API upload
             setUploadedFile(file);
             setParsedData([{ sku: file.name, qty: '—', status: 'pending' }]);
         } else {
@@ -111,20 +113,19 @@ const BulkUpload = () => {
             const formData = new FormData();
             formData.append('csvFile', uploadedFile);
 
-            const res = await api.post('products/import-csv', formData, {
+            const endpoint =
+                adminUploadType === 'CATALOG' ? 'products/import-csv' : 'products/sync-inventory';
+
+            const res = await api.post(endpoint, formData, {
                 timeout: 300000,
             });
 
             const data = res.data?.data;
             setImportResult(data);
-            setSuccessMsg(res.data?.message || 'Import complete!');
+            setSuccessMsg(res.data?.message || 'Process complete!');
             setParsedData((prev) => prev.map((p) => ({ ...p, status: 'success' })));
         } catch (err) {
-            const msg = err.response?.data?.message || `Import failed: ${err.message}`;
-            const fullUrl = (api.defaults.baseURL || '') + 'products/import-csv';
-            alert(
-                `🔍 FRONTEND DEBUG:\nStatus: ${err.response?.status}\nURL: ${fullUrl}\nError: ${err.message}`
-            );
+            const msg = err.response?.data?.message || `Process failed: ${err.message}`;
             setError(msg);
             setParsedData((prev) => prev.map((p) => ({ ...p, status: 'error' })));
         } finally {
@@ -177,12 +178,24 @@ const BulkUpload = () => {
     };
 
     const downloadTemplate = () => {
-        const csvContent = isAdmin
-            ? 'data:text/csv;charset=utf-8,Handle,Title,Body (HTML),Vendor,Type,Tags,Variant SKU,Variant Grams,Variant Price,Cost per item,Image Src,Image Position,Status\nexample-product,Example Product,<p>Description here</p>,Your Brand,Electronics,tag1,SKU-001,500,999,799,https://image.url/product.jpg,1,active\n'
-            : 'data:text/csv;charset=utf-8,SKU,Quantity\nITEM-001,50\nITEM-002,100\n';
-        const filename = isAdmin
-            ? 'sovely_product_import_template.csv'
-            : 'sovely_bulk_order_template.csv';
+        let csvContent = '';
+        let filename = '';
+
+        if (isAdmin) {
+            if (adminUploadType === 'CATALOG') {
+                csvContent =
+                    'data:text/csv;charset=utf-8,Handle,Title,Body (HTML),Vendor,Type,Tags,Variant SKU,Variant Grams,Variant Price,Cost per item,Image Src,Image Position,Status\nexample-product,Example Product,<p>Description here</p>,Your Brand,Electronics,tag1,SKU-001,500,999,799,https://image.url/product.jpg,1,active\n';
+                filename = 'sovely_product_import_template.csv';
+            } else {
+                csvContent =
+                    'data:text/csv;charset=utf-8,SKU,On hand (current)\nSKU-001,500\nSKU-002,150\n';
+                filename = 'sovely_inventory_sync_template.csv';
+            }
+        } else {
+            csvContent = 'data:text/csv;charset=utf-8,SKU,Quantity\nITEM-001,50\nITEM-002,100\n';
+            filename = 'sovely_bulk_order_template.csv';
+        }
+
         const link = document.createElement('a');
         link.setAttribute('href', encodeURI(csvContent));
         link.setAttribute('download', filename);
@@ -201,7 +214,6 @@ const BulkUpload = () => {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    // ─── Decide action button behavior ───────────────────────────────────────
     const handlePrimaryAction = () => {
         if (isAdmin) runAdminImport();
         else processBulkOrder();
@@ -209,8 +221,10 @@ const BulkUpload = () => {
 
     const primaryButtonLabel = isAdmin
         ? isImporting
-            ? 'Importing Products...'
-            : 'Import Products to Catalog'
+            ? 'Processing Data...'
+            : adminUploadType === 'CATALOG'
+              ? 'Import Catalog'
+              : 'Sync Inventory'
         : isLoading
           ? 'Processing Bulk Order...'
           : 'Add All to Procurement Cart';
@@ -223,32 +237,61 @@ const BulkUpload = () => {
         <div className="mx-auto mb-20 w-full max-w-5xl px-4 py-8 font-sans md:mb-0 md:py-12">
             <div className="mb-8">
                 <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-                    {isAdmin ? 'Mass Product Import (CSV)' : 'Quick Procure'}
+                    {isAdmin ? 'Store Management Hub' : 'Quick Procure'}
                 </h1>
                 <p className="mt-1 text-sm font-medium text-slate-500">
                     {isAdmin
-                        ? 'Upload a Shopify-format CSV to bulk import or update your product catalog.'
+                        ? 'Upload Shopify-format CSVs to build your catalog or sync live inventory levels.'
                         : 'Upload a CSV or paste your SKUs to instantly build your wholesale cart.'}
                 </p>
             </div>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-                {}
                 <div className="space-y-6 lg:col-span-5">
                     {}
                     {!isAdmin && (
                         <div className="flex rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
                             <button
-                                onClick={() => setActiveTab('UPLOAD')}
+                                onClick={() => {
+                                    setActiveTab('UPLOAD');
+                                    reset();
+                                }}
                                 className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-all ${activeTab === 'UPLOAD' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
                             >
                                 <UploadCloud size={18} /> CSV Upload
                             </button>
                             <button
-                                onClick={() => setActiveTab('PASTE')}
+                                onClick={() => {
+                                    setActiveTab('PASTE');
+                                    reset();
+                                }}
                                 className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-all ${activeTab === 'PASTE' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
                             >
                                 <ListPlus size={18} /> Quick Paste
+                            </button>
+                        </div>
+                    )}
+
+                    {}
+                    {isAdmin && (
+                        <div className="flex rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
+                            <button
+                                onClick={() => {
+                                    setAdminUploadType('CATALOG');
+                                    reset();
+                                }}
+                                className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-all ${adminUploadType === 'CATALOG' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                <Package size={18} /> Catalog Import
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setAdminUploadType('INVENTORY');
+                                    reset();
+                                }}
+                                className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-all ${adminUploadType === 'INVENTORY' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                <RefreshCw size={18} /> Inventory Sync
                             </button>
                         </div>
                     )}
@@ -293,7 +336,12 @@ const BulkUpload = () => {
                                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-50 py-3 text-sm font-bold text-indigo-600 transition-colors hover:bg-indigo-100"
                                 >
                                     <Download size={16} /> Download{' '}
-                                    {isAdmin ? 'Product Import' : 'Order'} Template
+                                    {isAdmin
+                                        ? adminUploadType === 'CATALOG'
+                                            ? 'Catalog'
+                                            : 'Inventory'
+                                        : 'Order'}{' '}
+                                    Template
                                 </button>
                             </div>
                         ) : (
@@ -325,7 +373,7 @@ const BulkUpload = () => {
                     </div>
 
                     {}
-                    {isAdmin && (
+                    {isAdmin && adminUploadType === 'CATALOG' && (
                         <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-xs text-blue-800">
                             <p className="mb-1 font-extrabold">
                                 ✅ Supported Format: Shopify Product Export CSV
@@ -337,17 +385,29 @@ const BulkUpload = () => {
                                 </span>
                             </p>
                             <p className="mt-1 font-medium text-blue-700">
-                                If <span className="font-mono">Cost per item</span> is empty, base
-                                price = 80% of selling price.
-                            </p>
-                            <p className="mt-1 font-medium text-blue-700">
                                 Existing SKUs will be updated, new ones inserted.
+                            </p>
+                        </div>
+                    )}
+
+                    {}
+                    {isAdmin && adminUploadType === 'INVENTORY' && (
+                        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-xs text-amber-800">
+                            <p className="mb-1 font-extrabold">
+                                ✅ Supported Format: Shopify Inventory Export CSV
+                            </p>
+                            <p className="font-medium text-amber-700">
+                                Required columns:{' '}
+                                <span className="font-mono">SKU, On hand (current)</span> OR{' '}
+                                <span className="font-mono">On hand (new)</span>
+                            </p>
+                            <p className="mt-1 font-medium text-amber-700">
+                                Only updates stock for existing products in the database.
                             </p>
                         </div>
                     )}
                 </div>
 
-                {}
                 <div className="lg:col-span-7">
                     <div className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
@@ -357,7 +417,7 @@ const BulkUpload = () => {
                                 ) : (
                                     <ShoppingCart size={20} className="text-slate-400" />
                                 )}
-                                {isAdmin ? 'Import Preview' : 'Order Preview'}
+                                {isAdmin ? 'Processing Preview' : 'Order Preview'}
                             </h3>
                             <div className="flex items-center gap-2">
                                 <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-extrabold tracking-wider text-slate-500 uppercase">
@@ -379,7 +439,6 @@ const BulkUpload = () => {
                                 <AlertCircle size={16} className="shrink-0" /> <p>{error}</p>
                             </div>
                         )}
-
                         {successMsg && (
                             <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-700">
                                 <CheckCircle2 size={16} className="shrink-0" /> <p>{successMsg}</p>
@@ -389,43 +448,61 @@ const BulkUpload = () => {
                         {}
                         {importResult && (
                             <div className="mb-4 grid grid-cols-3 gap-3">
-                                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-center">
-                                    <p className="text-2xl font-black text-emerald-600">
-                                        {importResult.inserted}
-                                    </p>
-                                    <p className="text-[10px] font-bold tracking-wider text-emerald-700 uppercase">
-                                        New Products
-                                    </p>
-                                </div>
-                                <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-center">
-                                    <p className="text-2xl font-black text-blue-600">
-                                        {importResult.updated}
-                                    </p>
-                                    <p className="text-[10px] font-bold tracking-wider text-blue-700 uppercase">
-                                        Updated
-                                    </p>
-                                </div>
-                                <div className="rounded-xl border border-amber-100 bg-amber-50 p-3 text-center">
-                                    <p className="text-2xl font-black text-amber-600">
-                                        {importResult.skipped}
-                                    </p>
-                                    <p className="text-[10px] font-bold tracking-wider text-amber-700 uppercase">
-                                        Skipped
-                                    </p>
-                                </div>
+                                {importResult.inserted !== undefined && (
+                                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-center">
+                                        <p className="text-2xl font-black text-emerald-600">
+                                            {importResult.inserted}
+                                        </p>
+                                        <p className="text-[10px] font-bold tracking-wider text-emerald-700 uppercase">
+                                            New Products
+                                        </p>
+                                    </div>
+                                )}
+                                {importResult.updated !== undefined && (
+                                    <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-center">
+                                        <p className="text-2xl font-black text-blue-600">
+                                            {importResult.updated}
+                                        </p>
+                                        <p className="text-[10px] font-bold tracking-wider text-blue-700 uppercase">
+                                            Updated
+                                        </p>
+                                    </div>
+                                )}
+                                {importResult.skipped !== undefined && (
+                                    <div className="rounded-xl border border-amber-100 bg-amber-50 p-3 text-center">
+                                        <p className="text-2xl font-black text-amber-600">
+                                            {importResult.skipped}
+                                        </p>
+                                        <p className="text-[10px] font-bold tracking-wider text-amber-700 uppercase">
+                                            Skipped
+                                        </p>
+                                    </div>
+                                )}
+                                {importResult.notFound !== undefined && (
+                                    <div className="rounded-xl border border-red-100 bg-red-50 p-3 text-center">
+                                        <p className="text-2xl font-black text-red-600">
+                                            {importResult.notFound}
+                                        </p>
+                                        <p className="text-[10px] font-bold tracking-wider text-red-700 uppercase">
+                                            Not Found
+                                        </p>
+                                    </div>
+                                )}
                                 {importResult.errors?.length > 0 && (
                                     <div className="col-span-3 rounded-xl border border-red-100 bg-red-50 p-3">
                                         <p className="mb-1 text-[10px] font-extrabold text-red-700 uppercase">
-                                            Errors (first 10):
+                                            Errors / Warnings:
                                         </p>
-                                        {importResult.errors.map((e, i) => (
-                                            <p
-                                                key={i}
-                                                className="font-mono text-[10px] text-red-600"
-                                            >
-                                                {e}
-                                            </p>
-                                        ))}
+                                        <div className="custom-scrollbar max-h-24 overflow-y-auto">
+                                            {importResult.errors.map((e, i) => (
+                                                <p
+                                                    key={i}
+                                                    className="font-mono text-[10px] text-red-600"
+                                                >
+                                                    {e}
+                                                </p>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -439,7 +516,7 @@ const BulkUpload = () => {
                                 <p className="font-extrabold text-slate-600">No data loaded</p>
                                 <p className="mt-1 max-w-[250px] text-sm">
                                     {isAdmin
-                                        ? 'Upload a Shopify product CSV to begin the import.'
+                                        ? 'Select an action above and upload a CSV to begin.'
                                         : 'Upload a file or paste SKUs to see your order preview here.'}
                                 </p>
                             </div>
@@ -477,7 +554,7 @@ const BulkUpload = () => {
                                                         {row.status === 'pending' && (
                                                             <span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 uppercase">
                                                                 {isImporting
-                                                                    ? 'Importing...'
+                                                                    ? 'Working...'
                                                                     : 'Ready'}
                                                             </span>
                                                         )}

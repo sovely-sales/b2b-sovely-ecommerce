@@ -8,17 +8,20 @@ import QRCode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { Counter } from '../models/Counter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const getInvoice = asyncHandler(async (req, res) => {
-    const invoice = await Invoice.findOne({
-        _id: req.params.id,
-        resellerId: req.user._id,
-    }).populate('orderId');
+    const query = { _id: req.params.id };
+    if (req.user.role !== 'ADMIN') {
+        query.resellerId = req.user._id;
+    }
 
-    if (!invoice) throw new ApiError(404, 'Invoice not found');
+    const invoice = await Invoice.findOne(query).populate('orderId');
+
+    if (!invoice) throw new ApiError(404, 'Invoice not found or unauthorized');
 
     return res.status(200).json(new ApiResponse(200, invoice, 'Invoice details fetched'));
 });
@@ -39,7 +42,23 @@ export const getAllInvoices = asyncHandler(async (req, res) => {
     const search = req.query.search || '';
     const status = req.query.status || 'ALL';
 
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
+
     const query = {};
+
+    if (startDate || endDate) {
+        query.createdAt = {};
+        if (startDate) {
+            query.createdAt.$gte = new Date(startDate);
+        }
+        if (endDate) {
+            const end = new Date(endDate);
+
+            end.setHours(23, 59, 59, 999);
+            query.createdAt.$lte = end;
+        }
+    }
 
     if (status !== 'ALL') {
         if (status === 'OVERDUE') {
@@ -53,7 +72,6 @@ export const getAllInvoices = asyncHandler(async (req, res) => {
     if (search) {
         query['$or'] = [
             { invoiceNumber: { $regex: search, $options: 'i' } },
-
             { 'billedTo.companyName': { $regex: search, $options: 'i' } },
             { 'billedTo.gstin': { $regex: search, $options: 'i' } },
         ];
@@ -98,9 +116,7 @@ export const getMyInvoices = asyncHandler(async (req, res) => {
             invoiceType: inv.invoiceType,
 
             isItcEligible:
-                req.user.kycStatus === 'APPROVED' &&
-                !!req.user.gstin &&
-                inv.invoiceType !== 'WALLET_TOPUP',
+                req.user.isVerifiedB2B && !!req.user.gstin && inv.invoiceType !== 'WALLET_TOPUP',
         };
     });
 
@@ -146,16 +162,12 @@ const generateTableRow = (doc, y, c1, c2, c3, c4, c5, c6, c7, c8) => {
 export const generateInvoicePDF = async (req, res, next) => {
     try {
         const query = {};
-        if (req.params.orderId) {
-            query.orderId = req.params.orderId;
-        } else {
-            query._id = req.params.id;
-        }
+        if (req.params.orderId) query.orderId = req.params.orderId;
+        else query._id = req.params.id;
 
         if (req.user.role !== 'ADMIN') query.resellerId = req.user._id;
 
         const invoice = await Invoice.findOne(query).populate('orderId');
-
         if (!invoice) throw new ApiError(404, 'Invoice not found');
 
         const doc = new PDFDocument({ margin: 40, size: 'A4' });
@@ -163,115 +175,161 @@ export const generateInvoicePDF = async (req, res, next) => {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
             'Content-Disposition',
-            `attachment; filename=Tax_Invoice_${invoice.invoiceNumber}.pdf`
+            `attachment; filename=Tax_Invoice_${invoice.invoiceNumber.replace(/\//g, '_')}.pdf`
         );
 
         doc.pipe(res);
         doc.on('error', (err) => {
             console.error('PDF Generation Error:', err);
-            if (!res.headersSent) {
-                next(new ApiError(500, 'Failed to generate PDF'));
-            }
+            if (!res.headersSent) next(new ApiError(500, 'Failed to generate PDF'));
         });
+
+        doc.rect(0, 0, 600, 4).fill('#6366f1');
 
         const logoPath = path.join(__dirname, '../../public/images/sovely-image.png');
         if (fs.existsSync(logoPath)) {
             try {
-                doc.image(logoPath, 40, 30, { width: 100 });
+                doc.image(logoPath, 40, 25, { width: 100 });
             } catch (imgError) {
-                doc.fontSize(24).font('Helvetica-Bold').fillColor('#0f172a').text('SOVELY', 40, 35);
+                doc.fillColor('#1e293b').fontSize(22).font('Helvetica-Bold').text('SOVELY', 40, 30);
             }
         } else {
-            doc.fontSize(24).font('Helvetica-Bold').fillColor('#0f172a').text('SOVELY', 40, 35);
+            doc.fillColor('#1e293b').fontSize(22).font('Helvetica-Bold').text('SOVELY', 40, 30);
         }
 
-        const docTitle = invoice.invoiceType === 'WALLET_TOPUP' ? 'RECEIPT' : 'TAX INVOICE';
-
-        doc.fillColor('#0f172a')
-            .fontSize(18)
+        const docTitle = invoice.invoiceType === 'WALLET_TOPUP' ? 'PAYMENT RECEIPT' : 'TAX INVOICE';
+        doc.fillColor('#6366f1')
+            .fontSize(22)
             .font('Helvetica-Bold')
-            .text(docTitle, 0, 35, { align: 'right', width: 555 });
+            .text(docTitle, 0, 30, { align: 'right', width: 555 });
         doc.fontSize(9)
             .font('Helvetica')
             .fillColor('#64748b')
-            .text('(Original for Recipient)', 0, 55, { align: 'right', width: 555 });
+            .text('(Original for Recipient)', 0, 56, { align: 'right', width: 555 });
 
-        const topY = 160;
+        let currentY = 100;
 
-        doc.fillColor('#0f172a');
-        doc.fontSize(10).font('Helvetica-Bold').text('Issued By:', 40, topY);
-        doc.font('Helvetica-Bold')
-            .fontSize(11)
-            .text('Infinity Enterprises', 40, topY + 15);
-        doc.font('Helvetica')
+        doc.fillColor('#334155')
             .fontSize(9)
-            .text('123 Commerce St., Indiranagar', 40, topY + 30)
-            .text('Bengaluru, Karnataka, 560038', 40, topY + 42)
-            .text('State Code: 29', 40, topY + 54);
-
-        doc.font('Helvetica-Bold')
-            .text('GSTIN: ', 40, topY + 68, { continued: true })
+            .font('Helvetica-Bold')
+            .text('Issued By:', 40, currentY);
+        doc.fillColor('#0f172a')
+            .fontSize(11)
+            .text('Infinity Enterprises', 40, currentY + 15);
+        doc.fontSize(9)
+            .font('Helvetica')
+            .fillColor('#475569')
+            .text(
+                '123 Commerce St., Indiranagar\nBengaluru, Karnataka, 560038\nState Code: 29',
+                40,
+                currentY + 30
+            );
+        doc.fillColor('#0f172a')
+            .font('Helvetica-Bold')
+            .text('GSTIN: ', 40, currentY + 70, { continued: true })
             .font('Helvetica')
             .text('29DTGPS4598H2ZR');
 
-        doc.fontSize(10).font('Helvetica-Bold').text('Billed To:', 300, topY);
-
+        doc.rect(340, currentY, 215, 85).fillAndStroke('#f8fafc', '#e2e8f0');
+        doc.fillColor('#334155').fontSize(9);
         doc.font('Helvetica-Bold')
-            .fontSize(11)
-            .text(invoice.billedTo?.companyName || req.user.name, 300, topY + 15);
+            .text('Invoice No:', 350, currentY + 10)
+            .fillColor('#0f172a')
+            .font('Helvetica')
+            .text(invoice.invoiceNumber, 420, currentY + 10);
 
-        let addressString = invoice.billedTo?.address?.street
-            ? `${invoice.billedTo.address.street}, ${invoice.billedTo.address.city}, ${invoice.billedTo.address.zip}`
-            : 'Address not provided';
+        doc.fillColor('#334155')
+            .font('Helvetica-Bold')
+            .text('Date:', 350, currentY + 25)
+            .fillColor('#0f172a')
+            .font('Helvetica')
+            .text(new Date(invoice.createdAt).toLocaleDateString('en-IN'), 420, currentY + 25);
 
-        doc.font('Helvetica')
+        let statusYShift = 55;
+
+        if (invoice.orderId) {
+            doc.fillColor('#334155')
+                .font('Helvetica-Bold')
+                .text('Order Ref:', 350, currentY + 40)
+                .fillColor('#0f172a')
+                .font('Helvetica')
+                .text(invoice.orderId.orderId || 'N/A', 420, currentY + 40);
+
+            if (invoice.orderId.ewayBillNumber) {
+                doc.fillColor('#334155')
+                    .font('Helvetica-Bold')
+                    .text('E-Way Bill:', 350, currentY + 55)
+                    .fillColor('#0f172a')
+                    .font('Helvetica')
+                    .text(invoice.orderId.ewayBillNumber, 420, currentY + 55);
+
+                statusYShift = 70;
+            }
+        }
+
+        doc.fillColor('#334155')
+            .font('Helvetica-Bold')
+            .text('Status:', 350, currentY + statusYShift)
+            .fillColor(invoice.paymentStatus === 'PAID' ? '#16a34a' : '#dc2626')
+            .text(invoice.paymentStatus, 420, currentY + statusYShift);
+
+        currentY = 210;
+        doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#e2e8f0');
+        currentY += 15;
+
+        doc.fillColor('#334155')
             .fontSize(9)
-            .text(addressString, 300, topY + 30, { width: 250 })
-            .text(`State Code: ${invoice.billedTo?.address?.stateCode || 'N/A'}`, 300, doc.y + 2);
-
+            .font('Helvetica-Bold')
+            .text('Billed To:', 40, currentY);
+        doc.fillColor('#0f172a')
+            .fontSize(10)
+            .text(invoice.billedTo?.companyName || req.user.name, 40, currentY + 15);
+        doc.fontSize(9)
+            .font('Helvetica')
+            .fillColor('#475569')
+            .text(
+                invoice.billedTo?.address?.street
+                    ? `${invoice.billedTo.address.street}\n${invoice.billedTo.address.city}, ${invoice.billedTo.address.state} ${invoice.billedTo.address.zip}\nState Code: ${invoice.billedTo.address.stateCode || 'N/A'}`
+                    : 'Address not provided',
+                40,
+                currentY + 30,
+                { width: 220, lineGap: 2 }
+            );
         if (invoice.billedTo?.gstin) {
-            doc.font('Helvetica-Bold')
-                .text('GSTIN: ', 300, doc.y + 4, { continued: true })
+            doc.fillColor('#0f172a')
+                .font('Helvetica-Bold')
+                .text('GSTIN: ', 40, doc.y + 5, { continued: true })
                 .font('Helvetica')
                 .text(invoice.billedTo.gstin);
         }
 
-        const metaY = Math.max(topY + 110, doc.y + 15);
-        doc.rect(40, metaY, 515, 40).fillAndStroke('#f8fafc', '#cbd5e1');
-        doc.fillColor('#0f172a');
-
-        doc.font('Helvetica-Bold')
-            .fontSize(9)
-            .text('Invoice No:', 50, metaY + 8);
-        doc.font('Helvetica').text(invoice.invoiceNumber, 120, metaY + 8);
-
-        doc.font('Helvetica-Bold').text('Invoice Date:', 50, metaY + 22);
-        doc.font('Helvetica').text(
-            new Date(invoice.createdAt).toLocaleDateString('en-IN'),
-            120,
-            metaY + 22
-        );
-
-        if (invoice.orderId) {
-            doc.font('Helvetica-Bold').text('Order Ref:', 300, metaY + 8);
-            doc.font('Helvetica').text(invoice.orderId.orderId || 'N/A', 370, metaY + 8);
-
-            doc.font('Helvetica-Bold').text('Payment Terms:', 300, metaY + 22);
-            doc.font('Helvetica').text(
-                (invoice.paymentTerms || 'DUE_ON_RECEIPT').replace(/_/g, ' '),
-                370,
-                metaY + 22
-            );
+        if (invoice.shippedTo?.name) {
+            doc.fillColor('#334155')
+                .fontSize(9)
+                .font('Helvetica-Bold')
+                .text('Shipped To:', 340, currentY);
+            doc.fillColor('#0f172a')
+                .fontSize(10)
+                .text(invoice.shippedTo.name, 340, currentY + 15);
+            doc.fontSize(9)
+                .font('Helvetica')
+                .fillColor('#475569')
+                .text(
+                    `${invoice.shippedTo.address.street}\n${invoice.shippedTo.address.city}, ${invoice.shippedTo.address.state} ${invoice.shippedTo.address.zip}`,
+                    340,
+                    currentY + 30,
+                    { width: 215, lineGap: 2 }
+                );
         }
 
-        let y = metaY + 60;
+        currentY = Math.max(doc.y + 35, 320);
 
         if (invoice.invoiceType !== 'WALLET_TOPUP' && invoice.items && invoice.items.length > 0) {
-            doc.rect(40, y, 515, 20).fillAndStroke('#0f172a', '#0f172a');
-            doc.fillColor('#ffffff').font('Helvetica-Bold');
+            doc.rect(40, currentY, 515, 24).fillAndStroke('#eef2ff', '#e2e8f0');
+            doc.fillColor('#312e81').font('Helvetica-Bold').fontSize(8);
             generateTableRow(
                 doc,
-                y + 6,
+                currentY + 8,
                 'S.No',
                 'Description',
                 'HSN',
@@ -282,19 +340,18 @@ export const generateInvoicePDF = async (req, res, next) => {
                 'Total (INR)'
             );
 
-            y += 20;
-            let index = 1;
-            doc.fillColor('#0f172a').font('Helvetica');
+            currentY += 24;
+            doc.font('Helvetica');
 
-            for (const item of invoice.items) {
-                if (y > 700) {
+            invoice.items.forEach((item, idx) => {
+                if (currentY > 700) {
                     doc.addPage();
-                    y = 50;
-                    doc.rect(40, y, 515, 20).fillAndStroke('#0f172a', '#0f172a');
-                    doc.fillColor('#ffffff').font('Helvetica-Bold');
+                    currentY = 40;
+                    doc.rect(40, currentY, 515, 24).fillAndStroke('#eef2ff', '#e2e8f0');
+                    doc.fillColor('#312e81').font('Helvetica-Bold');
                     generateTableRow(
                         doc,
-                        y + 6,
+                        currentY + 8,
                         'S.No',
                         'Description',
                         'HSN',
@@ -304,23 +361,23 @@ export const generateInvoicePDF = async (req, res, next) => {
                         'Tax Amt',
                         'Total (INR)'
                     );
-                    y += 20;
-                    doc.fillColor('#0f172a').font('Helvetica');
+                    currentY += 24;
+                    doc.font('Helvetica');
                 }
 
-                const displayTitle =
-                    item.title.length > 35 ? item.title.substring(0, 32) + '...' : item.title;
+                if (idx % 2 === 0) doc.rect(40, currentY, 515, 24).fill('#f8fafc');
+                doc.fillColor('#334155');
+
                 const taxAmount = invoice.isInterState
                     ? item.igstAmount
                     : item.cgstAmount + item.sgstAmount;
-
-                if (index % 2 === 0) doc.rect(40, y, 515, 20).fill('#f8fafc');
-                doc.fillColor('#0f172a');
+                const displayTitle =
+                    item.title.length > 35 ? item.title.substring(0, 32) + '...' : item.title;
 
                 generateTableRow(
                     doc,
-                    y + 6,
-                    index.toString(),
+                    currentY + 8,
+                    (idx + 1).toString(),
                     displayTitle,
                     item.hsnCode || '0000',
                     item.qty.toString(),
@@ -329,125 +386,131 @@ export const generateInvoicePDF = async (req, res, next) => {
                     taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }),
                     item.totalItemAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })
                 );
-
-                y += 20;
-                index++;
-            }
-            doc.moveTo(40, y).lineTo(555, y).stroke('#cbd5e1');
-            y += 15;
+                currentY += 24;
+            });
+            doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#e2e8f0');
+            currentY += 20;
         } else if (invoice.invoiceType === 'WALLET_TOPUP') {
-            doc.rect(40, y, 515, 20).fillAndStroke('#f8fafc', '#cbd5e1');
-            doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(10);
-            doc.text('Description: Wallet Top-Up (Prepaid Balance)', 50, y + 6);
-            y += 35;
+            doc.rect(40, currentY, 515, 24).fillAndStroke('#eef2ff', '#e2e8f0');
+            doc.fillColor('#312e81').font('Helvetica-Bold').fontSize(10);
+            doc.text('Description: Wallet Top-Up (Working Capital)', 50, currentY + 8);
+            currentY += 40;
         }
 
-        doc.font('Helvetica-Bold').fontSize(9);
+        if (currentY > 600) {
+            doc.addPage();
+            currentY = 40;
+        }
 
+        doc.rect(40, currentY, 260, 90).fillAndStroke('#f8fafc', '#e2e8f0');
+        doc.fontSize(9)
+            .font('Helvetica-Bold')
+            .fillColor('#334155')
+            .text('Transaction Details:', 50, currentY + 12);
+
+        doc.font('Helvetica').fillColor('#475569');
+        doc.text(`Payment Terms: ${invoice.paymentTerms.replace(/_/g, ' ')}`, 50, currentY + 32);
+        doc.text(`Status: ${invoice.paymentStatus}`, 50, currentY + 47);
+        if (invoice.razorpayOrderId) {
+            doc.text(`Gateway Ref: ${invoice.razorpayOrderId}`, 50, currentY + 62);
+        } else {
+            doc.text(`Settlement: Corporate Wallet Deduction`, 50, currentY + 62);
+        }
+
+        doc.font('Helvetica-Bold').fillColor('#334155');
         if (invoice.invoiceType !== 'WALLET_TOPUP') {
-            doc.text('Subtotal (Taxable):', 360, y);
-            doc.text(
+            doc.text('Subtotal (Taxable):', 340, currentY);
+            doc.fillColor('#0f172a').text(
                 `₹ ${invoice.totalTaxableValue?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}`,
                 450,
-                y,
+                currentY,
                 { align: 'right', width: 100 }
             );
-            y += 15;
+            currentY += 18;
 
             if (invoice.isInterState) {
-                doc.text('IGST Amount:', 360, y);
-                doc.text(
+                doc.fillColor('#334155').text('IGST Amount:', 340, currentY);
+                doc.fillColor('#0f172a').text(
                     `₹ ${invoice.totalIgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                     450,
-                    y,
+                    currentY,
                     { align: 'right', width: 100 }
                 );
-                y += 15;
+                currentY += 18;
             } else {
-                doc.text('CGST Amount:', 360, y);
-                doc.text(
+                doc.fillColor('#334155').text('CGST Amount:', 340, currentY);
+                doc.fillColor('#0f172a').text(
                     `₹ ${(invoice.totalCgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                     450,
-                    y,
+                    currentY,
                     { align: 'right', width: 100 }
                 );
-                y += 15;
-                doc.text('SGST Amount:', 360, y);
-                doc.text(
+                currentY += 18;
+                doc.fillColor('#334155').text('SGST Amount:', 340, currentY);
+                doc.fillColor('#0f172a').text(
                     `₹ ${(invoice.totalSgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                     450,
-                    y,
+                    currentY,
                     { align: 'right', width: 100 }
                 );
-                y += 15;
+                currentY += 18;
             }
         }
 
-        doc.rect(350, y, 205, 25).fillAndStroke('#f1f5f9', '#cbd5e1');
-        doc.fillColor('#0f172a')
+        doc.rect(340, currentY, 215, 28).fillAndStroke('#4f46e5', '#4338ca');
+        doc.fillColor('#ffffff')
             .fontSize(11)
             .font('Helvetica-Bold')
-            .text('Grand Total:', 360, y + 7);
+            .text('Grand Total:', 350, currentY + 8);
         doc.text(
             `₹ ${invoice.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
             450,
-            y + 7,
-            { align: 'right', width: 100 }
+            currentY + 8,
+            { align: 'right', width: 95 }
         );
 
-        doc.moveDown(3);
-        doc.fontSize(9).font('Helvetica-Bold').text('Amount in Words:');
-        doc.font('Helvetica').text(amountToWords(invoice.grandTotal));
-
-        if (doc.y > 650) doc.addPage();
-        const footerY = doc.y + 40;
-
-        doc.rect(40, footerY, 220, 70).stroke('#cbd5e1');
+        currentY += 40;
         doc.fontSize(9)
             .font('Helvetica-Bold')
-            .text('Bank Details for NEFT/RTGS:', 45, footerY + 5);
+            .fillColor('#334155')
+            .text('Amount in Words:', 340, currentY);
         doc.font('Helvetica')
-            .fontSize(8)
-            .text('Bank Name: Sovely National Bank', 45, footerY + 20)
-            .text('Account Name: Infinity Enterprises', 45, footerY + 32)
-            .text('Account No: 1234567890123456', 45, footerY + 44)
-            .text('IFSC Code: SOVE0001234', 45, footerY + 56);
+            .fillColor('#475569')
+            .text(amountToWords(invoice.grandTotal), 340, currentY + 14, { width: 215 });
 
-        if (invoice.paymentStatus !== 'PAID') {
-            try {
-                const upiString = `upi://pay?pa=sovely@upi&pn=Sovely+ECommerce&tr=${invoice.invoiceNumber}&am=${invoice.grandTotal.toFixed(2)}&cu=INR`;
-                const qrImage = await QRCode.toDataURL(upiString);
-                doc.image(qrImage, 275, footerY - 5, { width: 80 });
-                doc.fontSize(7).text('Scan to Pay via UPI', 280, footerY + 75);
-            } catch (err) {
-                console.error('QR Code generation failed', err);
-            }
+        if (currentY > 650) {
+            doc.addPage();
+            currentY = 40;
         }
+        const footerY = doc.page.height - 120;
+
+        doc.moveTo(40, footerY).lineTo(555, footerY).stroke('#e2e8f0');
 
         doc.font('Helvetica-Bold')
             .fontSize(10)
-            .text('For Infinity Enterprises', 350, footerY + 5, {
+            .fillColor('#0f172a')
+            .text('For Infinity Enterprises', 350, footerY + 15, { align: 'right', width: 205 });
+        doc.font('Helvetica')
+            .fontSize(9)
+            .fillColor('#64748b')
+            .text('Authorized Signatory\n(Digitally Signed)', 350, footerY + 35, {
                 align: 'right',
                 width: 205,
             });
-        doc.moveDown(4);
-        doc.font('Helvetica')
-            .fontSize(9)
-            .text('Authorized Signatory', 350, doc.y, { align: 'right', width: 205 });
 
-        doc.moveTo(40, footerY + 100)
-            .lineTo(555, footerY + 100)
-            .stroke('#e2e8f0');
         doc.font('Helvetica-Bold')
+            .fontSize(8)
+            .fillColor('#475569')
+            .text('Terms & Conditions:', 40, footerY + 15);
+        doc.font('Helvetica')
             .fontSize(7)
             .fillColor('#64748b')
-            .text('Terms & Conditions:', 40, footerY + 105);
-        doc.font('Helvetica').text(
-            '1. All disputes are subject to Bengaluru jurisdiction. 2. Goods once sold will not be taken back. 3. This is a computer-generated invoice and does not require a physical signature for legal validity.',
-            40,
-            footerY + 115,
-            { width: 515, align: 'justify' }
-        );
+            .text(
+                '1. All disputes are subject to Bengaluru jurisdiction.\n2. Input Tax Credit (ITC) can only be claimed if GSTIN is provided at the time of order.\n3. This is a computer-generated document and does not require a physical signature.',
+                40,
+                footerY + 28,
+                { width: 280, align: 'left', lineGap: 3 }
+            );
 
         doc.end();
     } catch (error) {
@@ -456,9 +519,15 @@ export const generateInvoicePDF = async (req, res, next) => {
 };
 
 export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => {
-    const hqStateCode = '29';
-    const resellerStateCode = resellerDoc.stateCode || '29';
+    const hqStateCode = process.env.HQ_STATE_CODE || '29';
+
+    const billingSnapshot = orderDoc.billingDetails || {};
+    const resellerStateCode = billingSnapshot.address?.stateCode || resellerDoc.stateCode || '29';
     const isInterState = hqStateCode !== resellerStateCode;
+
+    const sequence = await Counter.getNextSequenceValue('invoices_fy2526');
+    const paddedSeq = String(sequence).padStart(5, '0');
+    const invoiceNumber = `INV/25-26/${paddedSeq}`;
 
     const invoiceItems = orderDoc.items.map((item) => {
         const baseAmount = item.platformBasePrice * item.qty;
@@ -485,6 +554,11 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
             ? `Freight & Packaging Services (Billable Weight: ${orderDoc.totalBillableWeight}kg)`
             : 'Freight & Packaging Services';
 
+        const shippingTax = Number((orderDoc.shippingTotal * 0.18).toFixed(2));
+        const cgst = isInterState ? 0 : shippingTax / 2;
+        const sgst = isInterState ? 0 : shippingTax / 2;
+        const igst = isInterState ? shippingTax : 0;
+
         invoiceItems.push({
             sku: 'FRGT-PKG-001',
             title: freightTitle,
@@ -492,15 +566,20 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
             qty: 1,
             unitBasePrice: orderDoc.shippingTotal,
             totalBaseAmount: orderDoc.shippingTotal,
-            gstSlab: 0,
-            cgstAmount: 0,
-            sgstAmount: 0,
-            igstAmount: 0,
-            totalItemAmount: orderDoc.shippingTotal,
+            gstSlab: 18,
+            cgstAmount: cgst,
+            sgstAmount: sgst,
+            igstAmount: igst,
+            totalItemAmount: orderDoc.shippingTotal + shippingTax,
         });
     }
 
     if (orderDoc.codCharge > 0) {
+        const codTax = Number((orderDoc.codCharge * 0.18).toFixed(2));
+        const cgst = isInterState ? 0 : codTax / 2;
+        const sgst = isInterState ? 0 : codTax / 2;
+        const igst = isInterState ? codTax : 0;
+
         invoiceItems.push({
             sku: 'FEE-COD-001',
             title: 'Courier Cash on Delivery (COD) Fee',
@@ -508,11 +587,11 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
             qty: 1,
             unitBasePrice: orderDoc.codCharge,
             totalBaseAmount: orderDoc.codCharge,
-            gstSlab: 0,
-            cgstAmount: 0,
-            sgstAmount: 0,
-            igstAmount: 0,
-            totalItemAmount: orderDoc.codCharge,
+            gstSlab: 18,
+            cgstAmount: cgst,
+            sgstAmount: sgst,
+            igstAmount: igst,
+            totalItemAmount: orderDoc.codCharge + codTax,
         });
     }
 
@@ -525,20 +604,20 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
     const invoiceType = orderDoc.orderId.includes('WH') ? 'B2B_WHOLESALE' : 'DROPSHIP_PLATFORM_FEE';
 
     const invoice = new Invoice({
-        invoiceNumber: `INV-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`,
+        invoiceNumber: invoiceNumber,
         orderId: orderDoc._id,
         resellerId: resellerDoc._id,
         invoiceType: invoiceType,
         isInterState: isInterState,
 
         billedTo: {
-            companyName: resellerDoc.companyName || resellerDoc.name,
-            gstin: resellerDoc.gstin || '',
+            companyName: billingSnapshot.companyName || resellerDoc.companyName || resellerDoc.name,
+            gstin: billingSnapshot.gstin || resellerDoc.gstin || '',
             address: {
-                street: resellerDoc.companyAddress || resellerDoc.address || '',
-                city: resellerDoc.city || 'N/A',
-                state: resellerDoc.state || 'N/A',
-                zip: resellerDoc.zip || 'N/A',
+                street: billingSnapshot.address?.street || resellerDoc.billingAddress?.street || '',
+                city: billingSnapshot.address?.city || resellerDoc.billingAddress?.city || 'N/A',
+                state: billingSnapshot.address?.state || resellerDoc.billingAddress?.state || 'N/A',
+                zip: billingSnapshot.address?.zip || resellerDoc.billingAddress?.zip || 'N/A',
                 stateCode: resellerStateCode,
             },
         },
@@ -565,4 +644,53 @@ export const createInvoiceFromOrder = async (orderDoc, resellerDoc, session) => 
 
     await invoice.save({ session });
     return invoice;
+};
+
+export const generateInvoiceBuffer = async (invoice, user) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const doc = new PDFDocument({ margin: 40, size: 'A4' });
+            const chunks = [];
+
+            doc.on('data', (chunk) => chunks.push(chunk));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+            doc.on('error', (err) => reject(err));
+
+            doc.fontSize(24).font('Helvetica-Bold').fillColor('#0f172a').text('SOVELY', 40, 35);
+            doc.fillColor('#0f172a')
+                .fontSize(18)
+                .font('Helvetica-Bold')
+                .text('TAX INVOICE', 0, 35, { align: 'right', width: 555 });
+
+            doc.fontSize(10).font('Helvetica-Bold').text('Issued By:', 40, 100);
+            doc.font('Helvetica').text('Infinity Enterprises\nBengaluru, Karnataka', 40, 115);
+
+            doc.font('Helvetica-Bold').text('Billed To:', 300, 100);
+
+            const billedName = invoice.billedTo?.companyName || user.companyName || user.name;
+            doc.font('Helvetica').text(`${billedName}\n${user.email}`, 300, 115);
+
+            doc.rect(40, 170, 515, 45).fillAndStroke('#f8fafc', '#cbd5e1');
+            doc.fillColor('#0f172a')
+                .font('Helvetica-Bold')
+                .fontSize(10)
+                .text(`Invoice: ${invoice.invoiceNumber}`, 50, 180)
+                .text(`Order: ${invoice.orderId?.orderId || 'N/A'}`, 300, 180);
+
+            if (invoice.orderId?.ewayBillNumber) {
+                doc.text(`E-Way Bill: ${invoice.orderId.ewayBillNumber}`, 50, 195);
+            }
+
+            doc.moveDown(4);
+            doc.fontSize(14)
+                .font('Helvetica-Bold')
+                .text(`Grand Total: ₹ ${invoice.grandTotal.toLocaleString('en-IN')}`, {
+                    align: 'right',
+                });
+
+            doc.end();
+        } catch (error) {
+            reject(error);
+        }
+    });
 };

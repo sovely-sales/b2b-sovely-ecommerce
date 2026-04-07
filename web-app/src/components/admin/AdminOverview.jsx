@@ -175,24 +175,6 @@ const AdminOverview = ({ setActiveTab }) => {
                         </h3>
                     </div>
                 </div>
-
-                {}
-                <div
-                    onClick={() => setActiveTab('users')}
-                    className="group flex min-w-0 cursor-pointer items-center gap-4 rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm transition-all hover:bg-amber-100 hover:shadow-md md:p-6"
-                >
-                    <div className="shrink-0 rounded-2xl bg-amber-200/50 p-4 transition-colors group-hover:bg-amber-200">
-                        <ShieldAlert size={24} className="text-amber-700" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <p className="mb-1 truncate text-[10px] font-bold tracking-wider text-amber-700 uppercase">
-                            Pending KYC
-                        </p>
-                        <h3 className="text-xl font-black break-all text-amber-900 lg:text-2xl">
-                            {kpis.pendingKycCount || 0} Req
-                        </h3>
-                    </div>
-                </div>
             </div>
 
             {}

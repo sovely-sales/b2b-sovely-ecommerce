@@ -26,7 +26,14 @@ export const useCartStore = create((set, get) => ({
         }
     },
 
-    addToCart: async (productId, qty, orderType, resellerSellingPrice = 0) => {
+    addToCart: async (
+        productId,
+        qty,
+        orderType,
+        resellerSellingPrice = 0,
+        customerDetails = null,
+        saveToAddressBook = false
+    ) => {
         set({ isLoading: true, error: null });
         try {
             const res = await api.post('/cart', {
@@ -34,6 +41,8 @@ export const useCartStore = create((set, get) => ({
                 qty,
                 orderType,
                 resellerSellingPrice,
+                customerDetails,
+                saveToAddressBook,
             });
             set({ cart: res.data.data, isLoading: false });
             toast.success(`${qty} item(s) added to your procurement cart!`, {
@@ -50,10 +59,10 @@ export const useCartStore = create((set, get) => ({
         }
     },
 
-    updateCartItem: async (productId, qty, orderType, resellerSellingPrice) => {
+    updateCartItem: async (itemId, qty, resellerSellingPrice) => {
         set({ isLoading: true, error: null });
         try {
-            const res = await api.put(`/cart/${productId}?orderType=${orderType}`, {
+            const res = await api.put(`/cart/item/${itemId}`, {
                 qty,
                 resellerSellingPrice,
             });
@@ -63,10 +72,27 @@ export const useCartStore = create((set, get) => ({
         }
     },
 
-    removeFromCart: async (productId, orderType) => {
+    assignCustomerToItem: async (itemId, customerDetails, saveToAddressBook = false) => {
         set({ isLoading: true, error: null });
         try {
-            const res = await api.delete(`/cart/${productId}?orderType=${orderType}`);
+            const res = await api.put(`/cart/item/${itemId}/customer`, {
+                customerDetails,
+                saveToAddressBook,
+            });
+            set({ cart: res.data.data, isLoading: false });
+            toast.success('Destination assigned successfully!', { position: 'bottom-right' });
+            return true;
+        } catch (error) {
+            set({ error: error.response?.data?.message, isLoading: false });
+            toast.error(error.response?.data?.message || 'Failed to assign destination');
+            return false;
+        }
+    },
+
+    removeFromCart: async (itemId) => {
+        set({ isLoading: true, error: null });
+        try {
+            const res = await api.delete(`/cart/item/${itemId}`);
             set({ cart: res.data.data, isLoading: false });
             toast.success('Item removed from cart', { position: 'bottom-right' });
         } catch (error) {

@@ -1,31 +1,27 @@
-import { useState, useRef, useEffect, useContext } from 'react';
+import { useState, useRef, useEffect, useContext, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getCategoryIcon } from '../utils/categoryIcons';
-import { getAvatarUrl } from '../utils/getAvatarUrl'; // We import our globally fixed util
 import { ROUTES } from '../utils/routes';
 import api from '../utils/api';
-import CartDrawer from './CartDrawer';
+import { useCartStore } from '../store/cartStore';
 import {
     Search,
     X,
-    Wallet,
-    Menu,
-    ShieldCheck,
     ShoppingCart,
-    Heart,
-    Plus,
-    ChevronDown,
+    User,
     Check,
-    Settings,
+    LayoutGrid,
     Bell,
-    Upload,
+    AlertOctagon,
+    TrendingUp,
+    Truck,
+    ShieldCheck,
+    Box,
+    Clock,
 } from 'lucide-react';
-import { useCartStore } from '../store/cartStore';
-import WishlistDrawer from './WishlistDrawer';
-import { WishlistContext } from '../WishlistContext';
+import { formatDistanceToNow } from 'date-fns';
 
 const HighlightText = ({ text = '', highlight = '' }) => {
     if (!highlight.trim()) return <span>{text}</span>;
@@ -35,7 +31,7 @@ const HighlightText = ({ text = '', highlight = '' }) => {
         <span>
             {parts.map((part, i) =>
                 regex.test(part) ? (
-                    <span key={i} className="bg-emerald-100 font-bold text-emerald-900">
+                    <span key={i} className="bg-indigo-100 font-bold text-indigo-900">
                         {part}
                     </span>
                 ) : (
@@ -46,44 +42,109 @@ const HighlightText = ({ text = '', highlight = '' }) => {
     );
 };
 
-function Navbar({ onToggleSidebar, onSelectCategory }) {
-    const { user, logout, loading, isAdmin } = useContext(AuthContext);
-    const { wishlistItems } = useContext(WishlistContext);
+const getNotificationStyles = (type) => {
+    switch (type) {
+        case 'ORDER_APPROVAL_REQUIRED':
+            return { icon: ShieldCheck, color: 'text-amber-600', bg: 'bg-amber-100' };
+        case 'ORDER_APPROVED':
+        case 'LOGISTICS':
+            return { icon: Truck, color: 'text-indigo-600', bg: 'bg-indigo-100' };
+        case 'NDR_ALERT':
+            return { icon: AlertOctagon, color: 'text-red-600', bg: 'bg-red-100' };
+        case 'WALLET_UPDATE':
+        case 'FINANCE':
+            return { icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-100' };
+        case 'ORDER_REJECTED':
+            return { icon: X, color: 'text-red-600', bg: 'bg-red-100' };
+        default:
+            return { icon: Bell, color: 'text-slate-600', bg: 'bg-slate-100' };
+    }
+};
 
-    const cartCount = useCartStore((state) => state.cart?.items?.length || 0);
+function Navbar() {
+    const { user, loading, isAdmin } = useContext(AuthContext);
+    const queryClient = useQueryClient();
+
+    const cart = useCartStore((state) => state.cart);
+    const fetchCart = useCartStore((state) => state.fetchCart);
+    const cartCount = cart?.items?.length || 0;
     const addToCart = useCartStore((state) => state.addToCart);
 
-    const [catDropOpen, setCatDropOpen] = useState(false);
-    const [isCartOpen, setIsCartOpen] = useState(false);
-    const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
     const [searchInput, setSearchInput] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [addedSku, setAddedSku] = useState(null);
-    const [avatarError, setAvatarError] = useState(false);
 
+    const [isNotifOpen, setIsNotifOpen] = useState(false);
+    const notifRef = useRef(null);
     const searchRef = useRef(null);
     const inputRef = useRef(null);
-    const hoverTimeout = useRef(null);
     const navigate = useNavigate();
+
+    // --- NEW: Fetch Real Notifications ---
+    const { data: notificationsData } = useQuery({
+        queryKey: ['notifications', user?._id],
+        queryFn: async () => {
+            const res = await api.get('/users/notifications');
+            return res.data.data;
+        },
+        enabled: !!user,
+        refetchInterval: 30000,
+    });
+
+    const notifications = useMemo(() => notificationsData || [], [notificationsData]);
+    const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+    const markAsReadMutation = useMutation({
+        mutationFn: async () => {
+            await api.put('/users/notifications/read');
+        },
+        onSuccess: () => {
+            queryClient.setQueryData(['notifications', user?._id], (oldData) =>
+                oldData?.map((n) => ({ ...n, isRead: true }))
+            );
+        },
+    });
+
+    useEffect(() => {
+        if (user && !isAdmin && !cart) {
+            fetchCart();
+        }
+    }, [user, isAdmin, cart, fetchCart]);
+
+    useEffect(() => {
+        const handleScroll = () => setIsScrolled(window.scrollY > 30);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    useEffect(() => {
+        const handleGlobalKeyDown = (e) => {
+            if (
+                document.activeElement.tagName === 'INPUT' ||
+                document.activeElement.tagName === 'TEXTAREA' ||
+                document.activeElement.isContentEditable
+            ) {
+                return;
+            }
+            if (e.ctrlKey || e.metaKey || e.altKey || e.key.length > 1) {
+                return;
+            }
+            if (inputRef.current) {
+                inputRef.current.focus();
+                setIsSearchOpen(true);
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, []);
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(searchInput), 250);
         return () => clearTimeout(timer);
     }, [searchInput]);
-
-    // Reset avatar error when a new avatar arrives from context
-    useEffect(() => {
-        if (user?.avatar) setAvatarError(false);
-    }, [user?.avatar]);
-
-    const { data: dbCategories = [] } = useQuery({
-        queryKey: ['categories'],
-        queryFn: async () => {
-            const res = await api.get('/categories');
-            return res.data.data;
-        },
-    });
 
     const { data: liveSearchData, isFetching: isSearching } = useQuery({
         queryKey: ['liveSearch', debouncedSearch],
@@ -94,16 +155,11 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
         enabled: debouncedSearch.trim().length >= 2,
     });
 
-    const displayCategories = dbCategories.map((cat) => {
-        const visual = getCategoryIcon(cat.name);
-        return { ...cat, Icon: visual.Icon, color: visual.color, iconColor: visual.iconColor };
-    });
-
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (searchRef.current && !searchRef.current.contains(event.target)) {
+            if (searchRef.current && !searchRef.current.contains(event.target))
                 setIsSearchOpen(false);
-            }
+            if (notifRef.current && !notifRef.current.contains(event.target)) setIsNotifOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -130,156 +186,74 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
         setTimeout(() => setAddedSku(null), 1500);
     };
 
+    const handleNotificationClick = (notif) => {
+        setIsNotifOpen(false);
+        if (notif.referenceData?.actionUrl) {
+            navigate(notif.referenceData.actionUrl);
+        }
+    };
+
     return (
-        <nav className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 font-sans shadow-sm backdrop-blur-xl supports-[backdrop-filter]:bg-white/80">
-            <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8">
-                <div className="flex h-16 items-center justify-between gap-4">
-                    <div className="flex items-center gap-6 xl:gap-8">
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={onToggleSidebar}
-                                className="rounded p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                            >
-                                <Menu size={20} strokeWidth={2.5} />
-                            </button>
-
-                            <Link to={ROUTES.HOME} className="group flex items-center gap-2">
-                                <img
-                                    src="https://m.media-amazon.com/images/X/bxt1/M/Bbxt1BI1cNpD5ln._SL160_QL95_FMwebp_.png"
-                                    alt="Sovely Logo"
-                                    className="h-7 w-auto transition-transform group-hover:scale-105"
-                                />
-                                <span className="text-xl font-extrabold tracking-tight text-slate-900">
-                                    Sovely{' '}
-                                    <span className="text-sm font-semibold text-slate-500">
-                                        B2B
-                                    </span>
-                                </span>
-                            </Link>
-                        </div>
-
-                        <ul className="hidden items-center gap-6 md:flex">
-                            <li
-                                className="relative"
-                                onMouseEnter={() => {
-                                    clearTimeout(hoverTimeout.current);
-                                    setCatDropOpen(true);
-                                }}
-                                onMouseLeave={() => {
-                                    hoverTimeout.current = setTimeout(
-                                        () => setCatDropOpen(false),
-                                        150
-                                    );
-                                }}
-                            >
-                                <button
-                                    className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${catDropOpen ? 'text-emerald-600' : 'text-slate-600 hover:text-slate-900'}`}
-                                >
-                                    Categories
-                                    <ChevronDown
-                                        size={14}
-                                        strokeWidth={2.5}
-                                        className={`transition-transform duration-200 ${catDropOpen ? 'rotate-180' : ''}`}
-                                    />
-                                </button>
-
-                                <AnimatePresence>
-                                    {catDropOpen && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                                            transition={{ duration: 0.15, ease: 'easeOut' }}
-                                            className="absolute top-full -left-4 mt-3 w-[600px] origin-top-left rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl"
-                                        >
-                                            <div className="mb-3 px-2">
-                                                <h4 className="text-[10px] font-black tracking-[0.1em] text-slate-400 uppercase">
-                                                    Browse Collections
-                                                </h4>
-                                            </div>
-                                            <div className="grid grid-cols-3 gap-1">
-                                                {displayCategories.map((cat, i) => (
-                                                    <button
-                                                        key={cat._id || i}
-                                                        onClick={() => {
-                                                            setCatDropOpen(false);
-                                                            if (onSelectCategory)
-                                                                onSelectCategory(cat.name);
-                                                            navigate(
-                                                                `/search?category=${encodeURIComponent(cat.name)}`
-                                                            );
-                                                        }}
-                                                        className="group flex items-center gap-3 rounded-xl border border-transparent p-3 transition-all hover:bg-slate-50 hover:shadow-sm"
-                                                    >
-                                                        <span
-                                                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 transition-transform group-hover:scale-110 group-hover:bg-white group-hover:shadow-md"
-                                                            style={{ color: cat.iconColor }}
-                                                        >
-                                                            <cat.Icon size={18} strokeWidth={2.5} />
-                                                        </span>
-                                                        <span className="truncate text-left text-[11px] font-extrabold text-slate-700 group-hover:text-emerald-600">
-                                                            {cat.name}
-                                                        </span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </li>
-                            <li>
-                                {isAdmin ? (
-                                    <Link
-                                        to={ROUTES.ADMIN}
-                                        state={{ tab: 'bulk-upload' }}
-                                        className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 transition-colors hover:text-emerald-700"
-                                    >
-                                        <Upload size={14} /> Quick Upload
-                                    </Link>
-                                ) : (
-                                    <Link
-                                        to={ROUTES.QUICK_ORDER}
-                                        className="text-sm font-semibold text-slate-600 transition-colors hover:text-slate-900"
-                                    >
-                                        Quick Order
-                                    </Link>
-                                )}
-                            </li>
-                        </ul>
+        <>
+            <header
+                className={`fixed inset-x-0 z-50 font-sans transition-all duration-300 ease-in-out ${isScrolled ? 'top-4 px-4 sm:px-6' : 'top-0 px-0'}`}
+            >
+                <nav
+                    className={`mx-auto flex h-14 items-center justify-between gap-4 transition-all duration-300 ease-in-out ${isScrolled ? 'max-w-5xl rounded-full border border-slate-200/60 bg-white/85 px-6 shadow-lg backdrop-blur-md' : 'max-w-6xl rounded-b-2xl border-b border-slate-200 bg-white px-4 shadow-sm sm:px-6 lg:px-8'}`}
+                >
+                    <div className="flex shrink-0 items-center gap-2">
+                        <Link
+                            to={ROUTES.HOME}
+                            className={`flex items-center gap-2 overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out ${isScrolled ? 'pointer-events-none w-0 opacity-0' : 'w-28 opacity-100'}`}
+                        >
+                            <img
+                                src="https://m.media-amazon.com/images/X/bxt1/M/Bbxt1BI1cNpD5ln._SL160_QL95_FMwebp_.png"
+                                alt="Sovely Logo"
+                                className="h-6 w-auto shrink-0"
+                            />
+                            <span className="text-xl font-black tracking-tight text-slate-900">
+                                Sovely
+                            </span>
+                        </Link>
+                        <Link
+                            to={ROUTES.CATALOG}
+                            className={`hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 sm:flex ${isScrolled ? 'text-slate-900' : 'text-slate-600'}`}
+                        >
+                            <LayoutGrid size={18} /> Catalog
+                        </Link>
                     </div>
 
-                    <div ref={searchRef} className="relative hidden max-w-2xl flex-1 px-4 sm:block">
+                    <div
+                        ref={searchRef}
+                        className={`relative hidden w-full flex-1 transition-all duration-300 lg:block ${isScrolled ? 'max-w-md' : 'max-w-xl'}`}
+                    >
                         <div
-                            className={`flex w-full items-center rounded-lg border px-3 py-2 transition-all ${isSearchOpen ? 'border-emerald-500 bg-white shadow-md ring-2 ring-emerald-500/20' : 'border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100'}`}
+                            className={`flex w-full items-center overflow-hidden rounded-full border transition-all ${isSearchOpen ? 'border-indigo-600 bg-white shadow-sm ring-1 ring-indigo-600' : 'border-slate-300 bg-slate-50 hover:border-slate-400'}`}
                         >
-                            <Search
-                                size={16}
-                                className={isSearchOpen ? 'text-emerald-600' : 'text-slate-400'}
-                                strokeWidth={2.5}
-                            />
+                            <div className="pr-2 pl-4 text-slate-400">
+                                <Search size={16} strokeWidth={2.5} />
+                            </div>
                             <input
                                 ref={inputRef}
                                 type="text"
-                                placeholder="Search SKUs, products, or categories..."
-                                className="w-full border-none bg-transparent px-3 text-sm font-semibold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400"
+                                placeholder={
+                                    isScrolled
+                                        ? 'Type to search...'
+                                        : 'Search SKUs, products, or brands...'
+                                }
+                                className={`w-full bg-transparent py-2 text-sm font-bold text-slate-900 transition-all outline-none placeholder:font-medium placeholder:text-slate-400`}
                                 value={searchInput}
                                 onChange={(e) => setSearchInput(e.target.value)}
                                 onFocus={() => setIsSearchOpen(true)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') executeSearch(searchInput);
-                                }}
+                                onKeyDown={(e) => e.key === 'Enter' && executeSearch(searchInput)}
                             />
-                            {!searchInput && (
-                                <kbd className="hidden items-center gap-0.5 rounded border border-slate-200 bg-white px-1.5 py-0.5 font-sans text-[10px] font-bold text-slate-400 lg:flex">
-                                    ⌘K
-                                </kbd>
-                            )}
+
                             {searchInput && (
                                 <button
                                     onClick={handleClearSearch}
-                                    className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 hover:text-slate-900"
+                                    className="px-4 text-slate-400 hover:text-slate-700"
                                 >
-                                    <X size={12} strokeWidth={2.5} />
+                                    <X size={16} strokeWidth={2.5} />
                                 </button>
                             )}
                         </div>
@@ -290,112 +264,81 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                                     initial={{ opacity: 0, y: 5 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: 5 }}
-                                    transition={{ duration: 0.15 }}
-                                    className="absolute top-full right-4 left-4 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+                                    transition={{ duration: 0.1 }}
+                                    className={`absolute right-0 left-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl ${isScrolled ? 'top-full mt-4' : 'top-full mt-2'}`}
                                 >
                                     {isSearching ? (
-                                        <div className="flex items-center justify-center p-6 text-sm font-semibold text-slate-500">
-                                            <div className="mr-3 h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600"></div>
+                                        <div className="p-4 text-center text-sm font-medium text-slate-500">
                                             Searching catalog...
                                         </div>
                                     ) : liveSearchData?.products?.length > 0 ? (
                                         <div className="flex flex-col">
-                                            <div className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                                                Products
-                                            </div>
                                             {liveSearchData.products.map((product) => (
                                                 <div
                                                     key={product._id}
-                                                    className="group flex items-center justify-between border-b border-slate-100 p-2.5 px-4 transition-colors hover:bg-slate-50"
+                                                    className="group flex items-center justify-between border-b border-slate-100 p-3 hover:bg-slate-50"
                                                 >
                                                     <div
-                                                        className="flex flex-1 cursor-pointer items-center gap-3 overflow-hidden"
+                                                        className="flex flex-1 cursor-pointer items-center gap-3"
                                                         onClick={() => {
                                                             setIsSearchOpen(false);
                                                             navigate(`/product/${product._id}`);
                                                         }}
                                                     >
-                                                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded border border-slate-200 bg-slate-100">
-                                                            <img
-                                                                src={
-                                                                    product.images?.[0]?.url ||
-                                                                    'https://via.placeholder.com/40'
-                                                                }
-                                                                alt=""
-                                                                className="h-full w-full object-cover"
-                                                            />
-                                                        </div>
-                                                        <div className="flex flex-col overflow-hidden">
-                                                            <span className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-emerald-700">
+                                                        <img
+                                                            src={
+                                                                product.images?.[0]?.url ||
+                                                                'https://via.placeholder.com/40'
+                                                            }
+                                                            alt=""
+                                                            className="h-10 w-10 rounded border border-slate-200 object-cover"
+                                                        />
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-bold text-slate-900 group-hover:text-indigo-600">
                                                                 <HighlightText
                                                                     text={product.title}
                                                                     highlight={debouncedSearch}
                                                                 />
                                                             </span>
-                                                            <div className="mt-0.5 flex items-center gap-2 text-xs font-semibold text-slate-500">
-                                                                <span>
-                                                                    SKU:{' '}
-                                                                    <HighlightText
-                                                                        text={product.sku || 'N/A'}
-                                                                        highlight={debouncedSearch}
-                                                                    />
-                                                                </span>
-                                                                <span className="text-slate-300">
-                                                                    |
-                                                                </span>
-                                                                <span className="font-bold text-slate-900">
-                                                                    ₹
-                                                                    {(
-                                                                        product.platformSellPrice ||
-                                                                        product.dropshipBasePrice
-                                                                    ).toLocaleString('en-IN')}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3 pl-4">
-                                                        <div className="hidden flex-col items-end sm:flex">
-                                                            <span className="text-xs font-bold text-slate-500">
-                                                                MOQ: {product.moq}
+                                                            <span className="text-xs font-medium text-slate-500">
+                                                                SKU:{' '}
+                                                                <HighlightText
+                                                                    text={product.sku || 'N/A'}
+                                                                    highlight={debouncedSearch}
+                                                                />{' '}
+                                                                | ₹
+                                                                {(
+                                                                    product.platformSellPrice ||
+                                                                    product.dropshipBasePrice
+                                                                ).toLocaleString('en-IN')}
                                                             </span>
-                                                            {product.margin >= 30 && (
-                                                                <span className="text-[10px] font-bold text-emerald-600">
-                                                                    High Margin
-                                                                </span>
-                                                            )}
                                                         </div>
-                                                        <button
-                                                            onClick={(e) =>
-                                                                handleQuickAdd(e, product)
-                                                            }
-                                                            disabled={addedSku === product._id}
-                                                            className={`flex h-8 shrink-0 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${addedSku === product._id ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white'}`}
-                                                        >
-                                                            {addedSku === product._id ? (
-                                                                <>
-                                                                    <Check
-                                                                        size={14}
-                                                                        className="mr-1"
-                                                                    />{' '}
-                                                                    Added
-                                                                </>
-                                                            ) : (
-                                                                'Add'
-                                                            )}
-                                                        </button>
                                                     </div>
+                                                    <button
+                                                        onClick={(e) => handleQuickAdd(e, product)}
+                                                        disabled={addedSku === product._id}
+                                                        className={`ml-4 rounded-full px-3 py-1.5 text-xs font-bold transition-all ${addedSku === product._id ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-700 hover:bg-indigo-600 hover:text-white'}`}
+                                                    >
+                                                        {addedSku === product._id ? (
+                                                            <span className="flex items-center gap-1">
+                                                                <Check size={14} /> Added
+                                                            </span>
+                                                        ) : (
+                                                            'Quick Add'
+                                                        )}
+                                                    </button>
                                                 </div>
                                             ))}
                                             <button
                                                 onClick={() => executeSearch(debouncedSearch)}
-                                                className="w-full bg-slate-50 p-3 text-xs font-bold text-emerald-600 transition-colors hover:bg-slate-100 hover:text-emerald-700"
+                                                className="w-full bg-slate-50 p-3 text-xs font-bold text-indigo-600 transition-colors hover:bg-indigo-50"
                                             >
                                                 View all {liveSearchData.pagination?.total || 0}{' '}
                                                 results &rarr;
                                             </button>
                                         </div>
                                     ) : (
-                                        <div className="p-6 text-center text-sm font-semibold text-slate-500">
+                                        <div className="p-4 text-center text-sm font-medium text-slate-500">
                                             No products found for "{debouncedSearch}"
                                         </div>
                                     )}
@@ -404,132 +347,167 @@ function Navbar({ onToggleSidebar, onSelectCategory }) {
                         </AnimatePresence>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-2 sm:gap-4">
-                        {isAdmin && (
-                            <Link
-                                to={ROUTES.ADMIN}
-                                className="hidden items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-6 py-2.5 text-white transition-all hover:bg-slate-800 hover:shadow-lg sm:flex"
-                            >
-                                <ShieldCheck size={18} strokeWidth={2.5} />{' '}
-                                <span className="text-sm font-black tracking-wide">
-                                    ADMIN CONSOLE
-                                </span>
-                            </Link>
-                        )}
-
-                        {!isAdmin && user && (
-                            <button
-                                onClick={() => navigate(ROUTES.WALLET)}
-                                className="group flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 transition-all hover:border-emerald-200 hover:bg-emerald-50"
-                                title="Wallet Balance"
-                            >
-                                <Wallet
-                                    size={18}
-                                    strokeWidth={2.5}
-                                    className="text-slate-400 transition-colors group-hover:text-emerald-600"
-                                />
-                                <span className="text-xs font-black text-slate-700 group-hover:text-emerald-700">
-                                    ₹{(user.walletBalance || 0).toLocaleString('en-IN')}
-                                </span>
-                            </button>
-                        )}
-
-                        {!isAdmin && (
-                            <div className="flex items-center gap-1">
+                    <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+                        {user && (
+                            <div className="relative" ref={notifRef}>
                                 <button
-                                    onClick={() => setIsWishlistOpen(true)}
-                                    className="relative rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                                    title="Wishlist"
+                                    onClick={() => setIsNotifOpen(!isNotifOpen)}
+                                    className={`relative flex items-center justify-center rounded-full p-2 transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'} ${isNotifOpen ? 'bg-indigo-50 text-indigo-600' : ''}`}
                                 >
-                                    <Heart size={20} strokeWidth={2} />
-                                    {wishlistItems?.length > 0 && (
-                                        <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-emerald-500 text-[10px] font-bold text-white shadow-sm">
-                                            {wishlistItems.length > 99 ? '99+' : wishlistItems.length}
-                                        </span>
+                                    <Bell size={20} strokeWidth={2.5} />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute top-1 right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 ring-2 ring-white"></span>
                                     )}
                                 </button>
 
-                                <button
-                                    onClick={() => setIsCartOpen(true)}
-                                    className="relative rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                                    title="Cart"
-                                >
-                                    <ShoppingCart size={20} strokeWidth={2} />
-                                    {cartCount > 0 && (
-                                        <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-emerald-500 text-[10px] font-bold text-white shadow-sm">
-                                            {cartCount > 99 ? '99+' : cartCount}
-                                        </span>
+                                <AnimatePresence>
+                                    {isNotifOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute right-0 mt-3 w-80 origin-top-right overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:w-96"
+                                        >
+                                            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-3">
+                                                <h3 className="font-extrabold text-slate-900">
+                                                    Notifications
+                                                </h3>
+                                                {unreadCount > 0 && (
+                                                    <button
+                                                        onClick={() => markAsReadMutation.mutate()}
+                                                        className="cursor-pointer border-none bg-transparent text-xs font-bold text-indigo-600 hover:underline"
+                                                    >
+                                                        Mark all read
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="custom-scrollbar max-h-[350px] overflow-y-auto">
+                                                {notifications.length === 0 ? (
+                                                    <div className="p-6 text-center text-sm font-bold text-slate-400">
+                                                        You're all caught up!
+                                                    </div>
+                                                ) : (
+                                                    notifications.map((notif) => {
+                                                        const styles = getNotificationStyles(
+                                                            notif.type
+                                                        );
+                                                        const Icon = styles.icon;
+
+                                                        let timeAgo = '';
+                                                        try {
+                                                            timeAgo = formatDistanceToNow(
+                                                                new Date(notif.createdAt),
+                                                                { addSuffix: true }
+                                                            );
+                                                        } catch (e) {
+                                                            timeAgo = 'Recently';
+                                                        }
+
+                                                        return (
+                                                            <div
+                                                                key={notif._id}
+                                                                onClick={() =>
+                                                                    handleNotificationClick(notif)
+                                                                }
+                                                                className={`flex cursor-pointer gap-3 border-b border-slate-50 p-4 transition-colors hover:bg-slate-50 ${!notif.isRead ? 'bg-slate-50/50' : 'bg-white'}`}
+                                                            >
+                                                                <div
+                                                                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${styles.bg} ${styles.color}`}
+                                                                >
+                                                                    <Icon
+                                                                        size={14}
+                                                                        strokeWidth={2.5}
+                                                                    />
+                                                                </div>
+                                                                <div className="flex-1">
+                                                                    <p
+                                                                        className={`mb-0.5 text-xs font-extrabold ${!notif.isRead ? 'text-slate-900' : 'text-slate-700'}`}
+                                                                    >
+                                                                        {notif.title}
+                                                                    </p>
+                                                                    <p
+                                                                        className={`text-xs leading-snug ${!notif.isRead ? 'font-bold text-slate-700' : 'font-medium text-slate-500'}`}
+                                                                    >
+                                                                        {notif.message}
+                                                                    </p>
+                                                                    <p className="mt-1 flex items-center gap-1 text-[9px] font-bold tracking-wider text-slate-400 uppercase">
+                                                                        <Clock size={10} />{' '}
+                                                                        {timeAgo}
+                                                                    </p>
+                                                                </div>
+                                                                {!notif.isRead && (
+                                                                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-indigo-500"></div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                            <div className="border-t border-slate-100 bg-slate-50 p-2 text-center">
+                                                <button
+                                                    onClick={() => {
+                                                        setIsNotifOpen(false);
+                                                        navigate(ROUTES.MY_ACCOUNT);
+                                                    }}
+                                                    className="text-xs font-bold text-slate-500 transition-colors hover:text-indigo-600"
+                                                >
+                                                    View Alert Preferences
+                                                </button>
+                                            </div>
+                                        </motion.div>
                                     )}
-                                </button>
+                                </AnimatePresence>
                             </div>
                         )}
 
-                        <div className="ml-1 hidden border-l border-slate-200 pl-4 lg:block">
-                            {loading ? (
-                                <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600"></div>
-                            ) : user ? (
-                                <div className="flex items-center gap-3">
-                                    <Link
-                                        to={ROUTES.MY_ACCOUNT}
-                                        className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-slate-100 bg-slate-100 shadow-sm transition-transform hover:scale-105"
-                                    >
-                                        {user?.avatar && !avatarError ? (
-                                            <img
-                                                src={getAvatarUrl(user.avatar)}
-                                                alt={user.name}
-                                                className="h-full w-full object-cover"
-                                                onError={() => setAvatarError(true)}
-                                            />
-                                        ) : (
-                                            <span className="text-[10px] font-black text-slate-500">
-                                                {user?.name?.charAt(0).toUpperCase() || 'U'}
-                                            </span>
-                                        )}
-                                    </Link>
-                                    <div className="flex flex-col">
-                                        <Link
-                                            to={ROUTES.MY_ACCOUNT}
-                                            className="text-sm font-bold text-slate-900 hover:text-emerald-600"
+                        {!isAdmin && (
+                            <Link
+                                to={ROUTES.ORDERS}
+                                className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                            >
+                                <div className="relative">
+                                    <ShoppingCart size={20} strokeWidth={2.5} />
+                                    {cartCount > 0 && (
+                                        <motion.span
+                                            key={cartCount}
+                                            initial={{ scale: 0.5, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-black text-white ring-2 ring-white"
                                         >
-                                            {user?.companyName || user?.name?.split(' ')[0]}
-                                        </Link>
-                                        <span className="text-xs font-medium text-slate-500">
-                                            {user?.accountType === 'B2B'
-                                                ? 'Business Account'
-                                                : 'Personal Account'}
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={logout}
-                                        className="text-xs font-bold text-slate-500 transition-colors hover:text-slate-900"
-                                    >
-                                        Log out
-                                    </button>
+                                            {cartCount > 99 ? '99+' : cartCount}
+                                        </motion.span>
+                                    )}
                                 </div>
-                            ) : (
-                                <div className="flex items-center gap-3">
-                                    <Link
-                                        to={ROUTES.LOGIN}
-                                        className="text-sm font-bold text-slate-600 hover:text-slate-900"
-                                    >
-                                        Log in
-                                    </Link>
-                                    <Link
-                                        to={ROUTES.SIGNUP}
-                                        className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-slate-800"
-                                    >
-                                        Register
-                                    </Link>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+                                <span className="hidden text-sm sm:block">Operations</span>
+                            </Link>
+                        )}
 
-            <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-            <WishlistDrawer isOpen={isWishlistOpen} onClose={() => setIsWishlistOpen(false)} />
-        </nav>
+                        <div className="mx-1 hidden h-5 w-px bg-slate-200 sm:block"></div>
+
+                        {loading ? (
+                            <div className="mx-3 h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600"></div>
+                        ) : user ? (
+                            <Link
+                                to={ROUTES.MY_ACCOUNT}
+                                className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                            >
+                                <User size={20} strokeWidth={2.5} />
+                                <span className="hidden text-sm sm:block">Account</span>
+                            </Link>
+                        ) : (
+                            <button
+                                onClick={() => navigate(ROUTES.LOGIN)}
+                                className="rounded-full bg-slate-900 px-5 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-slate-800"
+                            >
+                                Sign In
+                            </button>
+                        )}
+                    </div>
+                </nav>
+            </header>
+            <div className="h-14 w-full shrink-0" />
+        </>
     );
 }
 

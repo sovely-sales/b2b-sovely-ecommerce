@@ -9,7 +9,7 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
 
     const now = new Date();
     let startDate = new Date();
-    startDate.setUTCHours(0, 0, 0, 0); // Always normalize to start of day for accurate interval counts
+    startDate.setUTCHours(0, 0, 0, 0);
 
     let groupingFormat = '%Y-%m-%d';
     let intervals = 30;
@@ -137,18 +137,18 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
     const totalCustomers = await User.countDocuments({
         role: 'RESELLER',
         deletedAt: null,
-        createdAt: { $gte: startDate }
+        createdAt: { $gte: startDate },
     });
     const processingOrders = await Order.countDocuments({
         status: 'PROCESSING',
-        createdAt: { $gte: startDate }
+        createdAt: { $gte: startDate },
     });
     const pendingKycCount = await User.countDocuments({
         role: 'RESELLER',
         kycStatus: 'PENDING',
         isActive: true,
         deletedAt: null,
-        createdAt: { $gte: startDate }
+        createdAt: { $gte: startDate },
     });
 
     return res.status(200).json(
@@ -171,40 +171,37 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
 
 export const getResellerAnalytics = asyncHandler(async (req, res) => {
     const resellerId = req.user._id;
-    const { range = 'month' } = req.query;
+    const { startDate: queryStartDate, endDate: queryEndDate } = req.query;
 
     const now = new Date();
-    let startDate = new Date();
-    startDate.setUTCHours(0, 0, 0, 0);
+    let start = new Date();
+    let end = new Date();
 
-    let intervals = 30;
-    let labelFormat = { month: 'short', day: 'numeric' };
-
-    switch (range) {
-        case 'week':
-            startDate.setDate(now.getDate() - 7);
-            intervals = 7;
-            break;
-        case 'month':
-            startDate.setDate(now.getDate() - 30);
-            intervals = 30;
-            break;
-        case '3months':
-            startDate.setDate(now.getDate() - 90);
-            intervals = 90;
-            break;
-        default:
-            startDate.setDate(now.getDate() - 30);
-            intervals = 30;
+    if (queryStartDate && queryEndDate) {
+        start = new Date(queryStartDate);
+        end = new Date(queryEndDate);
+    } else {
+        start.setDate(now.getDate() - 30);
     }
 
+    start.setUTCHours(0, 0, 0, 0);
+    end.setUTCHours(23, 59, 59, 999);
+
+    const timeDiff = end.getTime() - start.getTime();
+    const intervals = Math.max(Math.ceil(timeDiff / (1000 * 3600 * 24)), 1);
+    const labelFormat = { month: 'short', day: 'numeric' };
+
     const kpiAggregation = await Order.aggregate([
-        { $match: { resellerId: resellerId } },
+        {
+            $match: {
+                resellerId: resellerId,
+                createdAt: { $gte: start, $lte: end },
+            },
+        },
         {
             $group: {
                 _id: null,
                 totalOrders: { $sum: 1 },
-
                 realizedProfit: {
                     $sum: {
                         $cond: [
@@ -214,25 +211,32 @@ export const getResellerAnalytics = asyncHandler(async (req, res) => {
                         ],
                     },
                 },
-
                 pendingProfit: {
                     $sum: {
                         $cond: [
                             {
                                 $and: [
-                                    // FIX: Include PENDING and NDR to match frontend logic
-                                    { $in: ['$status', ['PENDING', 'PROCESSING', 'SHIPPED', 'NDR', 'DELIVERED']] },
-                                    // FIX: Only count margins for COD orders (Prepaid are collected directly by reseller)
-                                    { $eq: ['$paymentMethod', 'COD'] }
-                                ]
+                                    {
+                                        $in: [
+                                            '$status',
+                                            [
+                                                'PENDING',
+                                                'PROCESSING',
+                                                'SHIPPED',
+                                                'NDR',
+                                                'DELIVERED',
+                                            ],
+                                        ],
+                                    },
+                                    { $eq: ['$paymentMethod', 'COD'] },
+                                ],
                             },
                             {
-                                // FIX: Calculate dynamic margin fallback for older glitched orders where DB saved 0
                                 $cond: [
                                     { $gt: ['$resellerProfitMargin', 0] },
                                     '$resellerProfitMargin',
-                                    { $subtract: ['$amountToCollect', '$totalPlatformCost'] }
-                                ]
+                                    { $subtract: ['$amountToCollect', '$totalPlatformCost'] },
+                                ],
                             },
                             0,
                         ],
@@ -274,7 +278,7 @@ export const getResellerAnalytics = asyncHandler(async (req, res) => {
         {
             $match: {
                 resellerId: resellerId,
-                createdAt: { $gte: startDate },
+                createdAt: { $gte: start, $lte: end },
                 status: { $ne: 'CANCELLED' },
             },
         },
@@ -289,30 +293,134 @@ export const getResellerAnalytics = asyncHandler(async (req, res) => {
 
     const trendMap = new Map(trendAggregation.map((item) => [item._id, item.dailyProfit]));
     const profitTrend = [];
-    for (let i = intervals - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(now.getDate() - i);
+
+    for (let i = 0; i < intervals; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
         const dateString = d.toISOString().split('T')[0];
+
         profitTrend.push({
             date: d.toLocaleDateString('en-US', labelFormat),
             profit: trendMap.get(dateString) || 0,
         });
     }
 
+    const topBuyers = await Order.aggregate([
+        {
+            $match: {
+                resellerId: resellerId,
+                createdAt: { $gte: start, $lte: end },
+                status: { $ne: 'CANCELLED' },
+                'endCustomerDetails.phone': { $exists: true, $ne: null },
+            },
+        },
+        {
+            $group: {
+                _id: '$endCustomerDetails.phone',
+                name: { $first: '$endCustomerDetails.name' },
+                orderCount: { $sum: 1 },
+
+                totalSpend: { $sum: { $add: ['$totalPlatformCost', '$resellerProfitMargin'] } },
+                totalProfitGenerated: { $sum: '$resellerProfitMargin' },
+            },
+        },
+        { $sort: { totalProfitGenerated: -1 } },
+        { $limit: 5 },
+    ]);
+
     return res.status(200).json(
         new ApiResponse(
             200,
             {
                 kpis: {
+                    totalOrders: kpis.totalOrders,
                     realizedProfit: kpis.realizedProfit,
-                    // Ensure we don't send back negative pending profit due to glitched legacy data
                     pendingProfit: Math.max(0, kpis.pendingProfit),
                     rtoRate,
                     ndrActionRequired: kpis.ndrActionRequired,
                 },
                 profitTrend,
+                topBuyers,
             },
             'Reseller analytics fetched successfully'
         )
     );
+});
+
+export const getSmartRestockPredictions = asyncHandler(async (req, res) => {
+    const resellerId = req.user._id;
+    const now = new Date();
+
+    const purchaseHistory = await Order.aggregate([
+        { $match: { resellerId: resellerId, status: { $nin: ['CANCELLED', 'RTO'] } } },
+        { $unwind: '$items' },
+        { $match: { 'items.orderType': 'WHOLESALE' } },
+        { $sort: { createdAt: 1 } },
+        {
+            $group: {
+                _id: '$items.productId',
+                purchases: {
+                    $push: { date: '$createdAt', qty: '$items.qty' },
+                },
+                lastPurchased: { $last: '$createdAt' },
+                totalQty: { $sum: '$items.qty' },
+                orderCount: { $sum: 1 },
+                sku: { $first: '$items.sku' },
+                title: { $first: '$items.title' },
+                price: { $first: '$items.platformUnitCost' },
+            },
+        },
+    ]);
+
+    const predictions = [];
+
+    for (const item of purchaseHistory) {
+        let avgDaysBetweenOrders = 30;
+        const suggestedQty = Math.ceil(item.totalQty / item.orderCount);
+
+        if (item.orderCount > 1) {
+            let totalDays = 0;
+            for (let i = 1; i < item.purchases.length; i++) {
+                const prevDate = new Date(item.purchases[i - 1].date);
+                const currDate = new Date(item.purchases[i].date);
+                totalDays += (currDate - prevDate) / (1000 * 60 * 60 * 24);
+            }
+            avgDaysBetweenOrders = totalDays / (item.orderCount - 1);
+        }
+
+        const daysSinceLastPurchase = (now - new Date(item.lastPurchased)) / (1000 * 60 * 60 * 24);
+        const estimatedDaysLeft = Math.round(avgDaysBetweenOrders - daysSinceLastPurchase);
+
+        if (estimatedDaysLeft <= 14 && estimatedDaysLeft >= -10) {
+            const product = await Product.findById(item._id).select(
+                'status dropshipBasePrice suggestedRetailPrice'
+            );
+            if (!product || product.status !== 'active') continue;
+
+            const margin = product.suggestedRetailPrice
+                ? Math.round(
+                      ((product.suggestedRetailPrice - product.dropshipBasePrice) /
+                          product.dropshipBasePrice) *
+                          100
+                  )
+                : 20;
+
+            predictions.push({
+                productId: item._id,
+                sku: item.sku,
+                title: item.title,
+                lastPurchased: item.lastPurchased,
+                estimatedDaysLeft: estimatedDaysLeft < 0 ? 0 : estimatedDaysLeft,
+                suggestedQty: suggestedQty,
+                margin: margin,
+                price: item.price,
+            });
+        }
+    }
+
+    predictions.sort((a, b) => a.estimatedDaysLeft - b.estimatedDaysLeft);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, predictions.slice(0, 4), 'Restock predictions generated'));
 });

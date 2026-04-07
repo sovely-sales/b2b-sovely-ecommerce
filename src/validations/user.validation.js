@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
-const optionalTrimmed = z
-    .string()
-    .trim()
-    .optional();
+const optionalTrimmed = z.string().trim().optional();
 
 const optionalBusinessString = z
     .string()
@@ -24,10 +21,7 @@ export const userValidation = {
                 .min(2, 'Name must be at least 2 characters')
                 .max(60, 'Name must be at most 60 characters')
                 .regex(/^[A-Za-z][A-Za-z .'-]*$/, 'Name can contain only letters and spaces'),
-            email: z
-                .string()
-                .trim()
-                .email('Please provide a valid email address'),
+            email: z.string().trim().email('Please provide a valid email address'),
             companyName: optionalBusinessString,
             gstin: optionalTrimmed.refine(
                 (value) =>
@@ -75,7 +69,9 @@ export const userValidation = {
                         .optional()
                         .refine(
                             (value) =>
-                                value === undefined || value === '' || /^[1-9][0-9]{5}$/.test(value),
+                                value === undefined ||
+                                value === '' ||
+                                /^[1-9][0-9]{5}$/.test(value),
                             { message: 'PIN code must be a valid 6-digit Indian PIN' }
                         ),
                 })

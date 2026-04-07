@@ -3,6 +3,7 @@ import { Product } from '../models/Product.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { User } from '../models/User.js';
 
 const MAX_DROPSHIP_SELLING_PRICE = 999999;
 
@@ -123,9 +124,8 @@ const recalculateCart = async (cart) => {
     let totalVolumetricWeight = 0;
     let totalBillableWeight = 0;
 
-    const weightGroups = {
+    const shippingGroups = {
         WHOLESALE: { billableWeight: 0, shippingCost: 0 },
-        DROPSHIP: { billableWeight: 0, shippingCost: 0 },
     };
 
     for (let i = 0; i < cart.items.length; i++) {
@@ -161,39 +161,54 @@ const recalculateCart = async (cart) => {
         totalVolumetricWeight += item.volumetricWeight;
         totalBillableWeight += item.billableWeight;
 
-        weightGroups[item.orderType].billableWeight += item.billableWeight;
+        let groupKey = 'WHOLESALE';
+        if (item.orderType === 'DROPSHIP') {
+            if (item.endCustomerDetails?.phone && item.endCustomerDetails?.address?.zip) {
+                groupKey = `DROPSHIP_${item.endCustomerDetails.phone}_${item.endCustomerDetails.address.zip}`;
+            } else {
+                groupKey = `DROPSHIP_UNASSIGNED_${i}`;
+            }
+        }
+
+        item._tempGroupKey = groupKey;
+
+        if (!shippingGroups[groupKey]) {
+            shippingGroups[groupKey] = { billableWeight: 0, shippingCost: 0 };
+        }
+
+        shippingGroups[groupKey].billableWeight += item.billableWeight;
     }
 
     cart.items = cart.items.filter((item) => !item.toBeRemoved);
 
-    let dropshipCharges = { deliveryCharge: 0, packingCharge: 0, totalShippingCost: 0 };
-    if (weightGroups.DROPSHIP.billableWeight > 0) {
-        dropshipCharges = calculateSlabCharge(weightGroups.DROPSHIP.billableWeight);
+    let totalDeliveryCharge = 0;
+    let totalPackingCharge = 0;
+    let totalShippingCost = 0;
+
+    for (const key in shippingGroups) {
+        const group = shippingGroups[key];
+        if (group.billableWeight > 0) {
+            const charges = calculateSlabCharge(group.billableWeight);
+            group.shippingCost = charges.totalShippingCost;
+
+            totalDeliveryCharge += charges.deliveryCharge;
+            totalPackingCharge += charges.packingCharge;
+            totalShippingCost += charges.totalShippingCost;
+        }
     }
 
-    let wholesaleCharges = { deliveryCharge: 0, packingCharge: 0, totalShippingCost: 0 };
-    if (weightGroups.WHOLESALE.billableWeight > 0) {
-        wholesaleCharges = calculateSlabCharge(weightGroups.WHOLESALE.billableWeight);
-    }
-
-    weightGroups.DROPSHIP.shippingCost = dropshipCharges.totalShippingCost;
-    weightGroups.WHOLESALE.shippingCost = wholesaleCharges.totalShippingCost;
-
-    const totalShippingCost =
-        weightGroups.WHOLESALE.shippingCost + weightGroups.DROPSHIP.shippingCost;
-
-    cart.totalDeliveryCharge = dropshipCharges.deliveryCharge + wholesaleCharges.deliveryCharge;
-    cart.totalPackingCharge = dropshipCharges.packingCharge + wholesaleCharges.packingCharge;
+    cart.totalDeliveryCharge = totalDeliveryCharge;
+    cart.totalPackingCharge = totalPackingCharge;
+    cart.totalShippingCost = totalShippingCost;
 
     for (let i = 0; i < cart.items.length; i++) {
         let item = cart.items[i];
+        const groupKey = item._tempGroupKey;
+        const group = shippingGroups[groupKey];
 
-        const groupTotalWeight = weightGroups[item.orderType].billableWeight;
-        if (groupTotalWeight > 0) {
-            const weightRatio = item.billableWeight / groupTotalWeight;
-            item.shippingCost = Number(
-                (weightGroups[item.orderType].shippingCost * weightRatio).toFixed(2)
-            );
+        if (group && group.billableWeight > 0) {
+            const weightRatio = item.billableWeight / group.billableWeight;
+            item.shippingCost = Number((group.shippingCost * weightRatio).toFixed(2));
         } else {
             item.shippingCost = 0;
         }
@@ -203,23 +218,26 @@ const recalculateCart = async (cart) => {
         );
 
         if (item.orderType === 'DROPSHIP') {
-            const minimumSellingPrice =
+            const baseMinimumSellingPrice =
                 item.platformUnitCost + item.taxAmountPerUnit + item.shippingCost / item.qty;
 
-            const profitPerUnit = item.resellerSellingPrice - minimumSellingPrice;
-            item.expectedProfit = Number((profitPerUnit * item.qty).toFixed(2));
-        } else {
-            item.expectedProfit = 0;
-            item.resellerSellingPrice = 0;
+            const expectedProfitPrepaid = item.resellerSellingPrice - baseMinimumSellingPrice;
+
+            item.expectedProfit = Number((expectedProfitPrepaid * item.qty).toFixed(2));
+
+            item.expectedProfitIfCOD = Number((expectedProfitPrepaid * item.qty - 41.3).toFixed(2));
         }
 
         subTotal += item.platformUnitCost * item.qty;
         totalTax += item.taxAmountPerUnit * item.qty;
         totalExpectedProfit += item.expectedProfit;
+
+        item._tempGroupKey = undefined;
     }
 
+    const shippingTax = Number((totalShippingCost * 0.18).toFixed(2));
     cart.subTotalPlatformCost = Number(subTotal.toFixed(2));
-    cart.totalTax = Number(totalTax.toFixed(2));
+    cart.totalTax = Number((totalTax + shippingTax).toFixed(2));
     cart.totalShippingCost = Number(totalShippingCost.toFixed(2));
     cart.grandTotalPlatformCost = Number((subTotal + totalTax + totalShippingCost).toFixed(2));
     cart.totalExpectedProfit = Number(totalExpectedProfit.toFixed(2));
@@ -233,24 +251,40 @@ const recalculateCart = async (cart) => {
 };
 
 export const getCart = asyncHandler(async (req, res) => {
-    let cart = await Cart.findOne({ resellerId: req.user._id }).populate(
+    let cart = await Cart.findOne({ resellerId: req.user._id });
+
+    if (!cart) {
+        cart = await Cart.create({ resellerId: req.user._id, items: [] });
+    } else {
+        cart = await recalculateCart(cart);
+        await cart.save();
+    }
+
+    const populatedCart = await Cart.findById(cart._id).populate(
         'items.productId',
         'title images sku inventory moq weightGrams dimensions dropshipBasePrice suggestedRetailPrice'
     );
 
-    if (!cart) {
-        cart = await Cart.create({ resellerId: req.user._id, items: [] });
-    }
-
-    return res.status(200).json(new ApiResponse(200, cart, 'Cart fetched successfully'));
+    return res
+        .status(200)
+        .json(new ApiResponse(200, populatedCart, 'Cart fetched and synced successfully'));
 });
 
 export const addToCart = asyncHandler(async (req, res) => {
-    const { productId, qty, orderType, resellerSellingPrice } = req.body;
+    const { productId, qty, orderType, resellerSellingPrice, customerDetails, saveToAddressBook } =
+        req.body;
 
     if (!productId || !qty || !orderType) {
         throw new ApiError(400, 'Product ID, Quantity, and Order Type are required');
     }
+
+    if (
+        orderType === 'DROPSHIP' &&
+        (!customerDetails || !customerDetails.name || !customerDetails.phone)
+    ) {
+        throw new ApiError(400, 'Customer destination details are required for Dropship orders.');
+    }
+
     const parsedQty = validatePositiveInteger(qty, 'Quantity');
 
     const product = await Product.findById(productId);
@@ -272,32 +306,71 @@ export const addToCart = asyncHandler(async (req, res) => {
         cart = new Cart({ resellerId: req.user._id, items: [] });
     }
 
-    const existingItemIndex = cart.items.findIndex(
-        (item) => item.productId.toString() === String(productId) && item.orderType === orderType
-    );
     const hasDropshipPriceInput =
         resellerSellingPrice !== undefined &&
         resellerSellingPrice !== null &&
         resellerSellingPrice !== '';
 
+    const targetSellingPrice =
+        orderType === 'DROPSHIP'
+            ? hasDropshipPriceInput
+                ? parseDropshipSellingPrice(resellerSellingPrice)
+                : parseDropshipSellingPrice(product.suggestedRetailPrice || 0)
+            : 0;
+
+    const existingItemIndex = cart.items.findIndex((item) => {
+        if (item.productId.toString() !== String(productId) || item.orderType !== orderType)
+            return false;
+        if (orderType === 'WHOLESALE') return true;
+
+        if (orderType === 'DROPSHIP') {
+            const isSameCustomer = item.endCustomerDetails?.phone === customerDetails.phone;
+            const isSamePrice = item.resellerSellingPrice === targetSellingPrice;
+            return isSameCustomer && isSamePrice;
+        }
+        return false;
+    });
+
     if (existingItemIndex > -1) {
         cart.items[existingItemIndex].qty += parsedQty;
-        if (orderType === 'DROPSHIP' && hasDropshipPriceInput) {
-            cart.items[existingItemIndex].resellerSellingPrice =
-                parseDropshipSellingPrice(resellerSellingPrice);
-        }
     } else {
         cart.items.push({
             productId,
             qty: parsedQty,
             orderType,
-            resellerSellingPrice:
+            resellerSellingPrice: targetSellingPrice,
+            endCustomerDetails:
                 orderType === 'DROPSHIP'
-                    ? hasDropshipPriceInput
-                        ? parseDropshipSellingPrice(resellerSellingPrice)
-                        : parseDropshipSellingPrice(product.suggestedRetailPrice || 0)
-                    : 0,
+                    ? {
+                          name: customerDetails.name,
+                          phone: customerDetails.phone,
+                          address: {
+                              street: customerDetails.street,
+                              city: customerDetails.city,
+                              state: customerDetails.state,
+                              zip: customerDetails.zip,
+                          },
+                      }
+                    : null,
         });
+    }
+
+    if (orderType === 'DROPSHIP' && saveToAddressBook) {
+        const user = await User.findById(req.user._id);
+        const exists = user.savedCustomers.some((c) => c.phone === customerDetails.phone);
+        if (!exists) {
+            user.savedCustomers.push({
+                name: customerDetails.name,
+                phone: customerDetails.phone,
+                address: {
+                    street: customerDetails.street,
+                    city: customerDetails.city,
+                    state: customerDetails.state,
+                    zip: customerDetails.zip,
+                },
+            });
+            await user.save({ validateBeforeSave: false });
+        }
     }
 
     cart = await recalculateCart(cart);
@@ -313,28 +386,19 @@ export const addToCart = asyncHandler(async (req, res) => {
 
 export const updateCartItem = asyncHandler(async (req, res) => {
     const { qty, resellerSellingPrice } = req.body;
-    const { productId } = req.params;
-    const { orderType } = req.query; // Identify WHICH version of the product to update
+    const { itemId } = req.params;
 
     let cart = await Cart.findOne({ resellerId: req.user._id });
     if (!cart) throw new ApiError(404, 'Cart not found');
 
-    const itemIndex = cart.items.findIndex(
-        (item) => item.productId.toString() === productId && item.orderType === orderType
-    );
+    const itemIndex = cart.items.findIndex((item) => item._id.toString() === itemId);
     if (itemIndex === -1) throw new ApiError(404, 'Item not found in cart');
 
-    const product = await Product.findById(productId);
+    const product = await Product.findById(cart.items[itemIndex].productId);
+
     if (qty !== undefined) {
         if (qty <= 0) {
-            // Fix: Use both productId and orderType to ensure we only remove the correct version
-            cart.items = cart.items.filter(
-                (item) =>
-                    !(
-                        String(item.productId._id || item.productId) === String(productId) &&
-                        item.orderType === orderType
-                    )
-            );
+            cart.items = cart.items.filter((item) => item._id.toString() !== itemId);
             cart = await recalculateCart(cart);
             await cart.save();
             return res.status(200).json(new ApiResponse(200, cart, 'Item removed from cart'));
@@ -347,18 +411,18 @@ export const updateCartItem = asyncHandler(async (req, res) => {
                 `Cannot exceed available stock (${product.inventory.stock} units)`
             );
         }
-
         if (cart.items[itemIndex].orderType === 'WHOLESALE' && parsedQty < product.moq) {
             throw new ApiError(
                 400,
                 `Quantity cannot be less than the MOQ of ${product.moq} units.`
             );
         }
-
         cart.items[itemIndex].qty = parsedQty;
     }
+
     if (resellerSellingPrice !== undefined && cart.items[itemIndex].orderType === 'DROPSHIP') {
-        cart.items[itemIndex].resellerSellingPrice = parseDropshipSellingPrice(resellerSellingPrice);
+        cart.items[itemIndex].resellerSellingPrice =
+            parseDropshipSellingPrice(resellerSellingPrice);
     }
 
     cart = await recalculateCart(cart);
@@ -373,24 +437,12 @@ export const updateCartItem = asyncHandler(async (req, res) => {
 });
 
 export const removeFromCart = asyncHandler(async (req, res) => {
-    const { productId } = req.params;
-    const { orderType } = req.query; // Identify WHICH version of the product to remove
-
-    if (!orderType) {
-        throw new ApiError(400, 'Order type (DROPSHIP/WHOLESALE) is required for removal');
-    }
+    const { itemId } = req.params;
 
     let cart = await Cart.findOne({ resellerId: req.user._id });
     if (!cart) throw new ApiError(404, 'Cart not found');
 
-    // Fix: Robust comparison for both productId and orderType
-    cart.items = cart.items.filter(
-        (item) =>
-            !(
-                String(item.productId._id || item.productId) === String(productId) &&
-                item.orderType === orderType
-            )
-    );
+    cart.items = cart.items.filter((item) => item._id.toString() !== itemId);
 
     cart = await recalculateCart(cart);
     await cart.save();
@@ -424,4 +476,60 @@ export const clearCart = asyncHandler(async (req, res) => {
     }
 
     return res.status(200).json(new ApiResponse(200, emptyCart, 'Cart cleared successfully'));
+});
+
+export const assignCustomerToCartItem = asyncHandler(async (req, res) => {
+    const { customerDetails, saveToAddressBook } = req.body;
+    const { itemId } = req.params;
+
+    if (
+        !customerDetails ||
+        !customerDetails.name ||
+        !customerDetails.phone ||
+        !customerDetails.street ||
+        !customerDetails.zip
+    ) {
+        throw new ApiError(400, 'Incomplete customer details provided.');
+    }
+
+    let cart = await Cart.findOne({ resellerId: req.user._id });
+    if (!cart) throw new ApiError(404, 'Cart not found');
+
+    const itemIndex = cart.items.findIndex((item) => item._id.toString() === itemId);
+
+    if (itemIndex === -1 || cart.items[itemIndex].orderType !== 'DROPSHIP') {
+        throw new ApiError(404, 'Valid dropship item not found in cart.');
+    }
+
+    cart.items[itemIndex].endCustomerDetails = {
+        name: customerDetails.name,
+        phone: customerDetails.phone,
+        address: {
+            street: customerDetails.street,
+            city: customerDetails.city,
+            state: customerDetails.state,
+            zip: customerDetails.zip,
+        },
+    };
+
+    if (saveToAddressBook) {
+        const user = await User.findById(req.user._id);
+        const exists = user.savedCustomers.some((c) => c.phone === customerDetails.phone);
+        if (!exists) {
+            user.savedCustomers.push(cart.items[itemIndex].endCustomerDetails);
+            await user.save({ validateBeforeSave: false });
+        }
+    }
+
+    cart = await recalculateCart(cart);
+    await cart.save();
+
+    const populatedCart = await Cart.findById(cart._id).populate(
+        'items.productId',
+        'title images sku inventory moq weightGrams dimensions dropshipBasePrice suggestedRetailPrice'
+    );
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, populatedCart, 'Destination assigned successfully'));
 });

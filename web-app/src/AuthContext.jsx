@@ -24,14 +24,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('reseller_cart');
 
             const currentPath = window.location.pathname;
-            const publicPaths = [
-                '/',
-                '/login',
-                '/signup',
-                '/forgot-password',
-                '/terms',
-                '/privacy',
-            ];
+            const publicPaths = ['/', '/login', '/forgot-password', '/terms', '/privacy'];
 
             if (!publicPaths.includes(currentPath)) {
                 window.location.href = '/login?session_expired=true';
@@ -57,21 +50,6 @@ export const AuthProvider = ({ children }) => {
             const message =
                 error.response?.data?.message || `Network or Server Error: ${error.message}`;
             return { success: false, message };
-        }
-    };
-
-    const register = async (userData) => {
-        try {
-            const response = await api.post('/auth/register', userData);
-            if (response.data?.data?.user) {
-                setUser(response.data.data.user);
-            }
-            return { success: true, message: response.data.message };
-        } catch (error) {
-            return {
-                success: false,
-                message: error.response?.data?.message || 'Registration failed',
-            };
         }
     };
 
@@ -116,13 +94,11 @@ export const AuthProvider = ({ children }) => {
             value={{
                 user,
                 login,
-                register,
                 logout,
                 loading,
                 refreshUser,
                 sendOtp,
                 loginWithOtpReq,
-                isKycApproved: user?.kycStatus === 'APPROVED',
                 isAdmin: user?.role === 'ADMIN',
             }}
         >

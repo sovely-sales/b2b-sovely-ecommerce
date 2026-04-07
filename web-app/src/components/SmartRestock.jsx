@@ -14,33 +14,11 @@ const SmartRestock = () => {
     useEffect(() => {
         const fetchPredictions = async () => {
             try {
-                setTimeout(() => {
-                    setRecommendations([
-                        {
-                            productId: '1',
-                            sku: 'WTCH-MEN-BLK-01',
-                            title: 'Premium Chronograph Watch',
-                            lastPurchased: '2026-02-15T00:00:00Z',
-                            estimatedDaysLeft: 3,
-                            suggestedQty: 50,
-                            margin: 45,
-                            price: 850,
-                        },
-                        {
-                            productId: '2',
-                            sku: 'B2B-EARBUD-PRO',
-                            title: 'Noise Cancelling Wireless Earbuds',
-                            lastPurchased: '2026-03-01T00:00:00Z',
-                            estimatedDaysLeft: 7,
-                            suggestedQty: 100,
-                            margin: 52,
-                            price: 420,
-                        },
-                    ]);
-                    setIsLoading(false);
-                }, 800);
+                const res = await api.get('/analytics/restock-predictions');
+                setRecommendations(res.data.data || []);
             } catch (error) {
                 console.error('Failed to fetch restock predictions', error);
+            } finally {
                 setIsLoading(false);
             }
         };

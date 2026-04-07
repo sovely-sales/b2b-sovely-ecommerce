@@ -4,7 +4,6 @@ export const ROUTES = {
     SEARCH: '/search',
     PRODUCT: (id) => `/product/${id}`,
     LOGIN: '/login',
-    SIGNUP: '/signup',
     FORGOT_PASSWORD: '/forgot-password',
     CHECKOUT: '/checkout',
     ORDERS: '/orders',
@@ -28,4 +27,5 @@ export const ROUTES = {
     BECOME_SELLER: '/become-seller',
     GIFT_CARDS: '/gift-cards',
     CATEGORY: (name) => `/category/${name}`,
+    BRAND: (name) => `/brand/${name}`,
 };

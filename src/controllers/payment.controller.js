@@ -91,17 +91,19 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
 
         if (!isMock) {
             const rzpPayment = await razorpayInstance.payments.fetch(razorpay_payment_id);
+
             if (rzpPayment.amount !== expectedAmountInPaise) {
-                throw new ApiError(
-                    400,
-                    `SECURITY ALERT: Amount mismatch. Expected ₹${invoice.grandTotal}`
-                );
+                throw new ApiError(400, `SECURITY ALERT: Amount mismatch.`);
             }
-            if (rzpPayment.status !== 'captured') {
-                throw new ApiError(
-                    400,
-                    `Payment failed or is pending. Current status: ${rzpPayment.status}`
+
+            if (rzpPayment.status === 'authorized') {
+                await razorpayInstance.payments.capture(
+                    razorpay_payment_id,
+                    expectedAmountInPaise,
+                    'INR'
                 );
+            } else if (rzpPayment.status !== 'captured') {
+                throw new ApiError(400, `Payment status: ${rzpPayment.status}. Expected captured.`);
             }
         }
 
@@ -198,13 +200,12 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     invoice.razorpayOrderId = order.id;
     await invoice.save();
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                { razorpayOrder: order, amount: amountInINR },
-                'Razorpay order created securely'
-            )
-        );
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+
+            { razorpayOrder: order, amount: amountInINR, key_id },
+            'Razorpay order created securely'
+        )
+    );
 });

@@ -12,10 +12,7 @@ const fadeUp = {
 
 const staggerContainer = {
     hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: { staggerChildren: 0.1 },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
 const Login = () => {
@@ -24,7 +21,11 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [otpValues, setOtpValues] = useState(['', '', '', '']);
+
     const inputRefs = useRef([]);
+    const emailInputRef = useRef(null);
+    const phoneInputRef = useRef(null);
+
     const [showPassword, setShowPassword] = useState(false);
     const [otpSent, setOtpSent] = useState(false);
     const [cooldown, setCooldown] = useState(0);
@@ -33,6 +34,24 @@ const Login = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { login, loginWithOtpReq, sendOtp } = useContext(AuthContext);
+
+    // Global Keydown Listener for Type-to-Focus
+    useEffect(() => {
+        const handleGlobalKeyDown = (e) => {
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                if (loginMethod === 'email' && emailInputRef.current) {
+                    emailInputRef.current.focus();
+                } else if (loginMethod === 'phone' && phoneInputRef.current) {
+                    phoneInputRef.current.focus();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [loginMethod]);
 
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
@@ -98,6 +117,12 @@ const Login = () => {
         setOtpSent(false);
         setOtpValues(['', '', '', '']);
         setCooldown(0);
+
+        // Auto-focus the input on tab switch
+        setTimeout(() => {
+            if (method === 'email' && emailInputRef.current) emailInputRef.current.focus();
+            if (method === 'phone' && phoneInputRef.current) phoneInputRef.current.focus();
+        }, 10);
     };
 
     const handleEmailLogin = async (e) => {
@@ -201,7 +226,7 @@ const Login = () => {
                             Sign In
                         </h1>
                         <p className="font-medium text-slate-500">
-                            Enter your credentials to access your account.
+                            Start typing anywhere to enter your credentials.
                         </p>
                     </motion.div>
 
@@ -239,12 +264,13 @@ const Login = () => {
                                     Email Address
                                 </label>
                                 <input
+                                    ref={emailInputRef}
                                     type="email"
                                     placeholder="you@example.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
-                                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3.5 text-sm font-medium text-slate-900 transition-all outline-none placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+                                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-3.5 text-sm font-medium text-slate-900 transition-colors outline-none placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30"
                                 />
                             </motion.div>
                             <motion.div variants={fadeUp} className="space-y-2">
@@ -258,7 +284,7 @@ const Login = () => {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
-                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pr-12 pl-5 text-sm font-medium tracking-widest text-slate-900 transition-all outline-none placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pr-12 pl-5 text-sm font-medium tracking-widest text-slate-900 transition-colors outline-none placeholder:tracking-normal placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30"
                                     />
                                     <button
                                         type="button"
@@ -285,7 +311,7 @@ const Login = () => {
                                 variants={fadeUp}
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full rounded-2xl bg-slate-900 py-4 font-bold tracking-wide text-white transition-all duration-300 hover:bg-slate-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
+                                className="w-full rounded-2xl bg-slate-900 py-4 font-bold tracking-wide text-white transition-colors duration-300 hover:bg-slate-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
                             >
                                 {isLoading ? 'Signing In...' : 'Sign In'}
                             </motion.button>
@@ -317,6 +343,7 @@ const Login = () => {
                                         +91
                                     </span>
                                     <input
+                                        ref={phoneInputRef}
                                         type="tel"
                                         inputMode="numeric"
                                         placeholder="Enter 10 digit number"
@@ -327,7 +354,7 @@ const Login = () => {
                                         disabled={otpSent && cooldown > 0}
                                         maxLength="10"
                                         required
-                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pr-5 pl-14 text-sm font-bold text-slate-900 transition-all outline-none placeholder:text-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 disabled:bg-slate-100 disabled:opacity-60"
+                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pr-5 pl-14 text-sm font-bold text-slate-900 transition-colors outline-none placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30 disabled:bg-slate-100 disabled:opacity-60"
                                     />
                                 </div>
                             </motion.div>
@@ -364,7 +391,7 @@ const Login = () => {
                                                     handleOtpChange(index, e.target.value)
                                                 }
                                                 onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                                                className="w-14 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-2 py-4 text-center text-xl font-extrabold text-slate-900 transition-all outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+                                                className="w-14 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-2 py-4 text-center text-xl font-extrabold text-slate-900 transition-colors outline-none focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30"
                                             />
                                         ))}
                                     </div>
@@ -377,7 +404,7 @@ const Login = () => {
                                     disabled={
                                         isLoading || (otpSent && otpValues.join('').length < 4)
                                     }
-                                    className="w-full rounded-2xl bg-slate-900 py-4 font-bold tracking-wide text-white transition-all duration-300 hover:bg-slate-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="w-full rounded-2xl bg-slate-900 py-4 font-bold tracking-wide text-white transition-colors duration-300 hover:bg-slate-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-70"
                                 >
                                     {isLoading
                                         ? otpSent
@@ -396,12 +423,12 @@ const Login = () => {
                         className="mt-8 border-t border-slate-100 pt-6 text-center"
                     >
                         <p className="text-sm font-medium text-slate-500">
-                            Don't have an account?{' '}
+                            Need an account?{' '}
                             <Link
-                                to="/signup"
+                                to="/contact-us"
                                 className="font-bold text-slate-900 transition-colors hover:text-emerald-600"
                             >
-                                Sign up
+                                Contact Admin
                             </Link>
                         </p>
                     </motion.div>

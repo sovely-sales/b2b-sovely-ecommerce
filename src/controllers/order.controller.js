@@ -8,33 +8,29 @@ import { WalletTransaction } from '../models/WalletTransaction.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { createInvoiceFromOrder } from './invoice.controller.js';
+import { createInvoiceFromOrder, generateInvoiceBuffer } from './invoice.controller.js';
+import { logisticsService } from '../services/logistics.service.js';
+import { emailService } from '../services/email.service.js';
+import { Invoice } from '../models/Invoice.js';
+import { Notification } from '../models/Notification.js';
+import crypto from 'crypto';
+import fs from 'fs';
+import Papa from 'papaparse';
 
 export const createOrder = asyncHandler(async (req, res) => {
     const rawIdempotencyKey = req.headers['x-idempotency-key'];
     if (!rawIdempotencyKey) throw new ApiError(400, 'Idempotency key is missing.');
 
-    // Prefix with user ID to prevent cross-user data leakage
     const idempotencyKey = `${req.user._id}:${rawIdempotencyKey}`;
 
     const existingTransaction = await IdempotencyRecord.findOne({ key: idempotencyKey });
     if (existingTransaction) return res.status(200).json(existingTransaction.response);
 
-    const user = req.user;
-    if (user.accountType === 'B2B' && user.kycStatus !== 'APPROVED') {
-        throw new ApiError(403, 'Forbidden: Business KYC must be approved to place orders.');
-    }
-
-    const { endCustomerDetails, paymentMethod } = req.body;
+    const { paymentMethods = {}, wholesaleBranchId } = req.body;
     const resellerId = req.user._id;
 
     const cart = await Cart.findOne({ resellerId });
     if (!cart || cart.items.length === 0) throw new ApiError(400, 'Your cart is empty');
-
-    const hasDropship = cart.items.some((item) => item.orderType === 'DROPSHIP');
-    if (hasDropship && (!endCustomerDetails || !endCustomerDetails.phone)) {
-        throw new ApiError(400, 'End Customer details are mandatory for dropship orders');
-    }
 
     const productIds = cart.items.map((item) => item.productId);
     const products = await Product.find({ _id: { $in: productIds } });
@@ -51,12 +47,18 @@ export const createOrder = asyncHandler(async (req, res) => {
         const resellerCheck = await User.findById(resellerId).session(session);
         if (!resellerCheck) throw new ApiError(404, 'Reseller account not found.');
 
-        const dropshipItems = [];
         const wholesaleItems = [];
+        const dropshipGroups = {};
 
         cart.items.forEach((item) => {
             const trueProduct = productMap[item.productId.toString()];
             if (!trueProduct) throw new ApiError(404, `Product ${item.productId} unavailable.`);
+
+            let currentPlatformPrice = trueProduct.dropshipBasePrice;
+
+            const currentTaxPerUnit = Number(
+                ((currentPlatformPrice * trueProduct.gstSlab) / 100).toFixed(2)
+            );
 
             const processedItem = {
                 productId: item.productId,
@@ -65,11 +67,13 @@ export const createOrder = asyncHandler(async (req, res) => {
                 image: trueProduct.images?.[0]?.url || '',
                 hsnCode: trueProduct.hsnCode || '0000',
                 qty: item.qty,
-                platformBasePrice: item.platformUnitCost,
-                resellerSellingPrice: item.resellerSellingPrice,
 
-                taxAmountPerUnit: item.taxAmountPerUnit,
-                gstSlab: item.gstSlab,
+                platformBasePrice: currentPlatformPrice,
+                taxAmountPerUnit: currentTaxPerUnit,
+                gstSlab: trueProduct.gstSlab,
+
+                resellerSellingPrice: item.resellerSellingPrice || 0,
+
                 shippingCost: item.shippingCost || 0,
                 actualWeight: item.actualWeight || 0,
                 volumetricWeight: item.volumetricWeight || 0,
@@ -77,7 +81,19 @@ export const createOrder = asyncHandler(async (req, res) => {
             };
 
             if (item.orderType === 'DROPSHIP') {
-                dropshipItems.push(processedItem);
+                const customer = item.endCustomerDetails;
+                if (!customer || !customer.phone) {
+                    throw new ApiError(
+                        400,
+                        'One or more dropship items are missing destination details.'
+                    );
+                }
+
+                const groupKey = `DROPSHIP_${customer.phone}_${customer.address.zip}`;
+                if (!dropshipGroups[groupKey]) {
+                    dropshipGroups[groupKey] = { customerDetails: customer, items: [] };
+                }
+                dropshipGroups[groupKey].items.push(processedItem);
             } else {
                 wholesaleItems.push(processedItem);
             }
@@ -87,22 +103,24 @@ export const createOrder = asyncHandler(async (req, res) => {
         const generatedOrderIds = [];
 
         if (wholesaleItems.length > 0) {
-            const whSubTotal = wholesaleItems.reduce(
-                (acc, item) => acc + item.platformBasePrice * item.qty,
-                0
-            );
-            const whTaxTotal = wholesaleItems.reduce(
-                (acc, item) => acc + item.taxAmountPerUnit * item.qty,
-                0
-            );
-            const whShippingTotal = wholesaleItems.reduce(
-                (acc, item) => acc + item.shippingCost,
-                0
-            );
-            const whTotalCost = whSubTotal + whTaxTotal + whShippingTotal;
+            let selectedBranch = null;
+            if (wholesaleBranchId && resellerCheck.branches && resellerCheck.branches.length > 0) {
+                selectedBranch = resellerCheck.branches.find(
+                    (b) => b._id.toString() === wholesaleBranchId
+                );
+            }
 
-            const whOrderId = `OD-WH-${Math.floor(1000000 + Math.random() * 9000000)}`;
-            generatedOrderIds.push(whOrderId);
+            const finalGstin = selectedBranch?.gstin || resellerCheck.gstin;
+            const finalAddress = selectedBranch?.address || resellerCheck.billingAddress;
+
+            const buyerSnapshot = {
+                name: resellerCheck.name,
+                companyName: resellerCheck.companyName,
+                phone: resellerCheck.phoneNumber,
+                gstin: finalGstin,
+                address: finalAddress,
+            };
+
             const whActualWeight = wholesaleItems.reduce((acc, item) => acc + item.actualWeight, 0);
             const whVolWeight = wholesaleItems.reduce(
                 (acc, item) => acc + item.volumetricWeight,
@@ -114,15 +132,35 @@ export const createOrder = asyncHandler(async (req, res) => {
             );
 
             const whFreight = calculateSlabCharge(whBillableWeight);
+            const finalShippingTotal = whFreight.totalShippingCost;
+
+            const whSubTotal = wholesaleItems.reduce(
+                (acc, item) => acc + item.platformBasePrice * item.qty,
+                0
+            );
+            const whItemTaxTotal = wholesaleItems.reduce(
+                (acc, item) => acc + item.taxAmountPerUnit * item.qty,
+                0
+            );
+
+            const whShippingTax = Number((finalShippingTotal * 0.18).toFixed(2));
+            const whTaxTotal = whItemTaxTotal + whShippingTax;
+
+            const whTotalCost = whSubTotal + whTaxTotal + finalShippingTotal;
+
+            const whOrderId = `OD-WH-${Math.floor(1000000 + Math.random() * 9000000)}`;
+            generatedOrderIds.push(whOrderId);
 
             ordersToCreate.push({
                 orderId: whOrderId,
                 resellerId,
+                billingDetails: buyerSnapshot,
+                shippingDetails: buyerSnapshot,
                 status: 'PENDING',
                 paymentMethod: 'PREPAID_WALLET',
                 subTotal: whSubTotal,
                 taxTotal: whTaxTotal,
-                shippingTotal: whShippingTotal,
+                shippingTotal: finalShippingTotal,
                 deliveryCharge: whFreight.deliveryCharge,
                 packingCharge: whFreight.packingCharge,
                 totalPlatformCost: whTotalCost,
@@ -141,61 +179,70 @@ export const createOrder = asyncHandler(async (req, res) => {
             });
         }
 
-        if (dropshipItems.length > 0) {
-            const dsSubTotal = dropshipItems.reduce(
+        for (const [groupKey, group] of Object.entries(dropshipGroups)) {
+            const dsItems = group.items;
+            const customer = group.customerDetails;
+            const currentPaymentMethod = paymentMethods[groupKey] || 'COD';
+
+            const dsActualWeight = dsItems.reduce((acc, item) => acc + item.actualWeight, 0);
+            const dsVolWeight = dsItems.reduce((acc, item) => acc + item.volumetricWeight, 0);
+            const dsBillableWeight = dsItems.reduce((acc, item) => acc + item.billableWeight, 0);
+
+            const freight = calculateSlabCharge(dsBillableWeight);
+            const dsShippingTotal = freight.totalShippingCost;
+
+            const dsSubTotal = dsItems.reduce(
                 (acc, item) => acc + item.platformBasePrice * item.qty,
                 0
             );
-            const dsTaxTotal = dropshipItems.reduce(
+            const dsItemTaxTotal = dsItems.reduce(
                 (acc, item) => acc + item.taxAmountPerUnit * item.qty,
                 0
             );
-            const dsShippingTotal = dropshipItems.reduce((acc, item) => acc + item.shippingCost, 0);
 
-            const codCharge = paymentMethod === 'COD' ? 35 : 0;
+            const codCharge = currentPaymentMethod === 'COD' ? 35 : 0;
+            const codTax = Number((codCharge * 0.18).toFixed(2));
+            const dsShippingTax = Number((dsShippingTotal * 0.18).toFixed(2));
+
+            const dsTaxTotal = dsItemTaxTotal + dsShippingTax + codTax;
             const dsTotalCost = dsSubTotal + dsTaxTotal + dsShippingTotal + codCharge;
 
             const dsOrderId = `OD-DS-${Math.floor(1000000 + Math.random() * 9000000)}`;
             generatedOrderIds.push(dsOrderId);
 
-            // FIX: Always calculate totalCustomerPayment and margin regardless of Payment Method
-            const totalCustomerPayment = dropshipItems.reduce(
+            const totalCustomerPayment = dsItems.reduce(
                 (acc, item) => acc + item.resellerSellingPrice * item.qty,
                 0
             );
 
             let amountToCollect = 0;
-            let resellerPayoutOnDelivery = 0;
+            let payoutOnDelivery = 0;
             let resellerProfitMargin = totalCustomerPayment - dsTotalCost;
 
-            if (paymentMethod === 'COD') {
+            if (currentPaymentMethod === 'COD') {
                 amountToCollect = totalCustomerPayment;
-                resellerPayoutOnDelivery = dsSubTotal + dsTaxTotal + dsShippingTotal + resellerProfitMargin;
+
+                payoutOnDelivery = amountToCollect;
             }
 
             if (resellerProfitMargin < 0) {
                 throw new ApiError(
                     400,
-                    `Selling price is too low. You are losing ₹${Math.abs(resellerProfitMargin)} on this order.`
+                    `Selling price for destination ${customer.address.zip} is too low. Margin is negative.`
                 );
             }
-
-            const dsActualWeight = dropshipItems.reduce((acc, item) => acc + item.actualWeight, 0);
-            const dsVolWeight = dropshipItems.reduce((acc, item) => acc + item.volumetricWeight, 0);
-            const dsBillableWeight = dropshipItems.reduce(
-                (acc, item) => acc + item.billableWeight,
-                0
-            );
 
             ordersToCreate.push({
                 orderId: dsOrderId,
                 resellerId,
-                endCustomerDetails,
+                endCustomerDetails: customer,
                 status: 'PENDING',
-                paymentMethod,
+                paymentMethod: currentPaymentMethod,
                 subTotal: dsSubTotal,
                 taxTotal: dsTaxTotal,
                 shippingTotal: dsShippingTotal,
+                deliveryCharge: freight.deliveryCharge,
+                packingCharge: freight.packingCharge,
                 codCharge,
                 totalPlatformCost: dsTotalCost,
 
@@ -206,30 +253,26 @@ export const createOrder = asyncHandler(async (req, res) => {
 
                 amountToCollect,
                 resellerProfitMargin,
-                payoutOnDelivery: resellerPayoutOnDelivery,
-                items: dropshipItems,
+                payoutOnDelivery,
+                items: dsItems,
                 statusHistory: [
                     {
                         status: 'PENDING',
-                        comment: `Dropship order placed via Wallet (${paymentMethod})`,
+                        comment: `Dropship order placed (${currentPaymentMethod})`,
                     },
                 ],
             });
         }
 
-        const totalWholesaleCost = ordersToCreate
-            .filter((o) => o.orderId.startsWith('OD-WH'))
-            .reduce((acc, o) => acc + o.totalPlatformCost, 0);
-        const totalDropshipCost = ordersToCreate
-            .filter((o) => o.orderId.startsWith('OD-DS'))
-            .reduce((acc, o) => acc + o.totalPlatformCost, 0);
-
-        const calculatedFinalTotal = totalWholesaleCost + totalDropshipCost;
+        const calculatedFinalTotal = ordersToCreate.reduce(
+            (acc, o) => acc + o.totalPlatformCost,
+            0
+        );
 
         if (resellerCheck.walletBalance < calculatedFinalTotal) {
             throw new ApiError(
                 400,
-                `Insufficient wallet balance. Total required: ₹${calculatedFinalTotal}, Available: ₹${resellerCheck.walletBalance}`
+                `Insufficient wallet balance. Total required: ₹${calculatedFinalTotal.toFixed(2)}, Available: ₹${resellerCheck.walletBalance}`
             );
         }
 
@@ -245,6 +288,8 @@ export const createOrder = asyncHandler(async (req, res) => {
             { returnDocument: 'after', session }
         );
 
+        const secureHash = crypto.randomBytes(4).toString('hex').toUpperCase();
+
         await WalletTransaction.create(
             [
                 {
@@ -253,21 +298,34 @@ export const createOrder = asyncHandler(async (req, res) => {
                     purpose: 'ORDER_DEDUCTION',
                     amount: calculatedFinalTotal,
                     closingBalance: updatedReseller.walletBalance,
-                    referenceId: generatedOrderIds.join(', '),
-                    description: `Platform cost deducted for orders: ${generatedOrderIds.join(', ')}`,
+                    referenceId: `ORD-${secureHash}`,
+                    description: `Platform cost deducted for ${generatedOrderIds.length} order(s): ${generatedOrderIds.join(', ')}`,
                     status: 'COMPLETED',
                 },
             ],
             { session }
         );
 
+        const productQtyMap = {};
         for (const item of cart.items) {
-            const updatedProduct = await Product.findOneAndUpdate(
-                { _id: item.productId, 'inventory.stock': { $gte: item.qty } },
-                { $inc: { 'inventory.stock': -item.qty } },
-                { session, returnDocument: 'after' }
+            const pid = item.productId.toString();
+            productQtyMap[pid] = (productQtyMap[pid] || 0) + item.qty;
+        }
+
+        const bulkOperations = Object.entries(productQtyMap).map(([productId, totalQty]) => ({
+            updateOne: {
+                filter: { _id: productId, 'inventory.stock': { $gte: totalQty } },
+                update: { $inc: { 'inventory.stock': -totalQty } },
+            },
+        }));
+
+        const bulkResult = await Product.bulkWrite(bulkOperations, { session });
+
+        if (bulkResult.modifiedCount !== Object.keys(productQtyMap).length) {
+            throw new ApiError(
+                400,
+                'Checkout failed: One or more items went out of stock during processing.'
             );
-            if (!updatedProduct) throw new ApiError(400, `Item out of stock.`);
         }
 
         await Cart.findByIdAndUpdate(
@@ -295,6 +353,51 @@ export const createOrder = asyncHandler(async (req, res) => {
 
         await session.commitTransaction();
         session.endSession();
+
+        const wholesaleOrders = createdOrders.filter((o) => o.orderId.startsWith('OD-WH'));
+        if (wholesaleOrders.length > 0) {
+            try {
+                const admins = await User.find({ role: 'ADMIN' });
+                for (const whOrder of wholesaleOrders) {
+                    if (admins.length > 0) {
+                        const adminNotifs = admins.map((admin) => ({
+                            recipientId: admin._id,
+                            type: 'ORDER_APPROVAL_REQUIRED',
+                            title: 'Action Required: Bulk Order Pending',
+                            message: `${req.user.companyName || req.user.name} placed a bulk order (${whOrder.orderId}) for ₹${whOrder.totalPlatformCost.toLocaleString('en-IN')}. Requires authorization & E-Way Bill.`,
+                            referenceData: {
+                                referenceId: whOrder.orderId,
+                                referenceType: 'Order',
+                                actionUrl: `/admin/orders?search=${whOrder.orderId}`,
+                            },
+                        }));
+                        await Notification.insertMany(adminNotifs);
+                        await emailService.sendAdminNewOrderAlert(admins[0], whOrder, req.user);
+                    }
+                }
+            } catch (alertError) {
+                console.error('Failed to trigger Admin Wholesale alerts:', alertError);
+            }
+        }
+
+        Promise.all(
+            createdOrders.map(async (orderDoc) => {
+                try {
+                    const invoiceDoc = await Invoice.findOne({ orderId: orderDoc._id });
+                    if (invoiceDoc) {
+                        const pdfBuffer = await generateInvoiceBuffer(invoiceDoc, req.user);
+                        await emailService.sendInvoiceEmail(
+                            req.user,
+                            orderDoc,
+                            invoiceDoc,
+                            pdfBuffer
+                        );
+                    }
+                } catch (emailErr) {
+                    console.error(`Failed to send email for order ${orderDoc.orderId}:`, emailErr);
+                }
+            })
+        ).catch(console.error);
 
         return res.status(201).json(finalResponse);
     } catch (error) {
@@ -438,7 +541,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                             purpose: 'REFUND',
                             amount: refundAmount,
                             closingBalance: updatedReseller.walletBalance,
-                            referenceId: order.orderId,
+                            referenceId: `REF-${order.orderId}`,
                             description: description,
                             status: 'COMPLETED',
                         },
@@ -494,7 +597,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                             purpose: 'PROFIT_CREDIT',
                             amount: order.payoutOnDelivery,
                             closingBalance: updatedReseller.walletBalance,
-                            referenceId: order.orderId,
+                            referenceId: `PRO-${order.orderId}`,
                             description: `Payout (Principal + ₹${order.resellerProfitMargin} Profit) credited for COD delivery`,
                             status: 'COMPLETED',
                         },
@@ -502,7 +605,10 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                     { session }
                 );
 
-                order.statusHistory.push({ status: 'DELIVERED', comment: statusComment['DELIVERED'] });
+                order.statusHistory.push({
+                    status: 'DELIVERED',
+                    comment: statusComment['DELIVERED'],
+                });
                 order.statusHistory.push({
                     status: 'PROFIT_CREDITED',
                     comment: `₹${order.payoutOnDelivery} (Principal + Profit) credited to wallet`,
@@ -525,7 +631,10 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         }
     }
 
-    if (!['CANCELLED', 'RTO', 'DELIVERED'].includes(status) || (status === 'DELIVERED' && order.paymentMethod !== 'COD')) {
+    if (
+        !['CANCELLED', 'RTO', 'DELIVERED'].includes(status) ||
+        (status === 'DELIVERED' && order.paymentMethod !== 'COD')
+    ) {
         order.statusHistory.push({
             status,
             comment: statusComment[status] || `Status updated to ${status}`,
@@ -539,7 +648,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 });
 
 export const resellerActionOnNDR = asyncHandler(async (req, res) => {
-    const { action, updatedPhone } = req.body;
+    const { action, updatedPhone, updatedAddress } = req.body;
     const { id } = req.params;
     const resellerId = req.user._id;
 
@@ -559,18 +668,62 @@ export const resellerActionOnNDR = asyncHandler(async (req, res) => {
         );
     }
 
+    try {
+        await logisticsService.submitNdrAction(order, action, updatedPhone, updatedAddress);
+    } catch (logisticsError) {
+        throw new ApiError(500, `Logistics service error: ${logisticsError.message}`);
+    }
+
     order.ndrDetails.resellerAction = action;
+
+    let commentDetails = `Reseller requested: ${action}`;
+
     if (updatedPhone) {
         order.ndrDetails.updatedCustomerPhone = updatedPhone;
-        order.endCustomerDetails.phone = updatedPhone;
+
+        if (order.endCustomerDetails) {
+            order.endCustomerDetails.phone = updatedPhone;
+        } else if (order.shippingDetails) {
+            order.shippingDetails.phone = updatedPhone;
+        }
+        commentDetails += ` | Phone updated to: ${updatedPhone}`;
+    }
+
+    if (updatedAddress) {
+        if (order.endCustomerDetails?.address) {
+            order.endCustomerDetails.address.street = `${order.endCustomerDetails.address.street} [UPDATE: ${updatedAddress}]`;
+        } else if (order.shippingDetails?.address) {
+            order.shippingDetails.address.street = `${order.shippingDetails.address.street} [UPDATE: ${updatedAddress}]`;
+        }
+        commentDetails += ` | Address notes added: ${updatedAddress}`;
     }
 
     order.statusHistory.push({
         status: 'NDR_ACTION_SUBMITTED',
-        comment: `Reseller requested: ${action}${updatedPhone ? ` with new phone: ${updatedPhone}` : ''}`,
+        comment: commentDetails,
     });
 
     await order.save();
+
+    try {
+        const admins = await User.find({ role: 'ADMIN' });
+        if (admins.length > 0) {
+            const adminNotifs = admins.map((admin) => ({
+                recipientId: admin._id,
+                type: 'NDR_ACTION_REQUIRED',
+                title: `NDR Alert: ${action === 'REATTEMPT' ? 'Re-delivery Requested' : 'RTO Requested'}`,
+                message: `${req.user.companyName || req.user.name} requested a ${action === 'REATTEMPT' ? 're-delivery' : 'Return to Origin'} for order ${order.orderId}. Please inform the warehouse.`,
+                referenceData: {
+                    referenceId: order.orderId,
+                    referenceType: 'Order',
+                    actionUrl: `/admin/orders?search=${order.orderId}`,
+                },
+            }));
+            await Notification.insertMany(adminNotifs);
+        }
+    } catch (notifErr) {
+        console.error('Failed to send Admin NDR Notification:', notifErr);
+    }
 
     return res
         .status(200)
@@ -578,40 +731,72 @@ export const resellerActionOnNDR = asyncHandler(async (req, res) => {
 });
 
 export const getAllAdminOrders = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 20, status, search } = req.query;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const skip = (page - 1) * limit;
+
+    const search = req.query.search || '';
+    const status = req.query.status || '';
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
 
     const query = {};
+
+    if (startDate || endDate) {
+        query.createdAt = {};
+        if (startDate) query.createdAt.$gte = new Date(startDate);
+        if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            query.createdAt.$lte = end;
+        }
+    }
 
     if (status) {
         query.status = status;
     }
 
     if (search) {
-        query.$or = [{ orderId: { $regex: search, $options: 'i' } }];
+        const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        const matchingUsers = await User.find({
+            $or: [
+                { name: { $regex: safeSearch, $options: 'i' } },
+                { email: { $regex: safeSearch, $options: 'i' } },
+                { companyName: { $regex: safeSearch, $options: 'i' } },
+                { gstin: { $regex: safeSearch, $options: 'i' } },
+            ],
+        }).select('_id');
+
+        const userIds = matchingUsers.map((u) => u._id);
+
+        query['$or'] = [
+            { orderId: { $regex: safeSearch, $options: 'i' } },
+            { 'endCustomerDetails.name': { $regex: safeSearch, $options: 'i' } },
+            { 'endCustomerDetails.phone': { $regex: safeSearch, $options: 'i' } },
+            { 'tracking.awbNumber': { $regex: safeSearch, $options: 'i' } },
+        ];
+
+        if (userIds.length > 0) {
+            query['$or'].push({ resellerId: { $in: userIds } });
+        }
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
-
+    const total = await Order.countDocuments(query);
     const orders = await Order.find(query)
+        .populate('resellerId', 'name email companyName phoneNumber gstin')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(Number(limit))
-        .populate('resellerId', 'name companyName email');
-
-    const total = await Order.countDocuments(query);
+        .limit(limit);
 
     return res.status(200).json(
         new ApiResponse(
             200,
             {
                 orders,
-                pagination: {
-                    total,
-                    page: Number(page),
-                    pages: Math.ceil(total / Number(limit)),
-                },
+                pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
             },
-            'All platform orders fetched successfully'
+            'Orders fetched successfully'
         )
     );
 });
@@ -689,11 +874,6 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'No valid orders provided.');
     }
 
-    const user = req.user;
-    if (user.accountType === 'B2B' && user.kycStatus !== 'APPROVED') {
-        throw new ApiError(403, 'Forbidden: Business KYC must be approved to place orders.');
-    }
-
     const productIds = [...new Set(orders.map((o) => o.productId))];
     const products = await Product.find({ _id: { $in: productIds } });
     const productMap = products.reduce((acc, p) => {
@@ -720,17 +900,20 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
             const taxAmountPerUnit = Number(
                 ((platformBasePrice * product.gstSlab) / 100).toFixed(2)
             );
-            const taxTotal = taxAmountPerUnit * inputOrder.qty;
 
             const weights = calculateItemWeights(product, inputOrder.qty);
             const freight = calculateSlabCharge(weights.billableWeight);
 
             const codCharge = inputOrder.paymentMethod === 'COD' ? 35 : 0;
+            const freightTax = Number((freight.totalShippingCost * 0.18).toFixed(2));
+            const codTax = Number((codCharge * 0.18).toFixed(2));
+
+            const itemTaxTotal = taxAmountPerUnit * inputOrder.qty;
+            const taxTotal = itemTaxTotal + freightTax + codTax;
             const totalPlatformCost = subTotal + taxTotal + freight.totalShippingCost + codCharge;
 
             grandTotalWalletDeduction += totalPlatformCost;
 
-            // FIX: Calculate totalCustomerPayment & margin for both payment methods
             const totalCustomerPayment = inputOrder.resellerSellingPrice * inputOrder.qty;
             let amountToCollect = 0;
             let payoutOnDelivery = 0;
@@ -738,7 +921,8 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
 
             if (inputOrder.paymentMethod === 'COD') {
                 amountToCollect = totalCustomerPayment;
-                payoutOnDelivery = subTotal + taxTotal + freight.totalShippingCost + resellerProfitMargin;
+
+                payoutOnDelivery = amountToCollect;
             }
 
             if (resellerProfitMargin < 0) {
@@ -820,6 +1004,8 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
             { returnDocument: 'after', session }
         );
 
+        const secureHash = crypto.randomBytes(4).toString('hex').toUpperCase();
+
         await WalletTransaction.create(
             [
                 {
@@ -828,10 +1014,7 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
                     purpose: 'ORDER_DEDUCTION',
                     amount: grandTotalWalletDeduction,
                     closingBalance: updatedReseller.walletBalance,
-                    referenceId:
-                        generatedOrderIds.length > 3
-                            ? `${generatedOrderIds[0]} + ${generatedOrderIds.length - 1} more`
-                            : generatedOrderIds.join(', '),
+                    referenceId: `ORD-${secureHash}`,
                     description: `Platform cost deducted for Bulk CSV Dropship (${generatedOrderIds.length} orders)`,
                     status: 'COMPLETED',
                 },
@@ -839,15 +1022,26 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
             { session }
         );
 
+        const productQtyMap = {};
         for (const inputOrder of orders) {
-            const updatedProduct = await Product.findOneAndUpdate(
-                { _id: inputOrder.productId, 'inventory.stock': { $gte: inputOrder.qty } },
-                { $inc: { 'inventory.stock': -inputOrder.qty } },
-                { session, returnDocument: 'after' }
+            const pid = inputOrder.productId.toString();
+            productQtyMap[pid] = (productQtyMap[pid] || 0) + inputOrder.qty;
+        }
+
+        const bulkOperations = Object.entries(productQtyMap).map(([productId, totalQty]) => ({
+            updateOne: {
+                filter: { _id: productId, 'inventory.stock': { $gte: totalQty } },
+                update: { $inc: { 'inventory.stock': -totalQty } },
+            },
+        }));
+
+        const bulkResult = await Product.bulkWrite(bulkOperations, { session });
+
+        if (bulkResult.modifiedCount !== Object.keys(productQtyMap).length) {
+            throw new ApiError(
+                400,
+                'Inventory conflict: One or more products have insufficient stock to fulfill the bulk batch.'
             );
-            if (!updatedProduct) {
-                throw new ApiError(400, `Insufficient stock for product ID: ${inputOrder.productId}`);
-            }
         }
 
         await session.commitTransaction();
@@ -873,7 +1067,6 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
 });
 
 export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
-    // ... [existing export logic remains the same] ...
     const { startDate, endDate } = req.query;
 
     const query = {};
@@ -931,10 +1124,21 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
 
         const company = reseller.companyName || '';
         const phone = (isDropship ? order.endCustomerDetails?.phone : reseller.phoneNumber) || '';
-        const shippingAddress1 = (isDropship ? order.endCustomerDetails?.address?.street : reseller.billingAddress?.street) || '';
-        const city = (isDropship ? order.endCustomerDetails?.address?.city : reseller.billingAddress?.city) || '';
-        const state = (isDropship ? order.endCustomerDetails?.address?.state : reseller.billingAddress?.state) || '';
-        const pincode = (isDropship ? order.endCustomerDetails?.address?.zip : reseller.billingAddress?.zip) || '';
+        const shippingAddress1 =
+            (isDropship
+                ? order.endCustomerDetails?.address?.street
+                : reseller.billingAddress?.street) || '';
+        const city =
+            (isDropship
+                ? order.endCustomerDetails?.address?.city
+                : reseller.billingAddress?.city) || '';
+        const state =
+            (isDropship
+                ? order.endCustomerDetails?.address?.state
+                : reseller.billingAddress?.state) || '';
+        const pincode =
+            (isDropship ? order.endCustomerDetails?.address?.zip : reseller.billingAddress?.zip) ||
+            '';
 
         order.items.forEach((item) => {
             const row = [
@@ -957,9 +1161,8 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'text/csv');
-    const filename = (startDate && endDate)
-        ? `orders_export_${startDate}_to_${endDate}.csv`
-        : 'orders_export.csv';
+    const filename =
+        startDate && endDate ? `orders_export_${startDate}_to_${endDate}.csv` : 'orders_export.csv';
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(csvContent);
 });
@@ -993,7 +1196,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
         'SKU',
         'Quantity',
         'Payment Method',
-        'Selling Price'
+        'Selling Price',
     ];
 
     const escapeCsv = (val) => {
@@ -1009,7 +1212,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
 
     orders.forEach((order) => {
         const isDropship = !!order.endCustomerDetails?.name;
-        
+
         let firstName = '';
         let lastName = '';
         let company = '';
@@ -1056,7 +1259,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
                 item.sku,
                 item.qty,
                 order.paymentMethod,
-                item.resellerSellingPrice || item.platformBasePrice
+                item.resellerSellingPrice || item.platformBasePrice,
             ];
 
             csvContent += row.map(escapeCsv).join(',') + '\n';
@@ -1066,4 +1269,399 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="courier_orders_export.csv"');
     return res.status(200).send(csvContent);
+});
+
+export const adminDispatchOrder = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+    if (!order) throw new ApiError(404, 'Order not found');
+
+    if (order.status !== 'PENDING' && order.status !== 'PROCESSING') {
+        throw new ApiError(
+            400,
+            `Cannot dispatch an order that is currently in ${order.status} state.`
+        );
+    }
+
+    const shipmentDetails = await logisticsService.createShipment(order);
+
+    order.tracking = {
+        awbNumber: shipmentDetails.awb,
+        courierName: shipmentDetails.courierName,
+        trackingUrl: shipmentDetails.trackingUrl,
+    };
+
+    order.status = 'SHIPPED';
+    order.statusHistory.push({
+        status: 'SHIPPED',
+        comment: `Order packed and dispatched via ${shipmentDetails.courierName}. AWB: ${shipmentDetails.awb}`,
+    });
+
+    await order.save();
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, order, 'Order successfully dispatched and AWB generated.'));
+});
+
+export const adminAuthorizeOrder = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { ewayBillNumber } = req.body;
+
+    const order = await Order.findById(id);
+    if (!order) throw new ApiError(404, 'Order not found');
+
+    if (order.status !== 'PENDING') {
+        throw new ApiError(400, `Order is already in ${order.status} state.`);
+    }
+
+    if (ewayBillNumber) {
+        order.ewayBillNumber = ewayBillNumber;
+    }
+
+    order.status = 'PROCESSING';
+
+    let comment = 'Order authorized and processing started.';
+    if (ewayBillNumber) {
+        comment += ` E-way Bill Generated: ${ewayBillNumber}`;
+    }
+
+    order.statusHistory.push({ status: 'PROCESSING', comment });
+
+    await order.save();
+
+    try {
+        const reseller = await User.findById(order.resellerId);
+
+        if (reseller) {
+            await Notification.create({
+                recipientId: reseller._id,
+                type: 'ORDER_APPROVED',
+                title: 'Wholesale Order Approved! 🎉',
+                message: `Your bulk order ${order.orderId} has been authorized and is now being packed for dispatch.`,
+                referenceData: {
+                    referenceId: order.orderId,
+                    referenceType: 'Order',
+                    actionUrl: `/orders?search=${order.orderId}`,
+                },
+            });
+
+            await emailService.sendOrderApprovedEmail(reseller, order);
+        }
+    } catch (notifErr) {
+        console.error(`Failed to send approval alerts for ${order.orderId}:`, notifErr);
+    }
+
+    return res.status(200).json(new ApiResponse(200, order, 'Order authorized successfully.'));
+});
+
+export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
+    const orders = await Order.find({
+        status: { $in: ['PENDING', 'PROCESSING'] },
+        'tracking.awbNumber': { $exists: false },
+    }).populate('resellerId');
+
+    const headers = [
+        'Platform order number',
+        'First Name',
+        'Last Name',
+        'Company',
+        'Mobile',
+        'Shipping Address 1',
+        'Shipping Address 2',
+        'City',
+        'State',
+        'Pincode',
+        'SKU',
+        'Quantity',
+        'Payment Method',
+        'Selling Price',
+    ];
+
+    const escapeCsv = (val) => {
+        if (val === null || val === undefined) return '';
+        let str = String(val).replace(/"/g, '""');
+        // Prevent Excel scientific notation for long numbers
+        if (/^\+?\d{10,}$/.test(str) || /^\d{5,6}$/.test(str)) {
+            str = `\t${str}`;
+        }
+        return `"${str}"`;
+    };
+
+    let csvContent = '\uFEFF' + headers.map((h) => `"${h}"`).join(',') + '\n';
+
+    orders.forEach((order) => {
+        const isDropship = !!order.endCustomerDetails?.name;
+
+        let firstName = '',
+            lastName = '',
+            company = '',
+            mobile = '';
+        let address1 = '',
+            address2 = '',
+            city = '',
+            state = '',
+            pincode = '';
+
+        if (isDropship) {
+            const nameParts = (order.endCustomerDetails.name || '').split(' ');
+            firstName = nameParts[0] || '';
+            lastName = nameParts.slice(1).join(' ') || '';
+            mobile = order.endCustomerDetails.phone || '';
+            address1 = order.endCustomerDetails.address?.street || '';
+            city = order.endCustomerDetails.address?.city || '';
+            state = order.endCustomerDetails.address?.state || '';
+            pincode = order.endCustomerDetails.address?.zip || '';
+        } else {
+            const nameParts = (order.resellerId?.name || '').split(' ');
+            firstName = nameParts[0] || '';
+            lastName = nameParts.slice(1).join(' ') || '';
+            company = order.resellerId?.companyName || '';
+            mobile = order.resellerId?.phoneNumber || order.resellerId?.email || '';
+            address1 = order.resellerId?.billingAddress?.street || '';
+            city = order.resellerId?.billingAddress?.city || '';
+            state = order.resellerId?.billingAddress?.state || '';
+            pincode = order.resellerId?.billingAddress?.zip || '';
+        }
+
+        order.items.forEach((item) => {
+            const row = [
+                order.orderId,
+                firstName,
+                lastName,
+                company,
+                mobile,
+                address1,
+                address2,
+                city,
+                state,
+                pincode,
+                item.sku,
+                item.qty,
+                order.paymentMethod === 'COD' ? 'Prepaid' : order.paymentMethod, // Adjust if Wukusy requires strict 'Prepaid'
+                item.resellerSellingPrice || item.platformBasePrice,
+            ];
+            csvContent += row.map(escapeCsv).join(',') + '\n';
+        });
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="wukusy_untracked_orders.csv"');
+    return res.status(200).send(csvContent);
+});
+
+// ==========================================
+// 2. IMPORT STATUSES FROM WUKUSY
+// ==========================================
+// ==========================================
+// 2. IMPORT STATUSES FROM WUKUSY (WITH AUTO-RESTOCK & BRANDING)
+// ==========================================
+export const importWukusyStatusesCsv = asyncHandler(async (req, res) => {
+    if (!req.file) throw new ApiError(400, 'No CSV file uploaded.');
+
+    const csvData = fs.readFileSync(req.file.path, 'utf8');
+    const parsed = Papa.parse(csvData, { header: true, skipEmptyLines: true });
+
+    if (parsed.errors.length > 0) {
+        throw new ApiError(400, 'Invalid CSV format.');
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const row of parsed.data) {
+        const rawPlatformOrderId = row['Platform Order No']?.trim();
+        const wukusyAwb = row['Wukusy Order No']?.trim();
+        const rawStatus = row['Status']?.trim();
+
+        if (!rawPlatformOrderId || !rawStatus) {
+            failCount++;
+            continue;
+        }
+
+        const platformOrderId = rawPlatformOrderId;
+
+        let targetStatus = '';
+        switch (rawStatus) {
+            case 'new':
+                targetStatus = 'PENDING';
+                break;
+            case 'ready_to_ship':
+                targetStatus = 'PROCESSING';
+                break;
+            case 'shipped':
+                targetStatus = 'SHIPPED';
+                break;
+            case 'Cancelled-New':
+            case 'cancelled':
+                targetStatus = 'CANCELLED';
+                break;
+            case 'rto':
+            case 'returned':
+                targetStatus = 'RTO';
+                break;
+            case 'delivered':
+                targetStatus = 'DELIVERED';
+                break;
+            default:
+                targetStatus = null;
+        }
+
+        if (!targetStatus) continue;
+
+        const order = await Order.findOne({ orderId: platformOrderId });
+        if (!order) {
+            failCount++;
+            continue;
+        }
+
+        if (order.status === targetStatus) continue;
+
+        if (wukusyAwb && targetStatus === 'SHIPPED') {
+            const brandedAwb = `SOVELY-${wukusyAwb}`;
+            order.tracking = {
+                awbNumber: brandedAwb,
+                courierName: 'Sovely Logistics',
+
+                trackingUrl: `https://yourdomain.com/track/${brandedAwb}`,
+            };
+        }
+
+        if (
+            ['CANCELLED', 'RTO'].includes(targetStatus) &&
+            !['CANCELLED', 'RTO'].includes(order.status)
+        ) {
+            const session = await mongoose.startSession();
+            session.startTransaction();
+            try {
+                let refundAmount = 0;
+                let description = '';
+
+                if (targetStatus === 'CANCELLED') {
+                    refundAmount = order.totalPlatformCost;
+                    description = `Full refund for cancelled order ${order.orderId} (via Bulk Sync)`;
+                } else if (targetStatus === 'RTO') {
+                    refundAmount = order.subTotal + order.taxTotal + order.codCharge;
+                    description = `RTO Refund (Freight forfeited) for order ${order.orderId} (via Bulk Sync)`;
+                }
+
+                if (refundAmount > 0) {
+                    const updatedReseller = await User.findByIdAndUpdate(
+                        order.resellerId,
+                        { $inc: { walletBalance: refundAmount } },
+                        { new: true, session }
+                    );
+
+                    await WalletTransaction.create(
+                        [
+                            {
+                                resellerId: order.resellerId,
+                                type: 'CREDIT',
+                                purpose: 'REFUND',
+                                amount: refundAmount,
+                                closingBalance: updatedReseller.walletBalance,
+                                referenceId: `REF-${order.orderId}`,
+                                description,
+                                status: 'COMPLETED',
+                            },
+                        ],
+                        { session }
+                    );
+
+                    order.statusHistory.push({
+                        status: 'REFUND_PROCESSED',
+                        comment: `₹${refundAmount} refunded to wallet via bulk sync.`,
+                    });
+                }
+
+                for (const item of order.items) {
+                    await Product.findByIdAndUpdate(
+                        item.productId,
+                        { $inc: { 'inventory.stock': item.qty } },
+                        { session }
+                    );
+                }
+
+                order.statusHistory.push({
+                    status: 'RESTOCKED',
+                    comment: `Inventory automatically restored due to ${targetStatus}.`,
+                });
+
+                await session.commitTransaction();
+                session.endSession();
+            } catch (err) {
+                await session.abortTransaction();
+                session.endSession();
+                console.error(`Refund/Restock failed for ${order.orderId}`, err);
+                failCount++;
+                continue;
+            }
+        }
+
+        if (targetStatus === 'DELIVERED' && order.status !== 'DELIVERED') {
+            if (order.payoutOnDelivery > 0 && order.paymentMethod === 'COD') {
+                const session = await mongoose.startSession();
+                session.startTransaction();
+                try {
+                    const updatedReseller = await User.findByIdAndUpdate(
+                        order.resellerId,
+                        { $inc: { walletBalance: order.payoutOnDelivery } },
+                        { new: true, session }
+                    );
+
+                    await WalletTransaction.create(
+                        [
+                            {
+                                resellerId: order.resellerId,
+                                type: 'CREDIT',
+                                purpose: 'PROFIT_CREDIT',
+                                amount: order.payoutOnDelivery,
+                                closingBalance: updatedReseller.walletBalance,
+                                referenceId: `PRO-${order.orderId}`,
+                                description: `Payout credited for COD delivery via Bulk Sync`,
+                                status: 'COMPLETED',
+                            },
+                        ],
+                        { session }
+                    );
+
+                    order.statusHistory.push({
+                        status: 'PROFIT_CREDITED',
+                        comment: `₹${order.payoutOnDelivery} credited to wallet via bulk sync.`,
+                    });
+
+                    await session.commitTransaction();
+                    session.endSession();
+                } catch (err) {
+                    await session.abortTransaction();
+                    session.endSession();
+                    console.error(`Profit payout failed for ${order.orderId}`, err);
+                    failCount++;
+                    continue;
+                }
+            }
+        }
+
+        order.status = targetStatus;
+        order.statusHistory.push({
+            status: targetStatus,
+            comment: `Status updated to ${targetStatus} via Warehouse Sync.`,
+        });
+
+        await order.save();
+        successCount++;
+    }
+
+    fs.unlinkSync(req.file.path);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                null,
+                `Sync complete! Successfully processed ${successCount} orders. Failed/Skipped: ${failCount}.`
+            )
+        );
 });

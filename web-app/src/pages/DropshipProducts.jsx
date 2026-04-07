@@ -1,79 +1,132 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Filter, AlignJustify, LayoutGrid, Box } from 'lucide-react';
+import { ChevronDown, AlignJustify, LayoutGrid, Box, ShoppingCart, X, FilterX } from 'lucide-react';
 
 import api from '../utils/api.js';
 import { useDebounce } from '../hooks/useDebounce';
+import { useCartStore } from '../store/cartStore';
 
-import ProductFilterSidebar from '../components/ProductFilterSidebar';
 import ProductCard from '../components/ProductCard';
 import ProductTableRow from '../components/ProductTableRow';
 import ProductSkeleton from '../components/ProductSkeleton';
 
 const SORT_OPTIONS = [
-    { value: 'default', label: 'Recommended' },
+    { value: 'default', label: 'Latest' },
     { value: 'price-asc', label: 'Price: Low to High' },
     { value: 'price-desc', label: 'Price: High to Low' },
-    { value: 'margin', label: 'Highest Margin' },
 ];
 
-const DEFAULT_B2B_FILTERS = {
-    moq: 'all',
-    margin: 0,
-    readyToShip: false,
-    lowRtoRisk: false,
-    vendor: 'all',
-};
-
-const parseNonNegativeInt = (value) => {
-    if (value === '' || value === undefined || value === null) return null;
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed < 0) return null;
-    return Math.floor(parsed);
-};
+const BRAND_OPTIONS = [
+    'All Brands',
+    'Aditi',
+    'Apex',
+    'Badz',
+    'Beautiful Basics',
+    'Bellavita',
+    'Camel',
+    'Chocotown',
+    'Electro Play',
+    'Eyelet',
+    'Freshee',
+    'Funwood',
+    'Ganesh',
+    'Home Chef',
+    'IKI',
+    "In' Lief",
+    'Kangaro',
+    'Konex',
+    'Konvex',
+    'Lapcare',
+    'Liger',
+    'Live Touch',
+    'Maniarrs',
+    'Nekza',
+    'Next',
+    'OG Beauty',
+    'Oracle',
+    'Orbit',
+    'Pexpo',
+    'Prexo',
+    'Pro Clean',
+    'Ritu',
+    'Sameo',
+    'Signature',
+    'Supermom',
+    'Truzo',
+    'Ved Sanjeevani',
+    'Vegnar',
+    'Wagtail',
+    'Zequz',
+];
 
 export default function DropshipProducts({
-    filters = {},
     globalSearchQuery = '',
     initialCategory = 'All Categories',
-    onResetB2bFilters,
 }) {
-    const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-    const [viewMode, setViewMode] = useState('grid');
+    const addToCart = useCartStore((state) => state.addToCart);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [viewMode, setViewMode] = useState('table');
 
-    const [category, setCategory] = useState(initialCategory);
-    const [sort, setSort] = useState('default');
-    const [minPrice, setMinPrice] = useState('');
-    const [maxPrice, setMaxPrice] = useState('');
+    const loadMoreRef = useRef(null);
 
-    const [maxDispatchDays, setMaxDispatchDays] = useState('');
-    const [verifiedOnly, setVerifiedOnly] = useState(false);
-    const [b2bFilters, setB2bFilters] = useState(DEFAULT_B2B_FILTERS);
+    const [filters, setFilters] = useState({
+        category: searchParams.get('category') || initialCategory,
+        brand: searchParams.get('brand') || 'All Brands',
+        sort: searchParams.get('sort') || 'default',
+        minPrice: searchParams.get('minPrice') || '',
+        maxPrice: searchParams.get('maxPrice') || '',
+        minWeight: searchParams.get('minWeight') || '',
+        maxWeight: searchParams.get('maxWeight') || '',
+    });
 
-    const debouncedMinPrice = useDebounce(minPrice, 500);
-    const debouncedMaxPrice = useDebounce(maxPrice, 500);
+    // 2. BULK CART STATE
+    const [bulkCart, setBulkCart] = useState({});
+    const [isAddingBulk, setIsAddingBulk] = useState(false);
 
-    const stringifiedFilters = JSON.stringify(filters);
+    const debouncedMinPrice = useDebounce(filters.minPrice, 500);
+    const debouncedMaxPrice = useDebounce(filters.maxPrice, 500);
+    const debouncedMinWeight = useDebounce(filters.minWeight, 500);
+    const debouncedMaxWeight = useDebounce(filters.maxWeight, 500);
+
+    // Sync state changes back to the URL quietly
     useEffect(() => {
-        const parsedFilters = JSON.parse(stringifiedFilters);
-        setB2bFilters({
-            ...DEFAULT_B2B_FILTERS,
-            ...parsedFilters,
-        });
-    }, [stringifiedFilters]);
+        const params = new URLSearchParams(searchParams);
 
-    // FIX: Sync local category state with initialCategory when the prop changes (e.g. from the Navbar)
+        const updateParam = (key, value, defaultVal) => {
+            if (value && value !== defaultVal) params.set(key, value);
+            else params.delete(key);
+        };
+
+        updateParam('category', filters.category, 'All Categories');
+        updateParam('brand', filters.brand, 'All Brands');
+        updateParam('sort', filters.sort, 'default');
+        updateParam('minPrice', filters.minPrice, '');
+        updateParam('maxPrice', filters.maxPrice, '');
+        updateParam('minWeight', filters.minWeight, '');
+        updateParam('maxWeight', filters.maxWeight, '');
+
+        setSearchParams(params, { replace: true });
+    }, [filters, setSearchParams]);
+
     useEffect(() => {
-        if (initialCategory) {
-            setCategory(initialCategory);
+        if (initialCategory && !searchParams.get('category')) {
+            setFilters((prev) => ({ ...prev, category: initialCategory }));
         }
     }, [initialCategory]);
 
     useEffect(() => {
         if (globalSearchQuery) {
-            setCategory('All Categories');
-            resetAdvancedFilters();
+            setFilters({
+                category: 'All Categories',
+                brand: 'All Brands',
+                sort: 'default',
+                minPrice: '',
+                maxPrice: '',
+                minWeight: '',
+                maxWeight: '',
+            });
         }
     }, [globalSearchQuery]);
 
@@ -96,57 +149,43 @@ export default function DropshipProducts({
     }, [rawCategories]);
 
     const selectedCatId = useMemo(() => {
-        if (category === 'All Categories') return null;
-        const found = dbCategories.find((c) => c.name === category);
+        if (filters.category === 'All Categories') return null;
+        const found = dbCategories.find((c) => c.name === filters.category);
         return found ? found._id : null;
-    }, [category, dbCategories]);
+    }, [filters.category, dbCategories]);
 
     const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery({
         queryKey: [
             'products',
             selectedCatId,
-            sort,
+            filters.brand,
+            filters.sort,
             debouncedMinPrice,
             debouncedMaxPrice,
-            maxDispatchDays,
-            verifiedOnly,
-            b2bFilters.moq,
-            b2bFilters.readyToShip,
-            b2bFilters.lowRtoRisk,
-            b2bFilters.vendor,
+            debouncedMinWeight,
+            debouncedMaxWeight,
             globalSearchQuery,
         ],
         queryFn: async ({ pageParam = 1 }) => {
             const params = new URLSearchParams({ page: pageParam, limit: 30 });
+
             if (selectedCatId) params.append('category', selectedCatId);
             if (globalSearchQuery) params.append('search', globalSearchQuery);
-            if (sort !== 'default') params.append('sort', sort);
+            if (filters.sort !== 'default') params.append('sort', filters.sort);
+            if (filters.brand !== 'All Brands') params.append('vendor', filters.brand);
+            if (debouncedMinPrice) params.append('minBasePrice', debouncedMinPrice);
+            if (debouncedMaxPrice) params.append('maxBasePrice', debouncedMaxPrice);
 
-            const minBasePrice = parseNonNegativeInt(debouncedMinPrice);
-            const maxBasePrice = parseNonNegativeInt(debouncedMaxPrice);
-
-            if (minBasePrice !== null && maxBasePrice !== null) {
-                params.append('minBasePrice', String(Math.min(minBasePrice, maxBasePrice)));
-                params.append('maxBasePrice', String(Math.max(minBasePrice, maxBasePrice)));
-            } else if (minBasePrice !== null) {
-                params.append('minBasePrice', String(minBasePrice));
-            } else if (maxBasePrice !== null) {
-                params.append('maxBasePrice', String(maxBasePrice));
-            }
-
-            if (maxDispatchDays) params.append('maxShippingDays', maxDispatchDays);
-            if (verifiedOnly) params.append('isVerifiedSupplier', 'true');
-
-            if (b2bFilters.moq === 'under-50') params.append('maxMoq', '50');
-            else if (b2bFilters.moq === '50-500') {
-                params.append('minMoq', '50');
-                params.append('maxMoq', '500');
-            } else if (b2bFilters.moq === 'bulk') params.append('minMoq', '500');
-
-            if (b2bFilters.readyToShip) params.append('inStock', 'true');
-            if (b2bFilters.lowRtoRisk) params.append('lowRtoRisk', 'true');
-            if (b2bFilters.vendor && b2bFilters.vendor !== 'all')
-                params.append('vendor', b2bFilters.vendor);
+            if (debouncedMinWeight)
+                params.append(
+                    'minWeight',
+                    String(Math.floor(parseFloat(debouncedMinWeight) * 1000))
+                );
+            if (debouncedMaxWeight)
+                params.append(
+                    'maxWeight',
+                    String(Math.floor(parseFloat(debouncedMaxWeight) * 1000))
+                );
 
             const res = await api.get(`/products?${params.toString()}`);
             return res.data.data;
@@ -161,222 +200,384 @@ export default function DropshipProducts({
 
     const displayProducts = useMemo(() => {
         if (!data) return [];
-
-        let mappedProducts = data.pages
+        return data.pages
             .flatMap((page) => page.products || [])
             .map((p) => {
                 const wholesalePrice = p.platformSellPrice || p.dropshipBasePrice;
                 const retailMrp = p.compareAtPrice || Math.floor(wholesalePrice * 1.8);
-                const estMargin = Math.round(((retailMrp - wholesalePrice) / retailMrp) * 100);
-
                 return {
                     id: p._id,
                     skuId: p.sku || 'N/A',
                     vendor: p.vendor || 'Verified Supplier',
                     stock: p.inventory?.stock ?? 0,
                     name: p.title,
+                    moq: p.moq || 10,
                     category: p.categoryId?.name || p.productType || 'Uncategorized',
                     price: wholesalePrice,
                     originalPrice: retailMrp,
-                    margin: estMargin,
                     image: p.images?.[0]?.url || 'https://via.placeholder.com/200',
-                    moq: p.moq || 10,
-                    gst: p.gstSlab || 18,
-                    isVerified: p.isVerifiedSupplier !== false,
-                    rtoRate: p.historicalRtoRate || 0,
-                    dispatchDays: p.shippingDays || 2,
                 };
             });
+    }, [data]);
 
-        if (b2bFilters.margin > 0) {
-            mappedProducts = mappedProducts.filter((p) => p.margin >= b2bFilters.margin);
+    const totalProducts = data?.pages?.[0]?.pagination?.total || 0;
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+                    fetchNextPage();
+                }
+            },
+            { threshold: 0.1, rootMargin: '400px' }
+        );
+
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
         }
 
-        return mappedProducts;
-    }, [data, b2bFilters.margin]);
+        return () => observer.disconnect();
+    }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    const resetAdvancedFilters = () => {
-        setMinPrice('');
-        setMaxPrice('');
+    const handleUpdateBulkCart = (product, qty, isSelected) => {
+        setBulkCart((prev) => {
+            const next = { ...prev };
+            if (isSelected) {
+                next[product.id] = { product, qty };
+            } else {
+                delete next[product.id];
+            }
+            return next;
+        });
+    };
 
-        setMaxDispatchDays('');
-        setVerifiedOnly(false);
+    const bulkItemsCount = Object.keys(bulkCart).length;
+    const bulkTotalPrice = Object.values(bulkCart).reduce(
+        (acc, item) => acc + item.product.price * item.qty,
+        0
+    );
+
+    const executeBulkAdd = async () => {
+        setIsAddingBulk(true);
+        for (const itemId of Object.keys(bulkCart)) {
+            const { product, qty } = bulkCart[itemId];
+            await addToCart(product.id, qty, 'WHOLESALE', 0);
+        }
+        setBulkCart({});
+        setIsAddingBulk(false);
     };
 
     const resetAll = () => {
-        setCategory('All Categories');
-        setSort('default');
-        setB2bFilters({
-            moq: 'all',
-            margin: 0,
-            readyToShip: false,
-            lowRtoRisk: false,
-            vendor: 'all',
+        setFilters({
+            category: 'All Categories',
+            brand: 'All Brands',
+            sort: 'default',
+            minPrice: '',
+            maxPrice: '',
+            minWeight: '',
+            maxWeight: '',
         });
-        resetAdvancedFilters();
-        setB2bFilters(DEFAULT_B2B_FILTERS);
-
-        if (typeof onResetB2bFilters === 'function') {
-            onResetB2bFilters();
-        }
     };
 
-    return (
-        <section className="relative z-10 w-full pt-4 font-sans">
-            {}
-            <div className="mb-4 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-                <button
-                    className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm md:hidden"
-                    onClick={() => setIsMobileFilterOpen(true)}
-                >
-                    <Filter size={16} /> Filters
-                </button>
+    const hasActiveFilters =
+        filters.category !== 'All Categories' ||
+        filters.brand !== 'All Brands' ||
+        filters.minPrice ||
+        filters.maxPrice ||
+        filters.minWeight ||
+        filters.maxWeight ||
+        filters.sort !== 'default';
 
-                <div className="flex w-full items-center justify-between md:w-auto md:justify-end md:gap-4">
-                    <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
-                        <button
-                            onClick={() => setViewMode('table')}
-                            className={`rounded px-3 py-1.5 transition-colors ${viewMode === 'table' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+    return (
+        <section className="relative z-10 w-full px-4 font-sans sm:px-6 lg:px-8">
+            {}
+            <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/50 p-4 shadow-sm xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:gap-4">
+                    <div className="relative">
+                        <select
+                            value={filters.category}
+                            onChange={(e) =>
+                                setFilters((p) => ({ ...p, category: e.target.value }))
+                            }
+                            className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pr-10 pl-4 text-sm font-semibold text-slate-900 shadow-sm transition-shadow outline-none hover:border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 sm:w-auto"
                         >
-                            <AlignJustify size={16} />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`rounded px-3 py-1.5 transition-colors ${viewMode === 'grid' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
-                        >
-                            <LayoutGrid size={16} />
-                        </button>
+                            <option value="All Categories">All Categories</option>
+                            {dbCategories.map((cat) => (
+                                <option key={cat._id} value={cat.name}>
+                                    {cat.name}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronDown
+                            size={16}
+                            className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-slate-400"
+                        />
                     </div>
 
-                    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm focus-within:border-slate-400">
-                        <span className="text-xs font-semibold text-slate-500">Sort:</span>
-                        <div className="relative">
-                            <select
-                                value={sort}
-                                onChange={(e) => setSort(e.target.value)}
-                                className="cursor-pointer appearance-none bg-transparent py-1 pr-6 text-sm font-bold text-slate-900 outline-none"
-                            >
-                                {SORT_OPTIONS.map((o) => (
-                                    <option key={o.value} value={o.value}>
-                                        {o.label}
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronDown
-                                size={14}
-                                className="pointer-events-none absolute top-1/2 right-0 -translate-y-1/2 text-slate-500"
-                            />
-                        </div>
+                    <div className="relative">
+                        <select
+                            value={filters.brand}
+                            onChange={(e) => setFilters((p) => ({ ...p, brand: e.target.value }))}
+                            className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pr-10 pl-4 text-sm font-semibold text-slate-900 shadow-sm transition-shadow outline-none hover:border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 sm:w-auto"
+                        >
+                            {BRAND_OPTIONS.map((b) => (
+                                <option key={b} value={b}>
+                                    {b}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronDown
+                            size={16}
+                            className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-slate-400"
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="number"
+                            placeholder="Min ₹"
+                            value={filters.minPrice}
+                            onChange={(e) =>
+                                setFilters((p) => ({
+                                    ...p,
+                                    minPrice: e.target.value.replace(/\D/g, ''),
+                                }))
+                            }
+                            className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 shadow-sm transition-shadow outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20"
+                        />
+                        <span className="text-slate-300">-</span>
+                        <input
+                            type="number"
+                            placeholder="Max ₹"
+                            value={filters.maxPrice}
+                            onChange={(e) =>
+                                setFilters((p) => ({
+                                    ...p,
+                                    maxPrice: e.target.value.replace(/\D/g, ''),
+                                }))
+                            }
+                            className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 shadow-sm transition-shadow outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="number"
+                            step="0.1"
+                            placeholder="Min Kg"
+                            value={filters.minWeight}
+                            onChange={(e) =>
+                                setFilters((p) => ({
+                                    ...p,
+                                    minWeight: e.target.value.replace(/[^0-9.]/g, ''),
+                                }))
+                            }
+                            className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 shadow-sm transition-shadow outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20"
+                        />
+                        <span className="text-slate-300">-</span>
+                        <input
+                            type="number"
+                            step="0.1"
+                            placeholder="Max Kg"
+                            value={filters.maxWeight}
+                            onChange={(e) =>
+                                setFilters((p) => ({
+                                    ...p,
+                                    maxWeight: e.target.value.replace(/[^0-9.]/g, ''),
+                                }))
+                            }
+                            className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-900 shadow-sm transition-shadow outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20"
+                        />
                     </div>
                 </div>
-            </div>
 
-            <div className="flex flex-col items-start gap-6 lg:flex-row">
-                {isMobileFilterOpen && (
-                    <div
-                        className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
-                        onClick={() => setIsMobileFilterOpen(false)}
-                    />
-                )}
-
-                <ProductFilterSidebar
-                    isMobileFilterOpen={isMobileFilterOpen}
-                    setIsMobileFilterOpen={setIsMobileFilterOpen}
-                    category={category}
-                    setCategory={setCategory}
-                    dbCategories={dbCategories}
-                    minPrice={minPrice}
-                    setMinPrice={setMinPrice}
-                    maxPrice={maxPrice}
-                    setMaxPrice={setMaxPrice}
-                    maxDispatchDays={maxDispatchDays}
-                    setMaxDispatchDays={setMaxDispatchDays}
-                    verifiedOnly={verifiedOnly}
-                    setVerifiedOnly={setVerifiedOnly}
-                    b2bFilters={b2bFilters}
-                    setB2bFilters={setB2bFilters}
-                    resetAll={resetAll}
-                />
-
-                {}
-                <div className="no-scrollbar w-full min-w-0 flex-1 pb-12">
-                    {isLoading ? (
-                        <div
-                            className={
-                                viewMode === 'table'
-                                    ? 'flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white'
-                                    : 'grid grid-cols-2 gap-4 xl:grid-cols-3 2xl:grid-cols-4'
-                            }
-                        >
-                            {[...Array(8)].map((_, i) => (
-                                <ProductSkeleton key={i} viewMode={viewMode} />
-                            ))}
-                        </div>
-                    ) : displayProducts.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center shadow-sm">
-                            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
-                                <Box className="text-slate-400" size={32} />
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-900">No products found</h3>
+                <div className="flex items-center justify-between gap-4 border-t border-slate-200 pt-4 xl:border-t-0 xl:pt-0">
+                    <div className="flex items-center gap-4">
+                        {hasActiveFilters && (
                             <button
                                 onClick={resetAll}
-                                className="mt-6 rounded-lg border border-slate-200 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                                className="flex items-center gap-1.5 text-xs font-bold text-slate-400 transition-colors hover:text-rose-500"
                             >
-                                Clear All Filters
+                                <FilterX size={14} /> Clear
+                            </button>
+                        )}
+                        <div className="relative flex items-center gap-3">
+                            <span className="hidden text-xs font-bold tracking-widest text-slate-400 uppercase sm:block">
+                                Sort
+                            </span>
+                            <div className="relative">
+                                <select
+                                    value={filters.sort}
+                                    onChange={(e) =>
+                                        setFilters((p) => ({ ...p, sort: e.target.value }))
+                                    }
+                                    className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pr-10 pl-4 text-sm font-semibold text-slate-900 shadow-sm transition-shadow outline-none hover:border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 sm:w-auto"
+                                >
+                                    {SORT_OPTIONS.map((o) => (
+                                        <option key={o.value} value={o.value}>
+                                            {o.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronDown
+                                    size={16}
+                                    className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-slate-400"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {/* NEW: Total Product Count Indicator */}
+                        {!isLoading && (
+                            <span className="hidden text-xs font-bold text-slate-400 sm:block">
+                                {totalProducts} Products
+                            </span>
+                        )}
+                        <div className="flex items-center gap-1 rounded-lg bg-white p-1 shadow-sm ring-1 ring-slate-200">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                className={`rounded-md px-3 py-1.5 transition-all ${viewMode === 'grid' ? 'bg-slate-100 font-bold text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                <LayoutGrid size={16} />
+                            </button>
+                            <button
+                                onClick={() => setViewMode('table')}
+                                className={`rounded-md px-3 py-1.5 transition-all ${viewMode === 'table' ? 'bg-slate-100 font-bold text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                <AlignJustify size={16} />
                             </button>
                         </div>
-                    ) : (
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={viewMode}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                transition={{ duration: 0.2 }}
-                                className={
-                                    viewMode === 'table'
-                                        ? 'flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm'
-                                        : 'grid grid-cols-2 gap-4 xl:grid-cols-3 2xl:grid-cols-4'
-                                }
-                            >
-                                {viewMode === 'table' && (
-                                    <div className="hidden grid-cols-[auto_1fr_120px_120px_120px_160px] items-center gap-4 border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-semibold tracking-wider text-slate-500 uppercase md:grid">
-                                        <div className="w-14">Product</div>
-                                        <div>Details</div>
-                                        <div className="text-center">Logistics</div>
-                                        <div className="text-center">Financials</div>
-                                        <div className="text-right">Wholesale Price</div>
-                                        <div className="text-center">Action</div>
-                                    </div>
-                                )}
+                    </div>
+                </div>
+            </div>
 
-                                {displayProducts.map((product) =>
-                                    viewMode === 'table' ? (
-                                        <ProductTableRow
-                                            key={`${product.id}-table`}
-                                            product={product}
-                                        />
-                                    ) : (
-                                        <ProductCard key={`${product.id}-grid`} product={product} />
-                                    )
-                                )}
-                            </motion.div>
-                        </AnimatePresence>
-                    )}
-
-                    {hasNextPage && (
-                        <div className="mt-10 flex justify-center">
+            {}
+            <div className="w-full pb-32">
+                {isLoading ? (
+                    <div
+                        className={
+                            viewMode === 'table'
+                                ? 'flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white'
+                                : 'grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+                        }
+                    >
+                        {[...Array(10)].map((_, i) => (
+                            <ProductSkeleton key={i} viewMode={viewMode} />
+                        ))}
+                    </div>
+                ) : displayProducts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white py-24 text-center shadow-sm">
+                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
+                            <Box className="text-slate-400" size={32} />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900">No products found</h3>
+                        {hasActiveFilters && (
                             <button
-                                className="rounded-xl border border-slate-300 bg-white px-8 py-3 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
-                                onClick={() => fetchNextPage()}
-                                disabled={isFetchingNextPage}
+                                onClick={resetAll}
+                                className="mt-6 rounded-xl border border-slate-200 bg-white px-6 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
                             >
-                                {isFetchingNextPage ? 'Loading more...' : 'Load More Products'}
+                                Clear Filters
                             </button>
+                        )}
+                    </div>
+                ) : (
+                    <AnimatePresence>
+                        <motion.div
+                            key={viewMode}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            layout="position"
+                            className={
+                                viewMode === 'table'
+                                    ? 'flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm'
+                                    : 'grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+                            }
+                        >
+                            {viewMode === 'table' && (
+                                <div className="hidden grid-cols-[40px_auto_1fr_120px_120px_160px] items-center gap-4 border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-xs font-semibold tracking-wider text-slate-500 uppercase md:grid">
+                                    <div className="text-center">✔</div>
+                                    <div className="w-14">Image</div>
+                                    <div>Details</div>
+                                    <div className="text-center">Logistics</div>
+                                    <div className="text-right">Wholesale Price</div>
+                                    <div className="text-center">Action</div>
+                                </div>
+                            )}
+                            {displayProducts.map((product) =>
+                                viewMode === 'table' ? (
+                                    <ProductTableRow
+                                        key={`${product.id}-table`}
+                                        product={product}
+                                        bulkCartQty={bulkCart[product.id]?.qty}
+                                        onUpdateBulkCart={handleUpdateBulkCart}
+                                    />
+                                ) : (
+                                    <ProductCard
+                                        key={`${product.id}-${viewMode}`}
+                                        product={product}
+                                    />
+                                )
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
+                )}
+
+                {}
+                <div
+                    ref={loadMoreRef}
+                    className="mt-8 flex h-16 w-full items-center justify-center"
+                >
+                    {isFetchingNextPage && (
+                        <div className="flex items-center gap-3 text-sm font-bold text-slate-400">
+                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600"></div>
+                            Loading catalog...
                         </div>
                     )}
                 </div>
             </div>
+
+            {}
+            <AnimatePresence>
+                {bulkItemsCount > 0 && (
+                    <motion.div
+                        initial={{ y: 100, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 100, opacity: 0 }}
+                        className="fixed bottom-6 left-1/2 z-50 flex w-full max-w-3xl -translate-x-1/2 items-center justify-between rounded-2xl bg-slate-900 px-6 py-4 shadow-2xl ring-1 ring-white/10"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-400">
+                                <ShoppingCart size={20} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-white">
+                                    {bulkItemsCount} Item{bulkItemsCount > 1 ? 's' : ''} Selected
+                                </p>
+                                <p className="text-xs font-medium text-slate-400">
+                                    Total: ₹{bulkTotalPrice.toLocaleString('en-IN')} (Excl. GST)
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setBulkCart({})}
+                                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+                            >
+                                <X size={20} />
+                            </button>
+                            <button
+                                onClick={executeBulkAdd}
+                                disabled={isAddingBulk}
+                                className="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white transition-all hover:bg-indigo-500 disabled:opacity-50"
+                            >
+                                {isAddingBulk ? 'Adding...' : 'Add All to Cart'}
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </section>
     );
 }

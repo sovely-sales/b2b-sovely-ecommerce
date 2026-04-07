@@ -91,7 +91,9 @@ function Categories({ onSelectCategory }) {
                                         {cat.name}
                                     </span>
                                     <span className="text-center text-[10px] font-bold text-slate-400">
-                                        {dbCategories.find(c => c.name === cat.name)?.productCount || 0}+ Products
+                                        {dbCategories.find((c) => c.name === cat.name)
+                                            ?.productCount || 0}
+                                        + Products
                                     </span>
                                 </div>
                             </button>

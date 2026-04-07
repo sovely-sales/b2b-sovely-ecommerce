@@ -1,23 +1,19 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Minus, Plus, AlertCircle, Heart } from 'lucide-react';
+import { Check, Plus, Minus } from 'lucide-react';
 import { useCartStore } from '../store/cartStore';
-import { WishlistContext } from '../WishlistContext';
 
 export default function ProductCard({ product }) {
     const addToCart = useCartStore((state) => state.addToCart);
-    const { toggleWishlist, isInWishlist } = useContext(WishlistContext);
-    const [currentQty, setCurrentQty] = useState(product.moq);
     const [isAdded, setIsAdded] = useState(false);
+    const [localQty, setLocalQty] = useState(1);
 
-    // Explicitly check for out of stock
     const isOutOfStock = product.stock <= 0;
 
     const handleQtyChange = (newQty) => {
-        if (isOutOfStock) return;
-        if (newQty < product.moq) return;
-        setCurrentQty(newQty);
+        if (newQty < 1) return;
+        setLocalQty(newQty);
     };
 
     const handleAdd = async (e) => {
@@ -26,119 +22,123 @@ export default function ProductCard({ product }) {
         if (isOutOfStock) return;
 
         setIsAdded(true);
-        await addToCart(product.id, currentQty, 'WHOLESALE', 0);
+        await addToCart(product.id, localQty, 'WHOLESALE', 0);
         setTimeout(() => setIsAdded(false), 1800);
     };
 
     return (
         <motion.div
             layout
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            // Add a slight grayscale/opacity effect to the whole card if out of stock
-            className={`group flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-all hover:border-slate-300 hover:shadow-lg ${isOutOfStock ? 'opacity-70 grayscale-[0.3]' : ''}`}
+            exit={{ opacity: 0, scale: 0.98 }}
+            whileHover={{ y: -4 }}
+            className={`group flex flex-col rounded-2xl border border-slate-200 bg-white transition-[border-color,box-shadow] duration-200 hover:border-indigo-200 hover:shadow-md ${
+                isOutOfStock ? 'opacity-60 grayscale-[0.5]' : ''
+            }`}
         >
             <Link
                 to={`/product/${product.id}`}
-                className="relative aspect-square overflow-hidden bg-slate-50"
+                className="relative aspect-[4/5] overflow-hidden rounded-t-2xl bg-slate-50"
             >
                 <img
                     src={product.image}
                     alt={product.name}
                     loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full transform-gpu object-cover object-center mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
                 />
 
-                {/* Badges Container */}
                 <div className="absolute top-3 left-3 flex flex-col gap-2">
-                    {/* Out of Stock Badge Overlay */}
-                    {isOutOfStock && (
-                        <span className="flex items-center gap-1 rounded-md bg-red-500/90 px-2 py-1 text-[10px] font-bold tracking-wider text-white uppercase backdrop-blur-sm shadow-sm">
-                            <AlertCircle size={12} /> Out of Stock
+                    {isOutOfStock ? (
+                        <span className="flex items-center gap-1 rounded-full bg-slate-900/90 px-3 py-1 text-[10px] font-bold tracking-widest text-white uppercase backdrop-blur-md">
+                            Sold Out
                         </span>
-                    )}
-
-                    {product.margin >= 40 && !isOutOfStock && (
-                        <span className="rounded-md bg-emerald-100 px-2 py-1 text-[10px] font-bold tracking-wider text-emerald-800 uppercase shadow-sm">
-                            High Margin
+                    ) : product.margin >= 40 ? (
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-bold tracking-widest text-emerald-700 uppercase ring-1 ring-emerald-600/20 backdrop-blur-md">
+                            {product.margin}% Margin
                         </span>
-                    )}
+                    ) : null}
                 </div>
-
-                {/* Wishlist Toggle Button */}
-                <button
-                    onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleWishlist(product);
-                    }}
-                    className={`absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/90 shadow-sm transition-all hover:scale-110 hover:shadow-md ${
-                        isInWishlist(product.id) ? 'text-red-500' : 'text-slate-400 hover:text-red-500'
-                    }`}
-                >
-                    <Heart
-                        size={18}
-                        fill={isInWishlist(product.id) ? 'currentColor' : 'transparent'}
-                        strokeWidth={2.5}
-                    />
-                </button>
             </Link>
 
-            <div className="flex flex-1 flex-col p-4">
-                <div className="mb-1.5 flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">SKU: {product.skuId}</span>
-                    <span className="text-xs font-bold text-slate-700">MOQ: {product.moq}</span>
+            <div className="flex flex-1 flex-col p-5">
+                <div
+                    className={`mb-2 flex items-center text-xs text-slate-400 ${product.vendor && product.vendor.toLowerCase() !== 'your brand' ? 'justify-between' : 'justify-end'}`}
+                >
+                    {product.vendor && product.vendor.toLowerCase() !== 'your brand' && (
+                        <span className="font-medium">{product.vendor}</span>
+                    )}
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-500">
+                        SKU: {product.skuId}
+                    </span>
                 </div>
+
                 <Link
                     to={`/product/${product.id}`}
-                    className="line-clamp-2 text-sm font-bold text-slate-900 transition-colors hover:text-emerald-600"
+                    className="mb-4 line-clamp-2 text-sm font-semibold text-slate-800 transition-colors hover:text-indigo-600"
                 >
                     {product.name}
                 </Link>
-                <div className="mt-auto flex items-end justify-between pt-4">
-                    <div>
-                        <span className="block text-xs font-medium text-slate-400 line-through">
-                            ₹{product.originalPrice}
-                        </span>
-                        <span className="text-lg font-extrabold text-slate-900">
-                            ₹{product.price.toLocaleString()}
-                        </span>
-                    </div>
-                    <div className="text-right">
-                        <span className="block text-sm font-bold text-emerald-600">
-                            {product.margin}% Margin
-                        </span>
-                    </div>
-                </div>
 
-                <div className="mt-4 flex items-center gap-2 border-t border-slate-100 pt-4">
-                    <div className="flex h-10 w-1/3 items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-2">
-                        <input
-                            type="number"
-                            value={currentQty}
-                            onChange={(e) =>
-                                handleQtyChange(parseInt(e.target.value) || product.moq)
-                            }
-                            disabled={isOutOfStock}
-                            className="w-full bg-transparent text-center text-sm font-bold text-slate-900 outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                            min={product.moq}
-                            step={product.moq}
-                        />
+                <div className="mt-auto flex flex-col gap-3">
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-xl font-black tracking-tight text-slate-900">
+                            ₹{product.price.toLocaleString('en-IN')}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-500">
+                            (+{product.gst || 18}% GST)
+                        </span>
                     </div>
-                    <button
-                        onClick={handleAdd}
-                        disabled={isOutOfStock}
-                        // Change button styling and text based on stock status
-                        className={`flex h-10 w-2/3 items-center justify-center gap-1.5 rounded-lg text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-70 ${isOutOfStock
-                                ? 'bg-slate-300 text-slate-500'
-                                : isAdded
-                                    ? 'bg-emerald-500 text-white'
-                                    : 'bg-slate-900 text-white hover:bg-slate-800'
+
+                    <div className="flex flex-col gap-2">
+                        <div className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-2 transition-shadow focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    handleQtyChange(localQty - 1);
+                                }}
+                                className="p-1 text-slate-400 transition-colors hover:text-indigo-600"
+                            >
+                                <Minus size={14} />
+                            </button>
+                            <input
+                                type="number"
+                                value={localQty}
+                                onClick={(e) => e.preventDefault()}
+                                onChange={(e) => handleQtyChange(parseInt(e.target.value) || 1)}
+                                className="w-12 bg-transparent text-center text-sm font-bold text-slate-900 outline-none"
+                                min="1"
+                            />
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    handleQtyChange(localQty + 1);
+                                }}
+                                className="p-1 text-slate-400 transition-colors hover:text-indigo-600"
+                            >
+                                <Plus size={14} />
+                            </button>
+                        </div>
+                        <button
+                            onClick={handleAdd}
+                            disabled={isOutOfStock}
+                            className={`flex h-9 w-full items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition-all ${
+                                isOutOfStock
+                                    ? 'bg-slate-100 text-slate-400'
+                                    : isAdded
+                                      ? 'bg-emerald-500 text-white shadow-sm'
+                                      : 'bg-slate-900 text-white shadow-sm hover:bg-indigo-600 hover:shadow-md hover:shadow-indigo-500/20'
                             }`}
-                    >
-                        {isOutOfStock ? 'Sold Out' : isAdded ? 'Added' : 'Add to Cart'}
-                    </button>
+                        >
+                            {isAdded ? (
+                                <>
+                                    <Check size={14} strokeWidth={3} /> Added
+                                </>
+                            ) : (
+                                'Quick Add'
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
         </motion.div>

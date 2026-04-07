@@ -5,7 +5,6 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import jwt from 'jsonwebtoken';
 import { OtpToken } from '../models/OtpToken.js';
-import { AuthService } from '../services/auth.service.js';
 import crypto from 'crypto';
 
 const cookieOptions = {
@@ -21,7 +20,9 @@ const parseExpiryToMs = (value, fallbackMs) => {
         return Number(value) * 1000;
     }
 
-    const match = String(value).trim().match(/^(\d+)\s*([smhd])$/i);
+    const match = String(value)
+        .trim()
+        .match(/^(\d+)\s*([smhd])$/i);
     if (!match) return fallbackMs;
 
     const qty = Number(match[1]);
@@ -114,7 +115,6 @@ const generateAccessAndRefreshTokens = async (userId, req, existingSessionId = n
     session.revokedAt = null;
     await session.save({ validateBeforeSave: false });
 
-    // Keep for backward compatibility with any legacy flow.
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
@@ -135,14 +135,14 @@ export const sendOtp = asyncHandler(async (req, res) => {
         }
     }
 
-    const otpCode = crypto.randomInt(100000, 1000000).toString(); // Standardize to 6-digit OTP
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
 
     await OtpToken.deleteMany({ identifier: phoneNumber, isUsed: false });
 
     await OtpToken.create({
         identifier: phoneNumber,
         otpCode,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes expiry
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     });
 
     console.log(`[SMS MOCK] Sent OTP ${otpCode} to ${phoneNumber}`);
@@ -192,27 +192,6 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
                     refreshToken,
                 },
                 'Logged in successfully via OTP'
-            )
-        );
-});
-
-export const registerUser = asyncHandler(async (req, res) => {
-    const createdUser = await AuthService.registerUser(req.body);
-    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(createdUser._id, req);
-
-    return res
-        .status(201)
-        .cookie('accessToken', accessToken, cookieOptions)
-        .cookie('refreshToken', refreshToken, cookieOptions)
-        .json(
-            new ApiResponse(
-                201,
-                {
-                    user: createdUser,
-                    accessToken,
-                    refreshToken,
-                },
-                `Account created successfully.`
             )
         );
 });
@@ -337,7 +316,6 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
                 throw new ApiError(401, 'Refresh token mismatch for session');
             }
         } else {
-            // Legacy fallback for pre-session refresh tokens.
             if (incomingRefreshToken !== user.refreshToken) {
                 throw new ApiError(401, 'Refresh token is expired or used');
             }
@@ -412,10 +390,17 @@ export const resetPassword = asyncHandler(async (req, res) => {
     if (!user) throw new ApiError(404, 'User not found');
 
     user.passwordHash = newPassword;
-    
-    await user.save({ validateBeforeSave: false });
 
-    return res.status(200).json(new ApiResponse(200, null, 'Password reset successfully'));
+    await UserSession.updateMany(
+        { userId: user._id, isRevoked: false },
+        { isRevoked: true, revokedAt: new Date() }
+    );
+
+    await user.save();
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, null, 'Password reset successfully. Please login again.'));
 });
 
 export const getMySessions = asyncHandler(async (req, res) => {

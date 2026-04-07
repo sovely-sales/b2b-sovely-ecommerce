@@ -67,10 +67,10 @@ const MarketingLandingPage = () => {
                         className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
                     >
                         <Link
-                            to={ROUTES.SIGNUP}
+                            to={ROUTES.CONTACT_US}
                             className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-8 py-4 text-base font-extrabold text-white shadow-xl shadow-slate-900/20 transition-all hover:-translate-y-1 hover:bg-slate-800 sm:w-auto"
                         >
-                            Open Free Business Account <ArrowRight size={18} />
+                            Request Account Access <ArrowRight size={18} />
                         </Link>
                         <Link
                             to={ROUTES.LOGIN}
@@ -303,10 +303,10 @@ const MarketingLandingPage = () => {
                         businesses on Sovely.
                     </p>
                     <Link
-                        to={ROUTES.SIGNUP}
+                        to={ROUTES.CONTACT_US}
                         className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-8 py-4 text-lg font-extrabold text-white shadow-lg transition-all hover:-translate-y-1 hover:bg-emerald-700 hover:shadow-emerald-600/30"
                     >
-                        Create Your B2B Account
+                        Contact Us for Access
                     </Link>
                 </div>
             </motion.section>

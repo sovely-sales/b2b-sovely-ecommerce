@@ -3,6 +3,7 @@ import { UserSession } from '../models/UserSession.js';
 import { OtpToken } from '../models/OtpToken.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
+import { Notification } from '../models/Notification.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
@@ -21,7 +22,9 @@ const parseExpiryToMs = (value, fallbackMs) => {
     if (!value) return fallbackMs;
     if (/^\d+$/.test(value)) return Number(value) * 1000;
 
-    const match = String(value).trim().match(/^(\d+)\s*([smhd])$/i);
+    const match = String(value)
+        .trim()
+        .match(/^(\d+)\s*([smhd])$/i);
     if (!match) return fallbackMs;
 
     const qty = Number(match[1]);
@@ -68,31 +71,25 @@ const parseDeviceInfo = (userAgent = '') => {
     return { deviceType, os, browser };
 };
 
-export const sendSignupOtp = asyncHandler(async (req, res) => {
-    const { phoneNumber } = req.body;
-    if (!phoneNumber) throw new ApiError(400, 'Phone number is required');
-
-    const existingUser = await User.findOne({ phoneNumber });
-    if (existingUser) throw new ApiError(409, 'Phone number already registered');
-
-    const otpCode = crypto.randomInt(100000, 1000000).toString();
-    await OtpToken.updateMany({ identifier: phoneNumber, isUsed: false }, { isUsed: true });
-    await OtpToken.create({
-        identifier: phoneNumber,
-        otpCode,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    });
-
-    console.log(`\n📱 SMS SENT TO ${phoneNumber}: Your Sovely SIGNUP OTP is ${otpCode}\n`);
-    return res.status(200).json(new ApiResponse(200, null, 'OTP sent successfully'));
-});
-
 export const sendLoginOtp = asyncHandler(async (req, res) => {
     const { phoneNumber } = req.body;
     if (!phoneNumber) throw new ApiError(400, 'Phone number is required');
 
     const existingUser = await User.findOne({ phoneNumber });
-    if (!existingUser) throw new ApiError(404, 'Phone number not registered. Please sign up.');
+    if (!existingUser)
+        throw new ApiError(
+            404,
+            'Phone number not registered. Please contact an administrator to request access.'
+        );
+
+    const recentOtp = await OtpToken.findOne({
+        identifier: phoneNumber,
+        createdAt: { $gte: new Date(Date.now() - 60 * 1000) },
+    });
+
+    if (recentOtp) {
+        throw new ApiError(429, 'Please wait 60 seconds before requesting another OTP.');
+    }
 
     const otpCode = crypto.randomInt(100000, 1000000).toString();
     await OtpToken.updateMany({ identifier: phoneNumber, isUsed: false }, { isUsed: true });
@@ -170,7 +167,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
     const search = req.query.search || '';
     const role = req.query.role || 'ALL';
-    const kycStatus = req.query.kycStatus || 'ALL';
+    const updateRequestStatus = req.query.updateRequestStatus || 'ALL';
     const isActive = req.query.isActive || 'ALL';
 
     const query = { deletedAt: null };
@@ -187,7 +184,7 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     }
 
     if (role !== 'ALL') query.role = role;
-    if (kycStatus !== 'ALL') query.kycStatus = kycStatus;
+    if (updateRequestStatus !== 'ALL') query.updateRequestStatus = updateRequestStatus;
     if (isActive !== 'ALL') query.isActive = isActive === 'true';
 
     const total = await User.countDocuments(query);
@@ -209,40 +206,44 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     );
 });
 
-export const updateKycStatus = asyncHandler(async (req, res) => {
-    const { kycStatus, kycRejectionReason } = req.body;
+export const processUpdateRequest = asyncHandler(async (req, res) => {
+    const { action, rejectionReason } = req.body;
 
-    if (!['PENDING', 'APPROVED', 'REJECTED'].includes(kycStatus)) {
-        throw new ApiError(400, 'Invalid KYC Status. Must be PENDING, APPROVED, or REJECTED.');
+    if (!['APPROVE', 'REJECT'].includes(action)) {
+        throw new ApiError(400, 'Invalid Action. Must be APPROVE or REJECT.');
     }
 
     const userToUpdate = await User.findById(req.params.id);
     if (!userToUpdate) throw new ApiError(404, 'User not found');
 
-    const updateData = { kycStatus };
-    if (kycStatus === 'APPROVED') {
-        updateData.isActive = true; // Auto-activate on approval
-        updateData.kycRejectionReason = null; // Clear any old rejection reason
-        updateData.isVerifiedB2B = true; // Mark as verified B2B
+    const updateData = {};
 
-        // SECURITY: Never demote an ADMIN to RESELLER during KYC Approval
-        if (userToUpdate.role !== 'ADMIN') {
-            updateData.role = 'RESELLER'; // Upgrade Customers to Resellers
-        }
-    } else if (kycStatus === 'REJECTED') {
-        updateData.kycRejectionReason = kycRejectionReason || 'Details do not match our records.';
-        updateData.isVerifiedB2B = false;
+    if (action === 'APPROVE') {
+        updateData.updateRequestStatus = 'NONE';
+        updateData.updateRejectionReason = null;
+
+        if (userToUpdate.pendingUpdates?.gstin)
+            updateData.gstin = userToUpdate.pendingUpdates.gstin;
+        if (userToUpdate.pendingUpdates?.panNumber)
+            updateData.panNumber = userToUpdate.pendingUpdates.panNumber;
+        if (userToUpdate.pendingUpdates?.companyName)
+            updateData.companyName = userToUpdate.pendingUpdates.companyName;
+
+        updateData.pendingUpdates = { gstin: null, panNumber: null, companyName: null };
+    } else if (action === 'REJECT') {
+        updateData.updateRequestStatus = 'REJECTED';
+        updateData.updateRejectionReason = rejectionReason || 'Update request denied by admin.';
+
+        updateData.pendingUpdates = { gstin: null, panNumber: null, companyName: null };
     }
 
     const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true }).select(
         '-passwordHash -refreshToken'
     );
 
-    if (!user) throw new ApiError(404, 'User not found');
-
     return res
         .status(200)
-        .json(new ApiResponse(200, user, `User KYC status updated to ${kycStatus}`));
+        .json(new ApiResponse(200, user, `User update request ${action.toLowerCase()}d`));
 });
 
 export const toggleUserStatus = asyncHandler(async (req, res) => {
@@ -278,48 +279,33 @@ export const toggleUserStatus = asyncHandler(async (req, res) => {
 });
 
 export const updateMyProfile = asyncHandler(async (req, res) => {
-    const {
-        name,
-        email,
-        companyName,
-        gstin,
-        billingAddress,
-        emailNotifications,
-        orderSms,
-        promotionalEmails,
-    } = req.body;
+    const { name, email, billingAddress, emailNotifications, orderSms, promotionalEmails } =
+        req.body;
 
-    // 1. Validation: Check if another user is already using the new Email or GSTIN
-    if (email || gstin) {
-        const orConditions = [];
-        if (email) orConditions.push({ email });
-        if (gstin) orConditions.push({ gstin });
-
+    if (email) {
         const existingUser = await User.findOne({
-            $or: orConditions,
-            _id: { $ne: req.user._id }, // Exclude current user
+            email,
+            _id: { $ne: req.user._id },
         });
 
         if (existingUser) {
-            if (email && existingUser.email === email) {
-                throw new ApiError(409, 'This email is already in use by another account.');
-            }
-            if (gstin && existingUser.gstin === gstin) {
-                throw new ApiError(409, 'A business with this GSTIN is already registered.');
-            }
+            throw new ApiError(409, 'This email is already in use by another account.');
         }
     }
 
     const updateData = {};
     if (name !== undefined) updateData.name = name.trim();
     if (email !== undefined) updateData.email = email.trim().toLowerCase();
-    if (companyName !== undefined) updateData.companyName = companyName.trim();
-    if (gstin !== undefined) updateData.gstin = gstin.trim().toUpperCase();
+
     if (billingAddress) {
-        if (billingAddress.street !== undefined) updateData['billingAddress.street'] = billingAddress.street?.trim() || '';
-        if (billingAddress.city !== undefined) updateData['billingAddress.city'] = billingAddress.city?.trim() || '';
-        if (billingAddress.state !== undefined) updateData['billingAddress.state'] = billingAddress.state?.trim() || '';
-        if (billingAddress.zip !== undefined) updateData['billingAddress.zip'] = billingAddress.zip?.trim() || '';
+        if (billingAddress.street !== undefined)
+            updateData['billingAddress.street'] = billingAddress.street?.trim() || '';
+        if (billingAddress.city !== undefined)
+            updateData['billingAddress.city'] = billingAddress.city?.trim() || '';
+        if (billingAddress.state !== undefined)
+            updateData['billingAddress.state'] = billingAddress.state?.trim() || '';
+        if (billingAddress.zip !== undefined)
+            updateData['billingAddress.zip'] = billingAddress.zip?.trim() || '';
     }
 
     if (emailNotifications !== undefined) updateData.emailNotifications = emailNotifications;
@@ -333,6 +319,51 @@ export const updateMyProfile = asyncHandler(async (req, res) => {
     ).select('-passwordHash -refreshToken');
 
     return res.status(200).json(new ApiResponse(200, user, 'Profile updated successfully'));
+});
+
+export const requestProfileUpdate = asyncHandler(async (req, res) => {
+    const { gstin, panNumber, companyName, billingAddress, bankDetails } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if (!user) throw new ApiError(404, 'User not found');
+
+    if (user.updateRequestStatus === 'PENDING') {
+        throw new ApiError(400, 'You already have a pending update request.');
+    }
+
+    if (!user.pendingUpdates) user.pendingUpdates = {};
+    if (gstin) user.pendingUpdates.gstin = gstin;
+    if (panNumber) user.pendingUpdates.panNumber = panNumber;
+    if (companyName) user.pendingUpdates.companyName = companyName;
+
+    if (billingAddress) {
+        if (!user.billingAddress) user.billingAddress = {};
+        if (billingAddress.street !== undefined) user.billingAddress.street = billingAddress.street;
+        if (billingAddress.city !== undefined) user.billingAddress.city = billingAddress.city;
+        if (billingAddress.state !== undefined) user.billingAddress.state = billingAddress.state;
+        if (billingAddress.zip !== undefined) user.billingAddress.zip = billingAddress.zip;
+    }
+
+    if (bankDetails) {
+        if (!user.bankDetails) user.bankDetails = {};
+        if (bankDetails.accountName !== undefined)
+            user.bankDetails.accountName = bankDetails.accountName;
+        if (bankDetails.accountNumber !== undefined)
+            user.bankDetails.accountNumber = bankDetails.accountNumber;
+        if (bankDetails.ifscCode !== undefined) user.bankDetails.ifscCode = bankDetails.ifscCode;
+        if (bankDetails.bankName !== undefined) user.bankDetails.bankName = bankDetails.bankName;
+    }
+
+    if (gstin || panNumber || companyName) {
+        user.updateRequestStatus = 'PENDING';
+    }
+
+    await user.save({ validateBeforeSave: false });
+
+    const updatedUser = await User.findById(user._id).select('-passwordHash -refreshToken');
+    return res
+        .status(200)
+        .json(new ApiResponse(200, updatedUser, 'Update request submitted for review'));
 });
 
 export const updateAvatar = asyncHandler(async (req, res) => {
@@ -373,47 +404,6 @@ export const updatePassword = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, null, 'Password updated successfully'));
 });
 
-export const updateKycDetails = asyncHandler(async (req, res) => {
-    const { gstin, panNumber, billingAddress, bankDetails } = req.body;
-
-    const user = await User.findById(req.user._id);
-    if (!user) throw new ApiError(404, 'User not found');
-
-    if (user.kycStatus === 'APPROVED') {
-        throw new ApiError(
-            403,
-            'Your KYC is already approved. Contact support to modify locked business details.'
-        );
-    }
-
-    if (gstin) user.gstin = gstin;
-    if (panNumber) user.panNumber = panNumber;
-    if (billingAddress) {
-        if (!user.billingAddress) user.billingAddress = {};
-        if (billingAddress.street !== undefined) user.billingAddress.street = billingAddress.street;
-        if (billingAddress.city !== undefined) user.billingAddress.city = billingAddress.city;
-        if (billingAddress.state !== undefined) user.billingAddress.state = billingAddress.state;
-        if (billingAddress.zip !== undefined) user.billingAddress.zip = billingAddress.zip;
-    }
-    if (bankDetails) {
-        if (!user.bankDetails) user.bankDetails = {};
-        if (bankDetails.accountName !== undefined) user.bankDetails.accountName = bankDetails.accountName;
-        if (bankDetails.accountNumber !== undefined) user.bankDetails.accountNumber = bankDetails.accountNumber;
-        if (bankDetails.ifscCode !== undefined) user.bankDetails.ifscCode = bankDetails.ifscCode;
-        if (bankDetails.bankName !== undefined) user.bankDetails.bankName = bankDetails.bankName;
-    }
-
-    user.kycStatus = 'PENDING';
-
-    await user.save({ validateBeforeSave: false });
-
-    const updatedUser = await User.findById(user._id).select('-passwordHash -refreshToken');
-
-    return res
-        .status(200)
-        .json(new ApiResponse(200, updatedUser, 'KYC details submitted for review'));
-});
-
 export const updateUserRole = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { role } = req.body;
@@ -439,4 +429,213 @@ export const updateUserRole = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(200, userToUpdate, `User permissions successfully updated to ${role}`)
         );
+});
+
+export const getSavedCustomers = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id).select('savedCustomers');
+    if (!user) throw new ApiError(404, 'User not found');
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user.savedCustomers, 'Saved customers fetched'));
+});
+
+export const saveCustomerToAddressBook = asyncHandler(async (req, res) => {
+    const { name, phone, street, city, state, zip } = req.body;
+
+    if (!name || !phone || !street || !zip) {
+        throw new ApiError(400, 'Name, phone, street, and zip are required to save a customer.');
+    }
+
+    const newCustomer = {
+        name: name.trim(),
+        phone: phone.replace(/\D/g, ''),
+        address: {
+            street: street.trim(),
+            city: city?.trim() || '',
+            state: state?.trim() || '',
+            zip: zip.trim(),
+        },
+    };
+
+    const user = await User.findById(req.user._id);
+    const exists = user.savedCustomers.some((c) => c.phone === newCustomer.phone);
+
+    if (!exists) {
+        user.savedCustomers.push(newCustomer);
+        await user.save({ validateBeforeSave: false });
+    }
+
+    return res
+        .status(201)
+        .json(new ApiResponse(201, user.savedCustomers, 'Customer saved to address book'));
+});
+
+export const deleteSavedCustomer = asyncHandler(async (req, res) => {
+    const { phone } = req.params;
+
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        { $pull: { savedCustomers: { phone: phone } } },
+        { new: true }
+    );
+
+    if (!user) {
+        throw new ApiError(404, 'User not found');
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user.savedCustomers, 'Customer removed successfully'));
+});
+
+export const addBranch = asyncHandler(async (req, res) => {
+    const { branchName, gstin, address, isPrimary } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (isPrimary && user.branches?.length > 0) {
+        user.branches.forEach((b) => (b.isPrimary = false));
+    }
+
+    user.branches.push({ branchName, gstin, address, isPrimary });
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(201).json(new ApiResponse(201, user.branches, 'Branch added successfully'));
+});
+
+export const updateBranch = asyncHandler(async (req, res) => {
+    const { branchName, gstin, address, isPrimary } = req.body;
+    const user = await User.findById(req.user._id);
+
+    const branch = user.branches.id(req.params.branchId);
+    if (!branch) throw new ApiError(404, 'Branch not found');
+
+    if (isPrimary) {
+        user.branches.forEach((b) => (b.isPrimary = false));
+    }
+
+    branch.branchName = branchName;
+    branch.gstin = gstin;
+    branch.address = address;
+    branch.isPrimary = isPrimary;
+
+    await user.save({ validateBeforeSave: false });
+    return res.status(200).json(new ApiResponse(200, user.branches, 'Branch updated successfully'));
+});
+
+export const deleteBranch = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.user._id);
+    user.branches.pull(req.params.branchId);
+    await user.save({ validateBeforeSave: false });
+    return res.status(200).json(new ApiResponse(200, user.branches, 'Branch deleted'));
+});
+
+export const createUser = asyncHandler(async (req, res) => {
+    const {
+        name,
+        phoneNumber,
+        email,
+        password,
+        role,
+        companyName,
+        gstin,
+        panNumber,
+        street,
+        city,
+        state,
+        zip,
+        accountName,
+        accountNumber,
+        ifscCode,
+        bankName,
+    } = req.body;
+
+    if (!name || !phoneNumber || !password) {
+        throw new ApiError(400, 'Name, Phone Number, and Password are required.');
+    }
+
+    const existingUser = await User.findOne({
+        $or: [
+            { phoneNumber: phoneNumber.replace(/\D/g, '') },
+            { email: email ? email.trim().toLowerCase() : null },
+        ],
+    });
+
+    if (existingUser) {
+        if (existingUser.phoneNumber === phoneNumber.replace(/\D/g, '')) {
+            throw new ApiError(409, 'A user with this phone number already exists.');
+        }
+        if (email && existingUser.email === email.toLowerCase()) {
+            throw new ApiError(409, 'A user with this email already exists.');
+        }
+    }
+
+    // 3. Construct nested objects
+    const billingAddress =
+        street || city || state || zip
+            ? {
+                  street: street?.trim() || '',
+                  city: city?.trim() || '',
+                  state: state?.trim() || '',
+                  zip: zip?.trim() || '',
+              }
+            : undefined;
+
+    const bankDetails =
+        accountName || accountNumber || ifscCode || bankName
+            ? {
+                  accountName: accountName?.trim() || '',
+                  accountNumber: accountNumber?.trim() || '',
+                  ifscCode: ifscCode?.trim().toUpperCase() || '',
+                  bankName: bankName?.trim() || '',
+              }
+            : undefined;
+
+    // 4. Create the user
+    const user = await User.create({
+        name: name.trim(),
+        phoneNumber: phoneNumber.replace(/\D/g, ''),
+        email: email ? email.trim().toLowerCase() : undefined,
+        passwordHash: password, // The pre-save hook will hash this
+
+        companyName: companyName?.trim(),
+        gstin: gstin?.trim().toUpperCase(),
+        panNumber: panNumber?.trim().toUpperCase(),
+
+        billingAddress,
+        bankDetails,
+
+        role: role || 'CUSTOMER',
+        isActive: true,
+        accountType: 'B2B',
+        isVerifiedB2B: true,
+        updateRequestStatus: 'NONE',
+    });
+
+    const createdUser = await User.findById(user._id).select('-passwordHash -refreshToken');
+
+    if (!createdUser) {
+        throw new ApiError(500, 'Something went wrong while registering the user.');
+    }
+
+    return res
+        .status(201)
+        .json(new ApiResponse(201, createdUser, 'Complete user profile successfully created.'));
+});
+
+export const getMyNotifications = asyncHandler(async (req, res) => {
+    const notifications = await Notification.find({ recipientId: req.user._id })
+        .sort({ createdAt: -1 })
+        .limit(20);
+
+    return res.status(200).json(new ApiResponse(200, notifications, 'Notifications fetched'));
+});
+
+export const markNotificationsAsRead = asyncHandler(async (req, res) => {
+    await Notification.updateMany(
+        { recipientId: req.user._id, isRead: false },
+        { $set: { isRead: true } }
+    );
+
+    return res.status(200).json(new ApiResponse(200, null, 'Notifications marked as read'));
 });

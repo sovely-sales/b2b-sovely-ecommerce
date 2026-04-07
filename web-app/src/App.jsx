@@ -10,39 +10,31 @@ import ErrorBoundary from './ErrorBoundary';
 import ScrollToTop from './components/ScrollToTop';
 
 const MarketingLandingPage = lazy(() => import('./components/MarketingLandingPage'));
-const LandingPage = lazy(() => import('./components/LandingPage'));
-const ProductPage = lazy(() => import('./components/ProductPage'));
 const Login = lazy(() => import('./components/Login'));
-const Signup = lazy(() => import('./components/Signup'));
 const ForgotPassword = lazy(() => import('./components/ForgotPassword'));
-const MyAccount = lazy(() => import('./components/MyAccount'));
-const AccountSettings = lazy(() => import('./components/AccountSettings'));
-const Invoices = lazy(() => import('./components/Invoices'));
-const QuickOrder = lazy(() => import('./components/QuickOrder'));
-const Checkout = lazy(() => import('./components/Checkout'));
-const Orders = lazy(() => import('./components/Orders'));
-const OrderTracking = lazy(() => import('./components/OrderTracking'));
-const Wallet = lazy(() => import('./components/Wallet'));
-const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
-const SearchResults = lazy(() => import('./components/SearchResults'));
-const Terms = lazy(() => import('./components/Terms'));
-const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
-const Careers = lazy(() => import('./components/Careers'));
-const Services = lazy(() => import('./components/Services'));
-const KycSubmit = lazy(() => import('./components/KycSubmit'));
 
 const AboutUs = lazy(() => import('./components/AboutUs'));
-const NewsBlog = lazy(() => import('./components/NewsBlog'));
+const Services = lazy(() => import('./components/Services'));
 const HelpCenter = lazy(() => import('./components/HelpCenter'));
-const MobileApp = lazy(() => import('./components/MobileApp'));
+const FAQ = lazy(() => import('./components/FAQ'));
 const Shipping = lazy(() => import('./components/Shipping'));
 const Returns = lazy(() => import('./components/Returns'));
 const ContactUs = lazy(() => import('./components/ContactUs'));
 const BecomeSeller = lazy(() => import('./components/BecomeSeller'));
-const GiftCards = lazy(() => import('./components/GiftCards'));
+const Terms = lazy(() => import('./components/Terms'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
+
+const LandingPage = lazy(() => import('./components/LandingPage'));
+const ProductPage = lazy(() => import('./components/ProductPage'));
+const SearchResults = lazy(() => import('./components/SearchResults'));
+const OrderCenter = lazy(() => import('./components/OrderCenter'));
+const OrderTracking = lazy(() => import('./components/OrderTracking'));
+const AccountHub = lazy(() => import('./components/AccountHub'));
+const Wallet = lazy(() => import('./components/tabs/WalletTab'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 
 const NotFound = () => (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center font-sans">
         <h1 className="text-6xl font-black text-slate-200">404</h1>
         <h2 className="mt-4 text-2xl font-bold text-slate-800">Page not found</h2>
         <p className="mt-2 text-slate-500">The page you're looking for doesn't exist.</p>
@@ -53,7 +45,8 @@ const HomeRouter = () => {
     const { user, loading, isAdmin } = useContext(AuthContext);
     if (loading) return <LoadingScreen />;
     if (isAdmin) return <Navigate to="/admin" replace />;
-    if (user) return <Navigate to={ROUTES.CATALOG} replace />;
+    if (user) return <Navigate to={ROUTES.MY_ACCOUNT} replace />;
+
     return <MarketingLandingPage />;
 };
 
@@ -76,19 +69,6 @@ const AdminRoute = ({ children }) => {
     return children ? children : <Outlet />;
 };
 
-const ResellerRoute = ({ children }) => {
-    const { user, loading, isKycApproved } = useContext(AuthContext);
-
-    if (loading) return <LoadingScreen />;
-    if (!user) return <Navigate to={ROUTES.LOGIN} replace />;
-
-    if (user.accountType === 'B2B' && !isKycApproved) {
-        return <Navigate to="/kyc" replace />;
-    }
-
-    return children ? children : <Outlet />;
-};
-
 function App() {
     return (
         <ErrorBoundary>
@@ -103,21 +83,17 @@ function App() {
                         <Route path={ROUTES.ABOUT} element={<AboutUs />} />
                         <Route path="/terms" element={<Terms />} />
                         <Route path={ROUTES.PRIVACY} element={<PrivacyPolicy />} />
-                        <Route path={ROUTES.CAREERS} element={<Careers />} />
                         <Route path={ROUTES.SERVICES} element={<Services />} />
-                        <Route path={ROUTES.NEWS_BLOG} element={<NewsBlog />} />
                         <Route path={ROUTES.HELP_CENTER} element={<HelpCenter />} />
-                        <Route path={ROUTES.MOBILE_APP} element={<MobileApp />} />
                         <Route path={ROUTES.SHIPPING} element={<Shipping />} />
                         <Route path={ROUTES.RETURNS} element={<Returns />} />
                         <Route path={ROUTES.CONTACT_US} element={<ContactUs />} />
                         <Route path={ROUTES.BECOME_SELLER} element={<BecomeSeller />} />
-                        <Route path={ROUTES.GIFT_CARDS} element={<GiftCards />} />
+                        <Route path="/faq" element={<FAQ />} />
                     </Route>
 
                     {}
                     <Route path={ROUTES.LOGIN} element={<Login />} />
-                    <Route path={ROUTES.SIGNUP} element={<Signup />} />
                     <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
 
                     {}
@@ -130,21 +106,32 @@ function App() {
                             <Route path={ROUTES.SEARCH} element={<SearchResults />} />
 
                             {}
-                            <Route path={ROUTES.CHECKOUT} element={<Checkout />} />
-                            <Route path={ROUTES.ORDERS} element={<Orders />} />
+                            <Route path={ROUTES.ORDERS} element={<OrderCenter />} />
                             <Route path="/orders/:id/track" element={<OrderTracking />} />
-                            <Route path="/kyc" element={<KycSubmit />} />
 
-                            {/* Standard account actions allowed before KYC approval */}
-                            <Route path={ROUTES.MY_ACCOUNT} element={<MyAccount />} />
-                            <Route path={ROUTES.ACCOUNT_SETTINGS} element={<AccountSettings />} />
+                            {}
+                            <Route path={ROUTES.MY_ACCOUNT} element={<AccountHub />} />
 
-                            {/* --- 4. SENSITIVE B2B DATA (KYC/Reseller Required) --- */}
-                            <Route element={<ResellerRoute />}>
-                                <Route path={ROUTES.INVOICES} element={<Invoices />} />
-                                <Route path={ROUTES.QUICK_ORDER} element={<QuickOrder />} />
-                                <Route path={ROUTES.WALLET} element={<Wallet />} />
-                            </Route>
+                            {}
+                            <Route path={ROUTES.WALLET} element={<Wallet />} />
+
+                            {}
+                            <Route
+                                path={ROUTES.CHECKOUT}
+                                element={<Navigate to={ROUTES.ORDERS} replace />}
+                            />
+                            <Route
+                                path={ROUTES.QUICK_ORDER}
+                                element={<Navigate to={ROUTES.ORDERS} replace />}
+                            />
+                            <Route
+                                path={ROUTES.INVOICES}
+                                element={<Navigate to={ROUTES.ORDERS} replace />}
+                            />
+                            <Route
+                                path={ROUTES.ACCOUNT_SETTINGS}
+                                element={<Navigate to={ROUTES.MY_ACCOUNT} replace />}
+                            />
                         </Route>
                     </Route>
 
@@ -153,7 +140,6 @@ function App() {
                         <Route path="/admin/*" element={<AdminDashboard />} />
                     </Route>
 
-                    {}
                     <Route path="*" element={<NotFound />} />
                 </Routes>
             </Suspense>

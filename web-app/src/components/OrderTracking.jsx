@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
-    ArrowLeft,
     Package,
     Truck,
     CheckCircle,
@@ -12,13 +11,13 @@ import {
     ExternalLink,
     IndianRupee,
     Wallet,
+    Loader2,
 } from 'lucide-react';
 import api from '../utils/api.js';
 import LoadingScreen from './LoadingScreen';
 
 const OrderTracking = () => {
     const { id } = useParams();
-    const navigate = useNavigate();
 
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -27,6 +26,9 @@ const OrderTracking = () => {
     const [ndrAction, setNdrAction] = useState('REATTEMPT');
     const [updatedPhone, setUpdatedPhone] = useState('');
     const [submittingNdr, setSubmittingNdr] = useState(false);
+
+    // NEW: Track invoice download state for better UX
+    const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 
     useEffect(() => {
         const fetchOrder = async (silent = false) => {
@@ -63,6 +65,30 @@ const OrderTracking = () => {
             alert(err.response?.data?.message || 'Failed to submit action');
         } finally {
             setSubmittingNdr(false);
+        }
+    };
+
+    const handleDownloadInvoice = async () => {
+        setIsDownloadingInvoice(true);
+        try {
+            const response = await api.get(`/invoices/order/${order._id}/pdf`, {
+                responseType: 'blob',
+            });
+            const url = window.URL.createObjectURL(
+                new Blob([response.data], { type: 'application/pdf' })
+            );
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Invoice_${order.orderId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Failed to download PDF', err);
+            alert('Failed to generate PDF. Make sure the order has an invoice generated.');
+        } finally {
+            setIsDownloadingInvoice(false);
         }
     };
 
@@ -109,13 +135,6 @@ const OrderTracking = () => {
 
     return (
         <main className="mx-auto w-full max-w-4xl px-4 py-8 pb-24 font-sans text-slate-900">
-            <button
-                onClick={() => navigate(-1)}
-                className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-slate-900"
-            >
-                <ArrowLeft size={16} /> Back to Orders
-            </button>
-
             <div className="mb-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-slate-900 p-6 text-white shadow-xl sm:p-8">
                 <div>
                     <h1 className="text-2xl font-black tracking-tight">{order.orderId}</h1>
@@ -143,7 +162,7 @@ const OrderTracking = () => {
 
             <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
                 <div className="space-y-6 md:col-span-2">
-                    <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
                         <h2 className="mb-6 text-xl font-extrabold text-slate-900">
                             Tracking History
                         </h2>
@@ -249,11 +268,30 @@ const OrderTracking = () => {
                             </form>
                         </div>
                     )}
+                    {order.status === 'NDR' && order.ndrDetails?.resellerAction !== 'PENDING' && (
+                        <div className="rounded-3xl border-2 border-indigo-200 bg-indigo-50 p-6 sm:p-8">
+                            <div className="flex items-center gap-3 text-indigo-600">
+                                <Truck size={28} />
+                                <div>
+                                    <h2 className="text-lg font-extrabold text-indigo-900">
+                                        Action Submitted
+                                    </h2>
+                                    <p className="text-sm font-medium text-indigo-800">
+                                        You requested:{' '}
+                                        <span className="font-bold">
+                                            {order.ndrDetails.resellerAction.replace(/_/g, ' ')}
+                                        </span>
+                                        . We have forwarded this to the courier. Awaiting next
+                                        update.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-6">
-                    {}
-                    <div className="rounded-3xl border border-slate-200 bg-white p-6">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h3 className="mb-4 flex items-center gap-2 text-sm font-black tracking-wider text-slate-500 uppercase">
                             <Wallet size={16} /> Financial Summary
                         </h3>
@@ -284,7 +322,7 @@ const OrderTracking = () => {
                     </div>
 
                     {order.tracking?.awbNumber && (
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6">
+                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                             <h3 className="mb-4 flex items-center gap-2 text-sm font-black tracking-wider text-slate-500 uppercase">
                                 <Truck size={16} /> Courier Info
                             </h3>
@@ -299,7 +337,7 @@ const OrderTracking = () => {
                                     href={order.tracking.trackingUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-slate-50 py-2.5 text-xs font-bold text-indigo-600 transition-colors hover:bg-indigo-50"
+                                    className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-slate-50 py-2.5 text-xs font-bold text-indigo-600 transition-colors hover:bg-indigo-100"
                                 >
                                     Live Tracking <ExternalLink size={14} />
                                 </a>
@@ -308,7 +346,7 @@ const OrderTracking = () => {
                     )}
 
                     {order.endCustomerDetails && (
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6">
+                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                             <h3 className="mb-4 flex items-center gap-2 text-sm font-black tracking-wider text-slate-500 uppercase">
                                 <MapPin size={16} /> Shipping To
                             </h3>
@@ -328,7 +366,7 @@ const OrderTracking = () => {
                         </div>
                     )}
 
-                    <div className="rounded-3xl border border-slate-200 bg-white p-6">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h3 className="mb-4 flex items-center gap-2 text-sm font-black tracking-wider text-slate-500 uppercase">
                             <Package size={16} /> Tax Invoice
                         </h3>
@@ -336,34 +374,15 @@ const OrderTracking = () => {
                             Download the GST compliant invoice for this transaction.
                         </p>
                         <button
-                            onClick={async () => {
-                                try {
-                                    const response = await api.get(
-                                        `/invoices/order/${order._id}/pdf`,
-                                        {
-                                            responseType: 'blob',
-                                        }
-                                    );
-                                    const url = window.URL.createObjectURL(
-                                        new Blob([response.data], { type: 'application/pdf' })
-                                    );
-                                    const link = document.createElement('a');
-                                    link.href = url;
-                                    link.setAttribute('download', `Invoice_${order.orderId}.pdf`);
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    link.parentNode.removeChild(link);
-                                    window.URL.revokeObjectURL(url);
-                                } catch (err) {
-                                    console.error('Failed to download PDF', err);
-                                    alert(
-                                        'Failed to generate PDF. Make sure the order has an invoice generated.'
-                                    );
-                                }
-                            }}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-extrabold text-white transition-all hover:bg-slate-800"
+                            onClick={handleDownloadInvoice}
+                            disabled={isDownloadingInvoice}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-extrabold text-white shadow-md transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            Download PDF
+                            {isDownloadingInvoice ? (
+                                <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                                'Download PDF'
+                            )}
                         </button>
                     </div>
                 </div>

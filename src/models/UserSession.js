@@ -11,7 +11,11 @@ const userSessionSchema = new mongoose.Schema(
         tokenHash: { type: String, required: true },
         ipAddress: { type: String, default: '' },
         userAgent: { type: String, default: '' },
-        deviceType: { type: String, enum: ['Desktop', 'Mobile', 'Tablet', 'Unknown'], default: 'Unknown' },
+        deviceType: {
+            type: String,
+            enum: ['Desktop', 'Mobile', 'Tablet', 'Unknown'],
+            default: 'Unknown',
+        },
         os: { type: String, default: 'Unknown OS' },
         browser: { type: String, default: 'Unknown Browser' },
         lastSeenAt: { type: Date, default: Date.now, index: true },

@@ -16,8 +16,14 @@ const orderStatusEnum = z.enum([
 export const orderValidation = {
     getMyOrders: z.object({
         query: z.object({
-            page: z.string().regex(/^[1-9]\d*$/).optional(),
-            limit: z.string().regex(/^[1-9]\d*$/).optional(),
+            page: z
+                .string()
+                .regex(/^[1-9]\d*$/)
+                .optional(),
+            limit: z
+                .string()
+                .regex(/^[1-9]\d*$/)
+                .optional(),
             status: orderStatusEnum.optional(),
             search: z.string().trim().max(120).optional(),
             sort: z.enum(['latest', 'oldest']).optional(),

@@ -62,18 +62,3 @@ export const authorizeRoles = (...allowedRoles) => {
         next();
     };
 };
-
-export const requireKycApproved = asyncHandler(async (req, res, next) => {
-    if (req.user.role === 'ADMIN') {
-        return next();
-    }
-
-    if (req.user.kycStatus !== 'APPROVED') {
-        throw new ApiError(
-            403,
-            'Your KYC is still pending or rejected. Please contact support or update your GSTIN to unlock this feature.'
-        );
-    }
-
-    next();
-});

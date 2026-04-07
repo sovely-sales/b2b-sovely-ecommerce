@@ -45,6 +45,22 @@ const ndrSchema = new mongoose.Schema(
     { _id: false }
 );
 
+const orderAddressSnapshotSchema = new mongoose.Schema(
+    {
+        name: { type: String },
+        companyName: { type: String },
+        phone: { type: String },
+        gstin: { type: String },
+        address: {
+            street: { type: String },
+            city: { type: String },
+            state: { type: String },
+            zip: { type: String },
+        },
+    },
+    { _id: false }
+);
+
 const orderSchema = new mongoose.Schema(
     {
         orderId: { type: String, required: true, unique: true },
@@ -53,6 +69,8 @@ const orderSchema = new mongoose.Schema(
             ref: 'User',
             required: true,
         },
+        billingDetails: orderAddressSnapshotSchema,
+        shippingDetails: orderAddressSnapshotSchema,
         endCustomerDetails: {
             name: { type: String },
             phone: { type: String },
@@ -85,6 +103,11 @@ const orderSchema = new mongoose.Schema(
             trackingNumber: { type: String },
             trackingUrl: { type: String },
             awbNumber: { type: String },
+        },
+
+        ewayBillNumber: {
+            type: String,
+            default: null,
         },
 
         paymentMethod: {

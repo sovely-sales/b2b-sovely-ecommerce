@@ -217,7 +217,7 @@ function Sidebar({ isOpen, onClose }) {
                                 </ul>
                             </div>
 
-                            {/* NEW: Categories Section for Mobile */}
+                            {}
                             <div className="mb-8">
                                 <h3 className="mb-3 px-3 text-xs font-bold tracking-wider text-slate-400 uppercase">
                                     Browse Categories
@@ -251,7 +251,7 @@ function Sidebar({ isOpen, onClose }) {
                                 </div>
                             </div>
 
-                            {/* Business Settings */}
+                            {}
                             <div>
                                 <h3 className="mb-3 px-3 text-xs font-bold tracking-wider text-slate-400 uppercase">
                                     Platform & Wallet

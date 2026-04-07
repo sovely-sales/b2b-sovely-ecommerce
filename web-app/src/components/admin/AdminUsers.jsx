@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Search,
     Filter,
@@ -14,6 +14,8 @@ import {
     MapPin,
     Landmark,
     X,
+    AlertCircle,
+    UserPlus,
 } from 'lucide-react';
 import api from '../../utils/api.js';
 import { getAvatarUrl } from '../../utils/getAvatarUrl';
@@ -27,15 +29,62 @@ const AdminUsers = () => {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const searchInputRef = useRef(null);
 
-    const [kycFilter, setKycFilter] = useState('ALL');
+    const [updateRequestFilter, setUpdateRequestFilter] = useState('ALL');
     const [roleFilter, setRoleFilter] = useState('ALL');
 
     const [updatingId, setUpdatingId] = useState(null);
     const [editForm, setEditForm] = useState({});
     const [isSaving, setIsSaving] = useState(false);
 
-    const [viewKycUser, setViewKycUser] = useState(null);
+    const [reviewingUserUpdates, setReviewingUserUpdates] = useState(null);
+
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [newUserForm, setNewUserForm] = useState({
+        name: '',
+        phoneNumber: '',
+        email: '',
+        password: '',
+        role: 'CUSTOMER',
+        companyName: '',
+        gstin: '',
+        panNumber: '',
+        street: '',
+        city: '',
+        state: '',
+        zip: '',
+        accountName: '',
+        accountNumber: '',
+        ifscCode: '',
+        bankName: '',
+    });
+
+    // Global Keypress Listener for Search Autofocus
+    useEffect(() => {
+        const handleGlobalKeyDown = (e) => {
+            // Ignore if the user is already focused on an input, textarea, or content editable element
+            const activeTag = document.activeElement?.tagName;
+            if (
+                activeTag === 'INPUT' ||
+                activeTag === 'TEXTAREA' ||
+                document.activeElement?.isContentEditable
+            ) {
+                return;
+            }
+
+            if (e.ctrlKey || e.metaKey || e.altKey || e.key.length > 1) {
+                return;
+            }
+
+            if (searchInputRef.current) {
+                searchInputRef.current.focus();
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, []);
 
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
@@ -44,7 +93,7 @@ const AdminUsers = () => {
 
     useEffect(() => {
         setPage(1);
-    }, [debouncedSearch, roleFilter, kycFilter]);
+    }, [debouncedSearch, roleFilter, updateRequestFilter]);
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -56,7 +105,8 @@ const AdminUsers = () => {
                         limit: 10,
                         search: debouncedSearch,
                         role: roleFilter === 'ALL' ? '' : roleFilter,
-                        kycStatus: kycFilter === 'ALL' ? '' : kycFilter,
+                        updateRequestStatus:
+                            updateRequestFilter === 'ALL' ? '' : updateRequestFilter,
                     },
                 });
                 const data = res.data?.data?.users || res.data?.data?.data || res.data?.data || [];
@@ -71,7 +121,7 @@ const AdminUsers = () => {
             }
         };
         fetchUsers();
-    }, [page, debouncedSearch, roleFilter, kycFilter]);
+    }, [page, debouncedSearch, roleFilter, updateRequestFilter]);
 
     const submitUserUpdate = async (id) => {
         setIsSaving(true);
@@ -86,42 +136,74 @@ const AdminUsers = () => {
         }
     };
 
-    const updateKycStatus = async (id, newStatus) => {
+    const handleUpdateDecision = async (id, action) => {
         let reason = null;
-        if (newStatus === 'REJECTED') {
+        if (action === 'REJECT') {
             reason = window.prompt(
-                'Please enter a rejection reason for the reseller (e.g. "GSTIN Mismatch" or "Address document blurred"):',
-                'Invalid documents'
+                'Please enter a reason for rejecting these profile updates:',
+                'Invalid details provided'
             );
             if (!reason) return;
         } else if (
-            !window.confirm(`Are you sure you want to mark this Reseller as ${newStatus}?`)
+            !window.confirm(
+                `Are you sure you want to ${action.toLowerCase()} these account changes?`
+            )
         ) {
             return;
         }
 
         try {
-            await api.put(`/users/admin/${id}/kyc-status`, {
-                kycStatus: newStatus,
-                kycRejectionReason: reason,
+            const res = await api.put(`/users/admin/${id}/update-request`, {
+                action,
+                rejectionReason: reason,
             });
-            setUsers((prev) =>
-                prev.map((u) =>
-                    u._id === id ? { ...u, kycStatus: newStatus, kycRejectionReason: reason } : u
-                )
-            );
-            setViewKycUser(null);
+
+            setUsers((prev) => prev.map((u) => (u._id === id ? res.data.data : u)));
+            setReviewingUserUpdates(null);
         } catch (err) {
-            alert('Failed to update KYC status.');
+            alert('Failed to process update request.');
         }
     };
 
-    const getKycBadge = (status) => {
+    const handleCreateUser = async (e) => {
+        e.preventDefault();
+        setIsSaving(true);
+        try {
+            const res = await api.post('/users/admin/create', newUserForm);
+
+            setUsers((prev) => [res.data.data, ...prev]);
+            setIsCreateModalOpen(false);
+            setNewUserForm({
+                name: '',
+                phoneNumber: '',
+                email: '',
+                password: '',
+                role: 'CUSTOMER',
+                companyName: '',
+                gstin: '',
+                panNumber: '',
+                street: '',
+                city: '',
+                state: '',
+                zip: '',
+                accountName: '',
+                accountNumber: '',
+                ifscCode: '',
+                bankName: '',
+            });
+        } catch (err) {
+            alert(err.response?.data?.message || 'Failed to create user.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const getUpdateBadge = (status) => {
         switch (status) {
-            case 'APPROVED':
+            case 'PENDING':
                 return (
-                    <span className="flex w-fit items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-extrabold tracking-wider text-emerald-700 uppercase">
-                        <CheckCircle size={12} /> Approved
+                    <span className="flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-extrabold tracking-wider text-amber-700 uppercase">
+                        <Clock size={12} /> Pending Review
                     </span>
                 );
             case 'REJECTED':
@@ -130,11 +212,11 @@ const AdminUsers = () => {
                         <XCircle size={12} /> Rejected
                     </span>
                 );
-            case 'PENDING':
+            case 'NONE':
             default:
                 return (
-                    <span className="flex w-fit items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-extrabold tracking-wider text-amber-700 uppercase">
-                        <Clock size={12} /> Pending
+                    <span className="flex w-fit items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-extrabold tracking-wider text-slate-500 uppercase">
+                        <CheckCircle size={12} /> Up to Date
                     </span>
                 );
         }
@@ -143,12 +225,13 @@ const AdminUsers = () => {
     return (
         <>
             {}
-            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-5">
+            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-6">
                 <div className="flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900 md:col-span-2 lg:col-span-3">
                     <Search size={18} className="text-slate-400" />
                     <input
+                        ref={searchInputRef}
                         type="text"
-                        placeholder="Search Name, Email, GSTIN, Company..."
+                        placeholder="Start typing to search Name, Email, Company..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="ml-3 w-full border-none text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400"
@@ -157,14 +240,13 @@ const AdminUsers = () => {
                 <div className="flex items-center rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
                     <Filter size={16} className="mr-2 text-slate-400" />
                     <select
-                        value={kycFilter}
-                        onChange={(e) => setKycFilter(e.target.value)}
+                        value={updateRequestFilter}
+                        onChange={(e) => setUpdateRequestFilter(e.target.value)}
                         className="w-full cursor-pointer border-none bg-transparent py-2.5 text-sm font-bold text-slate-700 outline-none"
                     >
-                        <option value="ALL">All KYC Statuses</option>
-                        <option value="PENDING">Pending (Action Req.)</option>
-                        <option value="APPROVED">Approved</option>
-                        <option value="REJECTED">Rejected</option>
+                        <option value="ALL">All Updates</option>
+                        <option value="PENDING">Pending Review</option>
+                        <option value="NONE">Up to Date</option>
                     </select>
                 </div>
                 <div className="flex items-center rounded-xl border border-slate-200 bg-white px-4 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
@@ -175,10 +257,16 @@ const AdminUsers = () => {
                         className="w-full cursor-pointer border-none bg-transparent py-2.5 text-sm font-bold text-slate-700 outline-none"
                     >
                         <option value="ALL">All Roles</option>
-                        <option value="CUSTOMER">Reseller / Customer</option>
+                        <option value="CUSTOMER">Customer/Reseller</option>
                         <option value="ADMIN">Admin</option>
                     </select>
                 </div>
+                <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-slate-800"
+                >
+                    <UserPlus size={18} /> Add User
+                </button>
             </div>
 
             {}
@@ -187,7 +275,6 @@ const AdminUsers = () => {
                     {loading && (
                         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 text-slate-400 backdrop-blur-sm">
                             <div className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900"></div>
-                            <span className="text-sm font-bold">Loading Matrix...</span>
                         </div>
                     )}
                     <table className="w-full border-collapse text-left">
@@ -203,7 +290,7 @@ const AdminUsers = () => {
                                     Wallet Balance
                                 </th>
                                 <th className="p-4 text-xs font-bold tracking-wider whitespace-nowrap text-slate-400 uppercase">
-                                    KYC Status
+                                    Update Status
                                 </th>
                                 <th className="p-4 text-right text-xs font-bold tracking-wider whitespace-nowrap text-slate-400 uppercase">
                                     Actions
@@ -217,7 +304,7 @@ const AdminUsers = () => {
                                         <div className="flex flex-col items-center justify-center text-slate-400">
                                             <ShieldCheck size={48} className="mb-4 opacity-20" />
                                             <p className="font-bold text-slate-600">
-                                                No resellers match your filters.
+                                                No users match your filters.
                                             </p>
                                         </div>
                                     </td>
@@ -284,7 +371,7 @@ const AdminUsers = () => {
                                                 </div>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                {getKycBadge(u.kycStatus)}
+                                                {getUpdateBadge(u.updateRequestStatus)}
                                             </td>
                                             <td className="p-4 text-right whitespace-nowrap">
                                                 {isEdit ? (
@@ -331,16 +418,16 @@ const AdminUsers = () => {
                                                             <Edit2 size={16} />
                                                         </button>
 
-                                                        {(u.accountType === 'B2B' ||
-                                                            u.gstin ||
-                                                            u.panNumber ||
-                                                            u.companyName) && (
+                                                        {u.updateRequestStatus === 'PENDING' && (
                                                             <button
-                                                                onClick={() => setViewKycUser(u)}
-                                                                title="Review Business KYC"
-                                                                className="flex items-center gap-1 rounded-lg bg-blue-100 px-3 py-1.5 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-200"
+                                                                onClick={() =>
+                                                                    setReviewingUserUpdates(u)
+                                                                }
+                                                                title="Review Account Updates"
+                                                                className="flex items-center gap-1 rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-200"
                                                             >
-                                                                <FileSearch size={14} /> Review KYC
+                                                                <FileSearch size={14} /> Review
+                                                                Updates
                                                             </button>
                                                         )}
                                                     </div>
@@ -364,9 +451,20 @@ const AdminUsers = () => {
                 >
                     <ChevronLeft size={16} /> Previous
                 </button>
-                <span className="text-sm font-bold text-slate-500">
-                    Page <span className="text-slate-900">{page}</span> of{' '}
-                    <span className="text-slate-900">{totalPages || 1}</span>
+                <span className="flex items-center gap-2 text-sm font-bold text-slate-500">
+                    Page
+                    <input
+                        type="number"
+                        min={1}
+                        max={totalPages || 1}
+                        value={page}
+                        onChange={(e) => {
+                            const val = e.target.value ? Number(e.target.value) : 1;
+                            setPage(Math.min(totalPages || 1, Math.max(1, val)));
+                        }}
+                        className="w-14 [appearance:textfield] rounded-lg border border-slate-200 bg-white py-1 text-center text-slate-900 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    />
+                    of <span className="text-slate-900">{totalPages || 1}</span>
                 </span>
                 <button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
@@ -378,35 +476,386 @@ const AdminUsers = () => {
             </div>
 
             {}
-            {viewKycUser && (
+
+            {}
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+                    <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-[2rem] bg-white shadow-2xl">
+                        {}
+                        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 p-6">
+                            <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-900">
+                                <UserPlus size={24} className="text-slate-400" /> Complete Reseller
+                                Onboarding
+                            </h2>
+                            <button
+                                onClick={() => setIsCreateModalOpen(false)}
+                                className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {}
+                        <div className="custom-scrollbar flex-1 overflow-y-auto p-6">
+                            <form
+                                id="createUserForm"
+                                onSubmit={handleCreateUser}
+                                className="space-y-8"
+                            >
+                                {}
+                                <section>
+                                    <h3 className="mb-4 text-sm font-bold tracking-wider text-slate-900 uppercase">
+                                        1. Account & Security
+                                    </h3>
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                Full Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={newUserForm.name}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        name: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                Phone Number *
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                required
+                                                value={newUserForm.phoneNumber}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        phoneNumber: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                Email
+                                            </label>
+                                            <input
+                                                type="email"
+                                                value={newUserForm.email}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        email: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                Temporary Password *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={newUserForm.password}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        password: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                System Role *
+                                            </label>
+                                            <select
+                                                value={newUserForm.role}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        role: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            >
+                                                <option value="CUSTOMER">
+                                                    Reseller (Standard)
+                                                </option>
+                                                <option value="ADMIN">Administrator</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {}
+                                <section>
+                                    <h3 className="mb-4 text-sm font-bold tracking-wider text-slate-900 uppercase">
+                                        2. Business Identity
+                                    </h3>
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                        <div className="md:col-span-3">
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                Company Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newUserForm.companyName}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        companyName: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                GSTIN
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newUserForm.gstin}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        gstin: e.target.value.toUpperCase(),
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 font-mono text-sm uppercase outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                PAN Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newUserForm.panNumber}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        panNumber: e.target.value.toUpperCase(),
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 font-mono text-sm uppercase outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {}
+                                <section>
+                                    <h3 className="mb-4 text-sm font-bold tracking-wider text-slate-900 uppercase">
+                                        3. Registered Address
+                                    </h3>
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                        <div className="md:col-span-3">
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                Street Address
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newUserForm.street}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        street: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                City
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newUserForm.city}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        city: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                State
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newUserForm.state}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        state: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                ZIP / PIN
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newUserForm.zip}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        zip: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {}
+                                <section>
+                                    <h3 className="mb-4 text-sm font-bold tracking-wider text-slate-900 uppercase">
+                                        4. Bank & Payout Details
+                                    </h3>
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                Bank Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newUserForm.bankName}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        bankName: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                Account Holder Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newUserForm.accountName}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        accountName: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                Account Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newUserForm.accountNumber}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        accountNumber: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 font-mono text-sm outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                IFSC Code
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newUserForm.ifscCode}
+                                                onChange={(e) =>
+                                                    setNewUserForm({
+                                                        ...newUserForm,
+                                                        ifscCode: e.target.value.toUpperCase(),
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 px-4 py-2 font-mono text-sm uppercase outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                            />
+                                        </div>
+                                    </div>
+                                </section>
+                            </form>
+                        </div>
+
+                        {}
+                        <div className="flex shrink-0 justify-end gap-3 rounded-b-[2rem] border-t border-slate-100 bg-slate-50 p-6">
+                            <button
+                                type="button"
+                                onClick={() => setIsCreateModalOpen(false)}
+                                className="rounded-xl border border-slate-200 px-6 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-white"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                form="createUserForm"
+                                disabled={isSaving}
+                                className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
+                            >
+                                {isSaving ? 'Provisioning Account...' : 'Create Reseller Profile'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {}
+            {reviewingUserUpdates && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-2xl rounded-[2rem] bg-white shadow-2xl">
                         <div className="flex items-center justify-between border-b border-slate-100 p-6">
                             <div className="flex items-center gap-4">
                                 <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 shadow-sm">
-                                    {viewKycUser.avatar ? (
+                                    {reviewingUserUpdates.avatar ? (
                                         <img
-                                            src={getAvatarUrl(viewKycUser.avatar)}
-                                            alt={viewKycUser.name}
+                                            src={getAvatarUrl(reviewingUserUpdates.avatar)}
+                                            alt={reviewingUserUpdates.name}
                                             className="h-full w-full object-cover"
                                         />
                                     ) : (
                                         <span className="text-xl font-black text-slate-400">
-                                            {viewKycUser.name?.charAt(0).toUpperCase() || 'U'}
+                                            {reviewingUserUpdates.name?.charAt(0).toUpperCase() ||
+                                                'U'}
                                         </span>
                                     )}
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-extrabold text-slate-900">
-                                        Review Business KYC
+                                        Review Account Updates
                                     </h2>
                                     <p className="text-sm font-medium text-slate-500">
-                                        Applicant: {viewKycUser.name}
+                                        User: {reviewingUserUpdates.name}
                                     </p>
                                 </div>
                             </div>
                             <button
-                                onClick={() => setViewKycUser(null)}
+                                onClick={() => setReviewingUserUpdates(null)}
                                 className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
                             >
                                 <X size={20} />
@@ -414,111 +863,56 @@ const AdminUsers = () => {
                         </div>
 
                         <div className="custom-scrollbar max-h-[70vh] space-y-6 overflow-y-auto p-6">
-                            {}
-                            <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
-                                <h3 className="mb-4 flex items-center gap-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
-                                    <Building2 size={16} className="text-accent" /> Identity
-                                    Documents
+                            <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5">
+                                <h3 className="mb-4 flex items-center gap-2 text-sm font-bold tracking-wider text-amber-900 uppercase">
+                                    <AlertCircle size={16} className="text-amber-600" /> Proposed
+                                    Changes
                                 </h3>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div>
                                         <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                                             Company Name
                                         </p>
-                                        <p className="font-medium text-slate-900">
-                                            {viewKycUser.companyName || 'N/A'}
-                                        </p>
+                                        <div className="mt-1 flex flex-col gap-1">
+                                            <span className="text-xs font-medium text-slate-400 line-through">
+                                                {reviewingUserUpdates.companyName || 'None'}
+                                            </span>
+                                            <span className="font-bold text-amber-700">
+                                                {reviewingUserUpdates.pendingUpdates?.companyName ||
+                                                    reviewingUserUpdates.companyName ||
+                                                    'None'}
+                                            </span>
+                                        </div>
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                            Business PAN
-                                        </p>
-                                        <p className="font-mono font-medium text-slate-900 uppercase">
-                                            {viewKycUser.panNumber || 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div className="col-span-2">
                                         <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                                             GSTIN
                                         </p>
-                                        <p className="font-mono font-medium text-slate-900 uppercase">
-                                            {viewKycUser.gstin || 'N/A'}
-                                        </p>
+                                        <div className="mt-1 flex flex-col gap-1">
+                                            <span className="font-mono text-xs font-medium text-slate-400 uppercase line-through">
+                                                {reviewingUserUpdates.gstin || 'None'}
+                                            </span>
+                                            <span className="font-mono font-bold text-amber-700 uppercase">
+                                                {reviewingUserUpdates.pendingUpdates?.gstin ||
+                                                    reviewingUserUpdates.gstin ||
+                                                    'None'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            {}
-                            <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
-                                <h3 className="mb-4 flex items-center gap-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
-                                    <MapPin size={16} className="text-accent" /> Registered Address
-                                </h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="col-span-2">
+                                    <div className="md:col-span-2">
                                         <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                            Street
+                                            Business PAN
                                         </p>
-                                        <p className="font-medium text-slate-900">
-                                            {viewKycUser.billingAddress?.street || 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                            City
-                                        </p>
-                                        <p className="font-medium text-slate-900">
-                                            {viewKycUser.billingAddress?.city || 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                            State & PIN
-                                        </p>
-                                        <p className="font-medium text-slate-900">
-                                            {viewKycUser.billingAddress?.state || 'N/A'} -{' '}
-                                            {viewKycUser.billingAddress?.zip}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {}
-                            <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
-                                <h3 className="mb-4 flex items-center gap-2 text-sm font-bold tracking-wider text-slate-900 uppercase">
-                                    <Landmark size={16} className="text-accent" /> Bank Details
-                                </h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                            Account Name
-                                        </p>
-                                        <p className="font-medium text-slate-900">
-                                            {viewKycUser.bankDetails?.accountName || 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                            Bank Name
-                                        </p>
-                                        <p className="font-medium text-slate-900">
-                                            {viewKycUser.bankDetails?.bankName || 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                            Account Number
-                                        </p>
-                                        <p className="font-mono font-medium text-slate-900">
-                                            {viewKycUser.bankDetails?.accountNumber || 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                            IFSC Code
-                                        </p>
-                                        <p className="font-mono font-medium text-slate-900 uppercase">
-                                            {viewKycUser.bankDetails?.ifscCode || 'N/A'}
-                                        </p>
+                                        <div className="mt-1 flex flex-col gap-1">
+                                            <span className="font-mono text-xs font-medium text-slate-400 uppercase line-through">
+                                                {reviewingUserUpdates.panNumber || 'None'}
+                                            </span>
+                                            <span className="font-mono font-bold text-amber-700 uppercase">
+                                                {reviewingUserUpdates.pendingUpdates?.panNumber ||
+                                                    reviewingUserUpdates.panNumber ||
+                                                    'None'}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -529,25 +923,25 @@ const AdminUsers = () => {
                                 <span className="text-sm font-bold text-slate-500">
                                     Current Status:
                                 </span>
-                                {getKycBadge(viewKycUser.kycStatus)}
+                                {getUpdateBadge(reviewingUserUpdates.updateRequestStatus)}
                             </div>
                             <div className="flex gap-3">
-                                {viewKycUser.kycStatus !== 'REJECTED' && (
-                                    <button
-                                        onClick={() => updateKycStatus(viewKycUser._id, 'REJECTED')}
-                                        className="rounded-xl bg-red-100 px-5 py-2.5 text-sm font-bold text-red-700 transition-colors hover:bg-red-200"
-                                    >
-                                        Reject KYC
-                                    </button>
-                                )}
-                                {viewKycUser.kycStatus !== 'APPROVED' && (
-                                    <button
-                                        onClick={() => updateKycStatus(viewKycUser._id, 'APPROVED')}
-                                        className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
-                                    >
-                                        <CheckCircle size={16} /> Approve Account
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() =>
+                                        handleUpdateDecision(reviewingUserUpdates._id, 'REJECT')
+                                    }
+                                    className="rounded-xl bg-red-100 px-5 py-2.5 text-sm font-bold text-red-700 transition-colors hover:bg-red-200"
+                                >
+                                    Reject Changes
+                                </button>
+                                <button
+                                    onClick={() =>
+                                        handleUpdateDecision(reviewingUserUpdates._id, 'APPROVE')
+                                    }
+                                    className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
+                                >
+                                    <CheckCircle size={16} /> Approve Changes
+                                </button>
                             </div>
                         </div>
                     </div>

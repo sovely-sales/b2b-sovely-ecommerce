@@ -15,16 +15,17 @@ import orderRouter from './routes/order.routes.js';
 import invoiceRouter from './routes/invoice.routes.js';
 import paymentRouter from './routes/payment.routes.js';
 import walletRouter from './routes/wallet.routes.js';
-import wishlistRouter from './routes/wishlist.routes.js';
 import analyticsRouter from './routes/analytics.routes.js';
 import webhookRouter from './routes/webhook.routes.js';
 
 const app = express();
 app.set('trust proxy', 1);
 
-app.use(helmet({
-    crossOriginResourcePolicy: false,
-}));
+app.use(
+    helmet({
+        crossOriginResourcePolicy: false,
+    })
+);
 
 const allowedOrigins = [
     process.env.CORS_ORIGIN,
@@ -63,7 +64,14 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.json({ limit: '5mb' }));
+app.use(
+    express.json({
+        limit: '5mb',
+        verify: (req, res, buf) => {
+            req.rawBody = buf.toString();
+        },
+    })
+);
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(cookieParser());
 app.use(express.static('public'));
@@ -77,7 +85,6 @@ app.use(`${apiVersion}/auth`, authRouter);
 app.use(`${apiVersion}/users`, userRouter);
 
 app.use(`${apiVersion}/categories`, categoryRouter);
-app.use(`${apiVersion}/wishlist`, wishlistRouter);
 
 app.use(`${apiVersion}/cart`, cartRouter);
 app.use(`${apiVersion}/orders`, orderRouter);
