@@ -76,6 +76,10 @@ export default function AccountHub() {
         emailNotifications: true,
         orderSms: true,
         promotionalEmails: false,
+        accountName: '',
+        accountNumber: '',
+        ifscCode: '',
+        bankName: '',
     });
 
     // --- Branch Modal State ---
@@ -113,6 +117,10 @@ export default function AccountHub() {
                 city: user.billingAddress?.city || '',
                 state: user.billingAddress?.state || '',
                 zip: user.billingAddress?.zip || '',
+                accountName: user.bankDetails?.accountName || '',
+                accountNumber: user.bankDetails?.accountNumber || '',
+                ifscCode: user.bankDetails?.ifscCode || '',
+                bankName: user.bankDetails?.bankName || '',
                 emailNotifications: user.emailNotifications ?? true,
                 orderSms: user.orderSms ?? true,
                 promotionalEmails: user.promotionalEmails ?? false,
@@ -612,6 +620,60 @@ export default function AccountHub() {
                                                     />
                                                 </div>
                                             </div>
+                                        </div>
+
+                                        {/* Card 3: Settlement & Banking */}
+                                        <div className={cardClasses}>
+                                            <h3 className="mb-6 flex items-center gap-3 border-b border-slate-100 pb-4 text-xl font-black text-slate-900">
+                                                <Wallet className="text-indigo-500" size={24} />{' '}
+                                                Settlement & Banking
+                                            </h3>
+                                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                                <div>
+                                                    <label className={labelClasses}>Account Holder Name</label>
+                                                    <input
+                                                        type="text"
+                                                        value={profileData.accountName}
+                                                        className={inputClasses}
+                                                        disabled
+                                                        placeholder="Not provided"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClasses}>Bank Name</label>
+                                                    <input
+                                                        type="text"
+                                                        value={profileData.bankName}
+                                                        className={inputClasses}
+                                                        disabled
+                                                        placeholder="Not provided"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClasses}>Account Number</label>
+                                                    <input
+                                                        type="text"
+                                                        value={profileData.accountNumber}
+                                                        className={inputClasses}
+                                                        disabled
+                                                        placeholder="Not provided"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className={labelClasses}>IFSC Code</label>
+                                                    <input
+                                                        type="text"
+                                                        value={profileData.ifscCode}
+                                                        className={inputClasses}
+                                                        disabled
+                                                        placeholder="Not provided"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <p className="mt-4 flex items-center gap-2 text-xs font-bold text-slate-500">
+                                                <ShieldCheck size={14} className="text-indigo-600" />
+                                                Banking details can only be modified by a portal administrator.
+                                            </p>
                                         </div>
 
                                         {/* Card 3: Contact & HQ Address */}
