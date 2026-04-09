@@ -20,6 +20,7 @@ import {
     ShieldCheck,
     Box,
     Clock,
+    Wallet,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -348,6 +349,12 @@ function Navbar() {
                     </div>
 
                     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+                        {user && user.accountType === 'B2B' && (
+                            <div className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}>
+                                <Wallet size={20} strokeWidth={2.5} />
+                                <span className="hidden text-sm sm:block">₹{user.walletBalance?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}</span>
+                            </div>
+                        )}
                         {user && (
                             <div className="relative" ref={notifRef}>
                                 <button
