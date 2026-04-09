@@ -70,7 +70,7 @@ const EditableInput = ({
     );
 };
 
-export default function ActiveCartTab() {
+export default function ActiveCartTab({ setActiveTab }) {
     const { user, refreshUser } = useContext(AuthContext);
 
     const cart = useCartStore((state) => state.cart);
@@ -199,6 +199,11 @@ export default function ActiveCartTab() {
                 duration: 5000,
             });
             window.dispatchEvent(new Event('refreshHubData'));
+
+            // Redirect to active orders tab
+            if (setActiveTab) {
+                setActiveTab('HISTORY');
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Transaction failed.');
         } finally {

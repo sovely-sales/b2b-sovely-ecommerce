@@ -13,7 +13,7 @@ import api from '../../utils/api';
 import Papa from 'papaparse';
 import toast from 'react-hot-toast';
 
-export default function QuickOrderTab() {
+export default function QuickOrderTab({ setActiveTab }) {
     const { user, refreshUser } = useContext(AuthContext);
     const [parsedOrders, setParsedOrders] = useState([]);
     const [isValidating, setIsValidating] = useState(false);
@@ -212,6 +212,13 @@ export default function QuickOrderTab() {
             await refreshUser();
             setSuccessMessage(`Successfully dispatched ${validOrders.length} dropship orders!`);
             setParsedOrders([]);
+
+            // Auto-redirect to history after a brief delay so they see the success message
+            if (setActiveTab) {
+                setTimeout(() => {
+                    setActiveTab('HISTORY');
+                }, 1500);
+            }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Transaction failed.');
         } finally {

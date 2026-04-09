@@ -84,10 +84,10 @@ export default function OrderCenter() {
             <div className="min-h-[50vh]">
                 {}
                 <div className={activeTab === 'CART' ? 'block' : 'hidden'}>
-                    <ActiveCartTab />
+                    <ActiveCartTab setActiveTab={setActiveTab} />
                 </div>
                 <div className={activeTab === 'QUICK_ORDER' ? 'block' : 'hidden'}>
-                    <QuickOrderTab />
+                    <QuickOrderTab setActiveTab={setActiveTab} />
                 </div>
                 <div className={activeTab === 'HISTORY' ? 'block' : 'hidden'}>
                     {}
