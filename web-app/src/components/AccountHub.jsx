@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Lock,
@@ -43,8 +43,17 @@ const TABS = [
 
 export default function AccountHub() {
     const { user, logout, refreshUser } = useContext(AuthContext);
-    const [activeTab, setActiveTab] = useState('OVERVIEW');
+    const location = useLocation();
+    const [activeTab, setActiveTab] = useState(location.state?.tab || 'OVERVIEW');
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (location.state?.tab) {
+            setActiveTab(location.state.tab);
+            // Optional: clear state after reading so manual clicks don't get overwritten on re-renders
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     const [avatarPreview, setAvatarPreview] = useState(null);
     const [avatarError, setAvatarError] = useState(false);
