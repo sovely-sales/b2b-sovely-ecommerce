@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Check, Plus, Minus } from 'lucide-react';
 import { useCartStore } from '../store/cartStore';
+import { ROUTES } from '../utils/routes';
 
 export default function ProductCard({ product }) {
     const addToCart = useCartStore((state) => state.addToCart);
+    const navigate = useNavigate();
     const [isAdded, setIsAdded] = useState(false);
     const [localQty, setLocalQty] = useState(1);
 
@@ -22,7 +24,10 @@ export default function ProductCard({ product }) {
         if (isOutOfStock) return;
 
         setIsAdded(true);
-        await addToCart(product.id, localQty, 'WHOLESALE', 0);
+        const res = await addToCart(product.id, localQty, 'DROPSHIP', 0);
+        if (res.success) {
+            navigate(ROUTES.MY_ACCOUNT);
+        }
         setTimeout(() => setIsAdded(false), 1800);
     };
 

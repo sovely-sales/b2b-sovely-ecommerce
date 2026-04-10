@@ -60,7 +60,7 @@ const ProductPage = () => {
     const [error, setError] = useState(null);
     const [addToCartSuccess, setAddToCartSuccess] = useState(false);
 
-    const [orderType, setOrderType] = useState('WHOLESALE');
+    const [orderType, setOrderType] = useState('DROPSHIP');
     const [quantity, setQuantity] = useState(1);
     const [customSellingPriceInput, setCustomSellingPriceInput] = useState('');
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -294,16 +294,6 @@ const ProductPage = () => {
                         <div className="mb-8 flex rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
                             <button
                                 onClick={() => {
-                                    setOrderType('WHOLESALE');
-                                    setQuantity(1);
-                                    setAddToCartSuccess(false);
-                                }}
-                                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all ${orderType === 'WHOLESALE' ? 'bg-slate-100 text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                                <Package size={16} /> Direct Wholesale
-                            </button>
-                            <button
-                                onClick={() => {
                                     setOrderType('DROPSHIP');
                                     setQuantity(1);
                                     setCustomSellingPriceInput(
@@ -314,6 +304,16 @@ const ProductPage = () => {
                                 className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all ${orderType === 'DROPSHIP' ? 'bg-slate-100 text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 <TrendingUp size={16} /> Dropship Order
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setOrderType('WHOLESALE');
+                                    setQuantity(1);
+                                    setAddToCartSuccess(false);
+                                }}
+                                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all ${orderType === 'WHOLESALE' ? 'bg-slate-100 text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                <Package size={16} /> Direct Wholesale
                             </button>
                         </div>
 

@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, AlignJustify, LayoutGrid, Box, ShoppingCart, X, FilterX } from 'lucide-react';
 
 import api from '../utils/api.js';
 import { useDebounce } from '../hooks/useDebounce';
 import { useCartStore } from '../store/cartStore';
+import { ROUTES } from '../utils/routes';
 
 import ProductCard from '../components/ProductCard';
 import ProductTableRow from '../components/ProductTableRow';
@@ -67,6 +68,7 @@ export default function DropshipProducts({
 }) {
     const addToCart = useCartStore((state) => state.addToCart);
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const [viewMode, setViewMode] = useState('table');
 
     const loadMoreRef = useRef(null);
@@ -261,10 +263,11 @@ export default function DropshipProducts({
         setIsAddingBulk(true);
         for (const itemId of Object.keys(bulkCart)) {
             const { product, qty } = bulkCart[itemId];
-            await addToCart(product.id, qty, 'WHOLESALE', 0);
+            await addToCart(product.id, qty, 'DROPSHIP', 0);
         }
         setBulkCart({});
         setIsAddingBulk(false);
+        navigate(ROUTES.MY_ACCOUNT);
     };
 
     const resetAll = () => {

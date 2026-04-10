@@ -278,12 +278,13 @@ export const addToCart = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Product ID, Quantity, and Order Type are required');
     }
 
-    if (
-        orderType === 'DROPSHIP' &&
-        (!customerDetails || !customerDetails.name || !customerDetails.phone)
-    ) {
-        throw new ApiError(400, 'Customer destination details are required for Dropship orders.');
-    }
+    // Allow adding to cart without customer details for now (will be marked as Unassigned)
+    // if (
+    //     orderType === 'DROPSHIP' &&
+    //     (!customerDetails || !customerDetails.name || !customerDetails.phone)
+    // ) {
+    //     throw new ApiError(400, 'Customer destination details are required for Dropship orders.');
+    // }
 
     const parsedQty = validatePositiveInteger(qty, 'Quantity');
 
@@ -340,7 +341,7 @@ export const addToCart = asyncHandler(async (req, res) => {
             orderType,
             resellerSellingPrice: targetSellingPrice,
             endCustomerDetails:
-                orderType === 'DROPSHIP'
+                orderType === 'DROPSHIP' && customerDetails
                     ? {
                           name: customerDetails.name,
                           phone: customerDetails.phone,
@@ -355,7 +356,7 @@ export const addToCart = asyncHandler(async (req, res) => {
         });
     }
 
-    if (orderType === 'DROPSHIP' && saveToAddressBook) {
+    if (orderType === 'DROPSHIP' && saveToAddressBook && customerDetails) {
         const user = await User.findById(req.user._id);
         const exists = user.savedCustomers.some((c) => c.phone === customerDetails.phone);
         if (!exists) {

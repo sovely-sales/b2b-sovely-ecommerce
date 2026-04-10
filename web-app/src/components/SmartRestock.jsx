@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, TrendingDown, PackagePlus, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useCartStore } from '../store/cartStore';
+import { ROUTES } from '../utils/routes';
 
 const SmartRestock = () => {
     const [recommendations, setRecommendations] = useState([]);
@@ -10,6 +12,7 @@ const SmartRestock = () => {
     const [addingItemId, setAddingItemId] = useState(null);
 
     const addToCart = useCartStore((state) => state.addToCart);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchPredictions = async () => {
@@ -29,7 +32,10 @@ const SmartRestock = () => {
     const handleQuickAdd = async (productId, qty) => {
         setAddingItemId(productId);
 
-        await addToCart(productId, qty, 'WHOLESALE');
+        const res = await addToCart(productId, qty, 'DROPSHIP');
+        if (res.success) {
+            navigate(ROUTES.MY_ACCOUNT);
+        }
         setAddingItemId(null);
     };
 

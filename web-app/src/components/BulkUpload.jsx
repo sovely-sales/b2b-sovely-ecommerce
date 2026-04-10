@@ -16,6 +16,7 @@ import {
 import { useCartStore } from '../store/cartStore';
 import { AuthContext } from '../AuthContext';
 import api from '../utils/api.js';
+import { ROUTES } from '../utils/routes';
 
 const BulkUpload = () => {
     const navigate = useNavigate();
@@ -143,7 +144,7 @@ const BulkUpload = () => {
 
         for (const item of parsedData) {
             try {
-                const res = await addToCart(item.sku, item.qty, 'WHOLESALE', 0);
+                const res = await addToCart(item.sku, item.qty, 'DROPSHIP', 0);
                 if (res.success) {
                     successCount++;
                     setParsedData((prev) =>
@@ -165,7 +166,7 @@ const BulkUpload = () => {
 
         if (successCount > 0) {
             setSuccessMsg(`Successfully added ${successCount} items to your procurement cart.`);
-            setTimeout(() => navigate('/checkout'), 2000);
+            setTimeout(() => navigate(ROUTES.MY_ACCOUNT), 2000);
         }
         if (failCount > 0) {
             setError(`Failed to add ${failCount} items. Check if SKUs are correct and in stock.`);
@@ -242,7 +243,7 @@ const BulkUpload = () => {
                 <p className="mt-1 text-sm font-medium text-slate-500">
                     {isAdmin
                         ? 'Upload Shopify-format CSVs to build your catalog or sync live inventory levels.'
-                        : 'Upload a CSV or paste your SKUs to instantly build your wholesale cart.'}
+                        : 'Upload a CSV or paste your SKUs to instantly build your dropship cart.'}
                 </p>
             </div>
 

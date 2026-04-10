@@ -183,7 +183,10 @@ function Navbar() {
         e.preventDefault();
         e.stopPropagation();
         setAddedSku(product._id);
-        await addToCart(product._id, product.moq || 10, 'WHOLESALE', 0);
+        const res = await addToCart(product._id, product.moq || 10, 'DROPSHIP', 0);
+        if (res.success) {
+            navigate(ROUTES.MY_ACCOUNT);
+        }
         setTimeout(() => setAddedSku(null), 1500);
     };
 

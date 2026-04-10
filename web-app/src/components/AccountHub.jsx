@@ -21,6 +21,8 @@ import {
     Globe,
     FileText,
     CheckCircle2,
+    Package,
+    ArrowRight,
     HelpCircle,
 } from 'lucide-react';
 import { AuthContext } from '../AuthContext';
@@ -336,19 +338,39 @@ export default function AccountHub() {
                                 const Icon = tab.icon;
                                 const isActive = activeTab === tab.id;
                                 return (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`flex w-full items-center gap-4 rounded-2xl px-5 py-4 text-left text-sm font-black transition-all ${isActive ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-200' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
-                                    >
-                                        <Icon
-                                            size={20}
-                                            className={
-                                                isActive ? 'text-indigo-600' : 'text-slate-400'
-                                            }
-                                        />
-                                        {tab.label}
-                                    </button>
+                                    <React.Fragment key={tab.id}>
+                                        <button
+                                            onClick={() => setActiveTab(tab.id)}
+                                            className={`flex w-full items-center gap-4 rounded-2xl px-5 py-4 text-left text-sm font-black transition-all ${isActive ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-200' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                                        >
+                                            <Icon
+                                                size={20}
+                                                className={
+                                                    isActive ? 'text-indigo-600' : 'text-slate-400'
+                                                }
+                                            />
+                                            {tab.label}
+                                        </button>
+
+                                        {tab.id === 'OVERVIEW' && (
+                                            <Link
+                                                to="/orders"
+                                                className="group flex w-full items-center justify-between rounded-2xl px-5 py-4 text-left text-sm font-black text-slate-500 transition-all hover:bg-indigo-50 hover:text-indigo-900"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <Package
+                                                        size={20}
+                                                        className="text-slate-400 group-hover:text-indigo-600"
+                                                    />
+                                                    Order Tracking
+                                                </div>
+                                                <ArrowRight
+                                                    size={14}
+                                                    className="opacity-0 transition-opacity group-hover:opacity-100"
+                                                />
+                                            </Link>
+                                        )}
+                                    </React.Fragment>
                                 );
                             })}
                         </div>
@@ -380,6 +402,30 @@ export default function AccountHub() {
                             {activeTab === 'OVERVIEW' && (
                                 <div className="space-y-6">
                                     <ResellerAnalytics />
+
+                                    {}
+                                    <div className="mt-8 flex flex-col items-center justify-between gap-6 rounded-[2rem] border border-indigo-100 bg-indigo-50/50 p-8 shadow-sm transition-all hover:bg-indigo-50 md:flex-row">
+                                        <div className="flex items-center gap-6 text-center md:text-left">
+                                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg">
+                                                <Package size={32} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-black text-slate-900">
+                                                    Track Your Shipments
+                                                </h3>
+                                                <p className="mt-1 text-sm font-medium text-slate-500">
+                                                    Monitor active orders, download tax invoices, and
+                                                    manage your warehouse dispatch.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Link
+                                            to="/orders"
+                                            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-8 py-4 text-sm font-black text-white shadow-xl transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-2xl md:w-auto"
+                                        >
+                                            Go to Order Center <ArrowRight size={18} />
+                                        </Link>
+                                    </div>
                                 </div>
                             )}
 

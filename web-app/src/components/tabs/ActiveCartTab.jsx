@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     ShoppingCart,
     Trash2,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react';
 import { AuthContext } from '../../AuthContext';
 import { useCartStore } from '../../store/cartStore';
+import AssignCustomerModal from '../AssignCustomerModal';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 
@@ -78,12 +80,16 @@ export default function ActiveCartTab({ setActiveTab }) {
     const removeFromCart = useCartStore((state) => state.removeFromCart);
     const clearCartState = useCartStore((state) => state.clearCartState);
     const updateCartItem = useCartStore((state) => state.updateCartItem);
+    const assignCustomerToItem = useCartStore((state) => state.assignCustomerToItem);
 
     const navigate = useNavigate();
 
     const [paymentMethods, setPaymentMethods] = useState({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [activeAssignItemId, setActiveAssignItemId] = useState(null);
 
     useEffect(() => {
         if (!cart) {
@@ -211,6 +217,21 @@ export default function ActiveCartTab({ setActiveTab }) {
         }
     };
 
+    const handleOpenAssignModal = (itemId) => {
+        setActiveAssignItemId(itemId);
+        setIsAssignModalOpen(true);
+    };
+
+    const handleAssignDestination = async (customerDetails, saveToAddressBook) => {
+        if (!activeAssignItemId) return false;
+        const success = await assignCustomerToItem(
+            activeAssignItemId,
+            customerDetails,
+            saveToAddressBook
+        );
+        return success;
+    };
+
     return (
         <div className="flex flex-col items-start gap-6 xl:flex-row">
             <div className="w-full space-y-6 xl:w-[70%]">
@@ -271,7 +292,10 @@ export default function ActiveCartTab({ setActiveTab }) {
                                 )}
 
                                 {group.isWarning && (
-                                    <button className="rounded-xl bg-amber-500 px-6 py-2.5 text-xs font-black text-white shadow-md transition-colors hover:bg-amber-600">
+                                    <button
+                                        onClick={() => handleOpenAssignModal(group.items[0]._id)}
+                                        className="rounded-xl bg-amber-500 px-6 py-2.5 text-xs font-black text-white shadow-md transition-colors hover:bg-amber-600"
+                                    >
                                         Assign Address
                                     </button>
                                 )}
@@ -663,6 +687,19 @@ export default function ActiveCartTab({ setActiveTab }) {
                     </div>
                 </div>
             </div>
+
+            <AnimatePresence>
+                {isAssignModalOpen && (
+                    <AssignCustomerModal
+                        isOpen={true}
+                        onClose={() => {
+                            setIsAssignModalOpen(false);
+                            setActiveAssignItemId(null);
+                        }}
+                        onAssign={handleAssignDestination}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }
