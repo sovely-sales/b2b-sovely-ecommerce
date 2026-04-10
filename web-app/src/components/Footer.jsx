@@ -35,14 +35,16 @@ function Footer() {
                         {}
                         <div className="flex items-center gap-3 pt-2">
                             {[
-                                { Icon: Facebook, label: 'Facebook' },
-                                { Icon: Twitter, label: 'Twitter' },
-                                { Icon: Instagram, label: 'Instagram' },
-                                { Icon: Linkedin, label: 'LinkedIn' },
+                                { Icon: Facebook, label: 'Facebook', href: '#' },
+                                { Icon: Twitter, label: 'Twitter', href: '#' },
+                                { Icon: Instagram, label: 'Instagram', href: '#' },
+                                { Icon: Linkedin, label: 'LinkedIn', href: 'https://www.linkedin.com/company/113337675' },
                             ].map((social, idx) => (
                                 <a
                                     key={idx}
-                                    href="#"
+                                    href={social.href || '#'}
+                                    target={social.href && social.href !== '#' ? '_blank' : undefined}
+                                    rel={social.href && social.href !== '#' ? 'noopener noreferrer' : undefined}
                                     className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-400 transition-all hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-400"
                                     aria-label={social.label}
                                 >

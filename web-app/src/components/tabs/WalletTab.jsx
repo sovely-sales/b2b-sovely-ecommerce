@@ -46,6 +46,7 @@ export default function WalletTab() {
     const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
     const [withdrawAmount, setWithdrawAmount] = useState('');
     const [withdrawError, setWithdrawError] = useState('');
+    const [subTab, setSubTab] = useState('LEDGER');
 
     const quickAmounts = [5000, 10000, 50000];
 
@@ -386,13 +387,21 @@ export default function WalletTab() {
 
                 {}
                 <div className="flex h-[450px] flex-col overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm lg:col-span-8">
-                    <div className="z-10 flex shrink-0 items-center justify-between border-b border-slate-100 bg-white p-6">
-                        <h3 className="flex items-center gap-2 text-xs font-black tracking-widest text-slate-900 uppercase">
-                            <ArrowRightLeft size={16} className="text-slate-400" /> Capital Ledger
-                        </h3>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">
-                            Injections & Withdrawals
-                        </span>
+                    <div className="z-10 flex shrink-0 items-center justify-between border-b border-slate-100 bg-white px-6 pt-6">
+                        <div className="flex gap-6 border-b border-transparent">
+                            <button 
+                                onClick={() => setSubTab('LEDGER')} 
+                                className={`flex items-center gap-2 text-xs font-black tracking-widest uppercase pb-4 border-b-2 transition-colors ${subTab === 'LEDGER' ? 'text-slate-900 border-slate-900' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
+                            >
+                                <ArrowRightLeft size={16} /> Capital Ledger
+                            </button>
+                            <button 
+                                onClick={() => setSubTab('REMITTANCE')} 
+                                className={`flex items-center gap-2 text-xs font-black tracking-widest uppercase pb-4 border-b-2 transition-colors ${subTab === 'REMITTANCE' ? 'text-blue-600 border-blue-600' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
+                            >
+                                <Landmark size={16} /> Remittance
+                            </button>
+                        </div>
                     </div>
 
                     <div className="custom-scrollbar flex-1 overflow-y-auto bg-white p-2">
@@ -400,6 +409,51 @@ export default function WalletTab() {
                             <div className="flex h-full items-center justify-center">
                                 <Loader2 className="animate-spin text-indigo-500" size={24} />
                             </div>
+                        ) : subTab === 'REMITTANCE' ? (
+                            ledgerTransactions.filter((t) => t.purpose === 'BANK_WITHDRAWAL').length === 0 ? (
+                                <div className="flex h-full flex-col items-center justify-center text-center text-slate-500">
+                                    <div className="mb-4 rounded-full bg-slate-50 p-5">
+                                        <Landmark size={24} className="text-slate-300" />
+                                    </div>
+                                    <p className="font-bold text-slate-900">No Remittance History</p>
+                                    <p className="mt-1 text-xs">You haven't made any withdrawal requests yet.</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto w-full">
+                                    <table className="w-full text-left text-xs whitespace-nowrap">
+                                        <thead className="bg-slate-50 text-slate-400 uppercase tracking-widest text-[9px] font-black">
+                                            <tr>
+                                                <th className="p-4 rounded-tl-xl">#</th>
+                                                <th className="p-4">Store</th>
+                                                <th className="p-4 text-right">Amount</th>
+                                                <th className="p-4 text-right">Transferred Amount</th>
+                                                <th className="p-4 text-center">Status</th>
+                                                <th className="p-4">Reason</th>
+                                                <th className="p-4">TXN Id</th>
+                                                <th className="p-4 rounded-tr-xl">Created</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
+                                            {ledgerTransactions.filter((t) => t.purpose === 'BANK_WITHDRAWAL').map((txn, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="p-4 font-bold">{idx + 1}</td>
+                                                    <td className="p-4 font-bold text-slate-900">{user?.companyName || user?.name || 'My Store'}</td>
+                                                    <td className="p-4 text-right font-black text-slate-900">₹{txn.amount.toLocaleString('en-IN')}</td>
+                                                    <td className="p-4 text-right font-black text-slate-900">₹{txn.amount.toLocaleString('en-IN')}</td>
+                                                    <td className="p-4 text-center">
+                                                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${txn.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600' : txn.status === 'FAILED' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
+                                                            {txn.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-4 max-w-[150px] truncate" title={txn.description || 'N/A'}>{txn.description || 'N/A'}</td>
+                                                    <td className="p-4 font-mono text-[10px] text-slate-400">{txn.referenceId}</td>
+                                                    <td className="p-4 text-slate-400 font-bold">{new Date(txn.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )
                         ) : ledgerTransactions.length === 0 ? (
                             <div className="flex h-full flex-col items-center justify-center text-center text-slate-500">
                                 <div className="mb-4 rounded-full bg-slate-50 p-5">
