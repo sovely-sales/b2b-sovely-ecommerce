@@ -305,17 +305,21 @@ const AdminInvoices = () => {
                                                         : inv.paymentStatus === 'CANCELLED' ||
                                                             inv.status === 'CANCELLED'
                                                           ? 'bg-red-100 text-red-700'
-                                                          : isOverdue
-                                                            ? 'bg-red-100 text-red-700 ring-1 ring-red-400'
-                                                            : 'bg-amber-100 text-amber-700'
+                                                          : inv.paymentStatus === 'FAILED'
+                                                            ? 'bg-red-100 text-red-700'
+                                                            : isOverdue
+                                                              ? 'bg-red-100 text-red-700 ring-1 ring-red-400'
+                                                              : 'bg-amber-100 text-amber-700'
                                                 }`}
                                             >
                                                 {inv.paymentStatus === 'CANCELLED' ||
                                                 inv.status === 'CANCELLED'
                                                     ? 'CANCELLED'
-                                                    : isOverdue
-                                                      ? 'OVERDUE'
-                                                      : inv.paymentStatus}
+                                                    : inv.paymentStatus === 'FAILED'
+                                                      ? 'FAILED PAYMENT'
+                                                      : isOverdue
+                                                        ? 'OVERDUE'
+                                                        : inv.paymentStatus}
                                             </span>
                                         </td>
                                         <td className="p-4">

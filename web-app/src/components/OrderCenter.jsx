@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, UploadCloud, Package, FileText, ArrowRight } from 'lucide-react';
 import { AuthContext } from '../AuthContext';
 import { useCartStore } from '../store/cartStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import Orders from './Orders';
 import Invoices from './Invoices';
@@ -18,8 +18,25 @@ const TABS = [
 ];
 
 export default function OrderCenter() {
-    const [activeTab, setActiveTab] = useState('CART');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const queryTab = searchParams.get('tab')?.toUpperCase();
+
+    const [activeTab, setActiveTab] = useState(
+        TABS.some((t) => t.id === queryTab) ? queryTab : 'CART'
+    );
     const { user } = useContext(AuthContext);
+
+    // Sync tab state with URL parameter if it changes externally
+    React.useEffect(() => {
+        if (queryTab && TABS.some((t) => t.id === queryTab) && queryTab !== activeTab) {
+            setActiveTab(queryTab);
+        }
+    }, [queryTab]);
+
+    const handleTabChange = (tabId) => {
+        setActiveTab(tabId);
+        setSearchParams({ tab: tabId });
+    };
 
     return (
         <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -52,7 +69,7 @@ export default function OrderCenter() {
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
+                                onClick={() => handleTabChange(tab.id)}
                                 className={`group relative flex items-center gap-2 pb-4 text-sm font-bold transition-colors ${
                                     isActive
                                         ? 'text-indigo-600'
@@ -84,10 +101,10 @@ export default function OrderCenter() {
             <div className="min-h-[50vh]">
                 {}
                 <div className={activeTab === 'CART' ? 'block' : 'hidden'}>
-                    <ActiveCartTab setActiveTab={setActiveTab} />
+                    <ActiveCartTab setActiveTab={handleTabChange} />
                 </div>
                 <div className={activeTab === 'QUICK_ORDER' ? 'block' : 'hidden'}>
-                    <QuickOrderTab setActiveTab={setActiveTab} />
+                    <QuickOrderTab setActiveTab={handleTabChange} />
                 </div>
                 <div className={activeTab === 'HISTORY' ? 'block' : 'hidden'}>
                     {}

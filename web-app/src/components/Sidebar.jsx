@@ -203,7 +203,7 @@ function Sidebar({ isOpen, onClose }) {
                                     </li>
                                     <li>
                                         <Link
-                                            to="/orders"
+                                            to="/orders?tab=HISTORY"
                                             onClick={onClose}
                                             className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
                                         >

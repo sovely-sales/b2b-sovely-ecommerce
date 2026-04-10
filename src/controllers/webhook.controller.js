@@ -115,6 +115,49 @@ export const razorpayWebhook = async (req, res) => {
             console.error('❌ Webhook processing error:', error);
             return res.status(500).json({ status: 'error' });
         }
+    } else if (event === 'payment.failed') {
+        const paymentEntity = req.body.payload.payment.entity;
+        const razorpayOrderId = paymentEntity.order_id;
+        const razorpayPaymentId = paymentEntity.id;
+        const errorDesc = paymentEntity.error_description || 'External payment failure';
+
+        try {
+            const invoice = await Invoice.findOne({ razorpayOrderId });
+            if (invoice && invoice.paymentStatus !== 'PAID') {
+                invoice.paymentStatus = 'FAILED';
+                await invoice.save();
+
+                await Payment.findOneAndUpdate(
+                    { gatewayOrderId: razorpayOrderId },
+                    {
+                        status: 'FAILED',
+                        gatewayPaymentId: razorpayPaymentId,
+                        errorMessage: errorDesc,
+                    },
+                    { upsert: true }
+                );
+
+                if (invoice.invoiceType === 'WALLET_TOPUP') {
+                    const user = await User.findById(invoice.resellerId);
+                    await WalletTransaction.create({
+                        resellerId: invoice.resellerId,
+                        type: 'CREDIT',
+                        purpose: 'WALLET_RECHARGE',
+                        amount: invoice.grandTotal,
+                        closingBalance: user?.walletBalance || 0,
+                        referenceId: 'FAIL-' + (razorpayPaymentId || razorpayOrderId),
+                        description: `Failed wallet top-up attempt: ${errorDesc}`,
+                        status: 'FAILED',
+                    });
+                }
+
+                console.log(`❌ Webhook Processed: Marked Invoice ${invoice.invoiceNumber} as FAILED`);
+            }
+            return res.status(200).json({ status: 'ok' });
+        } catch (error) {
+            console.error('❌ Webhook processing error (failed event):', error);
+            return res.status(500).json({ status: 'error' });
+        }
     }
 
     return res.status(200).json({ status: 'ok' });

@@ -178,7 +178,16 @@ export default function WalletTab() {
         }
     };
 
-    const getTransactionStyling = (purpose, type) => {
+    const getTransactionStyling = (purpose, type, status) => {
+        if (status === 'FAILED') {
+            return {
+                icon: AlertCircle,
+                color: 'text-red-600',
+                bg: 'bg-red-50',
+                border: 'border-red-100',
+            };
+        }
+
         const p = purpose.toUpperCase();
 
         if (p.includes('RECHARGE') || p.includes('ADD') || p.includes('TOPUP'))
@@ -406,7 +415,7 @@ export default function WalletTab() {
                                 <tbody>
                                     {ledgerTransactions.map((txn, idx) => {
                                         const isCredit = txn.type === 'CREDIT';
-                                        const style = getTransactionStyling(txn.purpose, txn.type);
+                                        const style = getTransactionStyling(txn.purpose, txn.type, txn.status);
                                         const Icon = style.icon;
 
                                         return (
@@ -444,20 +453,28 @@ export default function WalletTab() {
                                                     </p>
                                                 </td>
                                                 <td className="py-2 text-right">
-                                                    <p
-                                                        className={`text-base font-black ${isCredit ? 'text-emerald-600' : 'text-slate-900'}`}
-                                                    >
-                                                        {isCredit ? '+' : '-'}₹
-                                                        {txn.amount.toLocaleString('en-IN', {
-                                                            minimumFractionDigits: 2,
-                                                        })}
-                                                    </p>
-                                                    <p className="mt-0.5 text-[10px] font-bold text-slate-400">
-                                                        Bal: ₹
-                                                        {txn.closingBalance?.toLocaleString(
-                                                            'en-IN'
+                                                    <div className="flex flex-col items-end">
+                                                        <p
+                                                            className={`text-base font-black ${txn.status === 'FAILED' ? 'text-red-500 line-through opacity-60' : isCredit ? 'text-emerald-600' : 'text-slate-900'}`}
+                                                        >
+                                                            {isCredit ? '+' : '-'}₹
+                                                            {txn.amount.toLocaleString('en-IN', {
+                                                                minimumFractionDigits: 2,
+                                                            })}
+                                                        </p>
+                                                        {txn.status === 'FAILED' ? (
+                                                            <span className="text-[9px] font-black tracking-tighter text-red-600 uppercase">
+                                                                Payment Failed
+                                                            </span>
+                                                        ) : (
+                                                            <p className="mt-0.5 text-[10px] font-bold text-slate-400">
+                                                                Bal: ₹
+                                                                {txn.closingBalance?.toLocaleString(
+                                                                    'en-IN'
+                                                                )}
+                                                            </p>
                                                         )}
-                                                    </p>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

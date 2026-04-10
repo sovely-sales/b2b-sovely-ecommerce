@@ -270,9 +270,9 @@ export const generateInvoicePDF = async (req, res, next) => {
 
         doc.fillColor('#334155')
             .font('Helvetica-Bold')
-            .text('Status:', 350, currentY + statusYShift)
-            .fillColor(invoice.paymentStatus === 'PAID' ? '#16a34a' : '#dc2626')
-            .text(invoice.paymentStatus, 420, currentY + statusYShift);
+            .text('Status:', 350, currentY + statusYShift);
+        doc.fillColor(invoice.paymentStatus === 'PAID' ? '#16a34a' : '#dc2626')
+            .text(invoice.paymentStatus === 'FAILED' ? 'FAILED PAYMENT' : invoice.paymentStatus, 420, currentY + statusYShift);
 
         currentY = 210;
         doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#e2e8f0');
@@ -411,7 +411,7 @@ export const generateInvoicePDF = async (req, res, next) => {
 
         doc.font('Helvetica').fillColor('#475569');
         doc.text(`Payment Terms: ${invoice.paymentTerms.replace(/_/g, ' ')}`, 50, currentY + 32);
-        doc.text(`Status: ${invoice.paymentStatus}`, 50, currentY + 47);
+        doc.text(`Status: ${invoice.paymentStatus === 'FAILED' ? 'FAILED PAYMENT' : invoice.paymentStatus}`, 50, currentY + 47);
         if (invoice.razorpayOrderId) {
             doc.text(`Gateway Ref: ${invoice.razorpayOrderId}`, 50, currentY + 62);
         } else {

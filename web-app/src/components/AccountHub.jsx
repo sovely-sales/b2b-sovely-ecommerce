@@ -354,7 +354,7 @@ export default function AccountHub() {
 
                                         {tab.id === 'OVERVIEW' && (
                                             <Link
-                                                to="/orders"
+                                                to="/orders?tab=HISTORY"
                                                 className="group flex w-full items-center justify-between rounded-2xl px-5 py-4 text-left text-sm font-black text-slate-500 transition-all hover:bg-indigo-50 hover:text-indigo-900"
                                             >
                                                 <div className="flex items-center gap-4">
@@ -420,7 +420,7 @@ export default function AccountHub() {
                                             </div>
                                         </div>
                                         <Link
-                                            to="/orders"
+                                            to="/orders?tab=HISTORY"
                                             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-8 py-4 text-sm font-black text-white shadow-xl transition-all hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-2xl md:w-auto"
                                         >
                                             Go to Order Center <ArrowRight size={18} />

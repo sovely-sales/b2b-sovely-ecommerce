@@ -472,25 +472,35 @@ function Navbar() {
                         )}
 
                         {!isAdmin && (
-                            <Link
-                                to={ROUTES.ORDERS}
-                                className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
-                            >
-                                <div className="relative">
-                                    <ShoppingCart size={20} strokeWidth={2.5} />
-                                    {cartCount > 0 && (
-                                        <motion.span
-                                            key={cartCount}
-                                            initial={{ scale: 0.5, opacity: 0 }}
-                                            animate={{ scale: 1, opacity: 1 }}
-                                            className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-black text-white ring-2 ring-white"
-                                        >
-                                            {cartCount > 99 ? '99+' : cartCount}
-                                        </motion.span>
-                                    )}
-                                </div>
-                                <span className="hidden text-sm sm:block">Operations</span>
-                            </Link>
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <Link
+                                    to={`${ROUTES.ORDERS}?tab=CART`}
+                                    className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                                >
+                                    <div className="relative">
+                                        <ShoppingCart size={20} strokeWidth={2.5} />
+                                        {cartCount > 0 && (
+                                            <motion.span
+                                                key={cartCount}
+                                                initial={{ scale: 0.5, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-black text-white ring-2 ring-white"
+                                            >
+                                                {cartCount > 99 ? '99+' : cartCount}
+                                            </motion.span>
+                                        )}
+                                    </div>
+                                    <span className="hidden text-sm sm:block">Cart</span>
+                                </Link>
+
+                                <Link
+                                    to={`${ROUTES.ORDERS}?tab=HISTORY`}
+                                    className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                                >
+                                    <LayoutGrid size={20} strokeWidth={2.5} />
+                                    <span className="hidden text-sm sm:block">Operations</span>
+                                </Link>
+                            </div>
                         )}
 
                         <div className="mx-1 hidden h-5 w-px bg-slate-200 sm:block"></div>

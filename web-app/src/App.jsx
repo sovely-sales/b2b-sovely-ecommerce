@@ -118,15 +118,15 @@ function App() {
                             {}
                             <Route
                                 path={ROUTES.CHECKOUT}
-                                element={<Navigate to={ROUTES.ORDERS} replace />}
+                                element={<Navigate to={`${ROUTES.ORDERS}?tab=CART`} replace />}
                             />
                             <Route
                                 path={ROUTES.QUICK_ORDER}
-                                element={<Navigate to={ROUTES.ORDERS} replace />}
+                                element={<Navigate to={`${ROUTES.ORDERS}?tab=QUICK_ORDER`} replace />}
                             />
                             <Route
                                 path={ROUTES.INVOICES}
-                                element={<Navigate to={ROUTES.ORDERS} replace />}
+                                element={<Navigate to={`${ROUTES.ORDERS}?tab=INVOICES`} replace />}
                             />
                             <Route
                                 path={ROUTES.ACCOUNT_SETTINGS}
