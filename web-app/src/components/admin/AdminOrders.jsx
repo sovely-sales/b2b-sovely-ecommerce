@@ -295,6 +295,7 @@ const AdminOrders = () => {
             case 'NDR':
                 return 'bg-amber-100 text-amber-800 border-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.3)]';
             case 'RTO':
+            case 'RTO_DELIVERED':
             case 'CANCELLED':
                 return 'bg-red-100 text-red-700 border-red-200';
             default:
@@ -363,6 +364,8 @@ const AdminOrders = () => {
                         <option value="PROCESSING">Processing</option>
                         <option value="SHIPPED">Shipped</option>
                         <option value="NDR">NDR (Action Req)</option>
+                        <option value="RTO">RTO In Transit</option>
+                        <option value="RTO_DELIVERED">RTO Delivered</option>
                         <option value="DELIVERED">Delivered</option>
                         <option value="CANCELLED">Cancelled</option>
                     </select>
@@ -433,6 +436,7 @@ const AdminOrders = () => {
                                         'DELIVERED',
                                         'CANCELLED',
                                         'PROFIT_CREDITED',
+                                        'RTO_DELIVERED',
                                     ].includes(order.status);
 
                                     return (
@@ -775,7 +779,7 @@ const AdminOrders = () => {
                                                             .map((h, i) => (
                                                                 <div key={i} className="relative">
                                                                     <div
-                                                                        className={`absolute -left-[23px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-[8px] font-black text-white shadow-sm ${h.status === 'DELIVERED' || h.status === 'PROFIT_CREDITED' ? 'bg-emerald-500' : h.status === 'SHIPPED' ? 'bg-indigo-500' : h.status === 'NDR' ? 'bg-amber-500' : h.status === 'CANCELLED' || h.status === 'RTO' ? 'bg-red-500' : 'bg-slate-400'}`}
+                                                                        className={`absolute -left-[23px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-[8px] font-black text-white shadow-sm ${h.status === 'DELIVERED' || h.status === 'PROFIT_CREDITED' ? 'bg-emerald-500' : h.status === 'SHIPPED' ? 'bg-indigo-500' : h.status === 'NDR' ? 'bg-amber-500' : h.status === 'CANCELLED' || h.status === 'RTO' || h.status === 'RTO_DELIVERED' ? 'bg-red-500' : 'bg-slate-400'}`}
                                                                     >
                                                                         ●
                                                                     </div>
@@ -905,6 +909,12 @@ const AdminOrders = () => {
                                                             </option>
                                                             <option value="NDR">
                                                                 NDR (Failed Delivery Attempt)
+                                                            </option>
+                                                            <option value="RTO">
+                                                                RTO (In Transit to Origin)
+                                                            </option>
+                                                            <option value="RTO_DELIVERED">
+                                                                RTO Delivered (Apply Settlement)
                                                             </option>
                                                             <option value="DELIVERED">
                                                                 Delivered (Releases Profit)

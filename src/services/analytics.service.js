@@ -14,7 +14,7 @@ export const syncProductRtoRates = async () => {
                     totalTimesOrdered: { $sum: 1 },
                     rtoTimes: {
                         $sum: {
-                            $cond: [{ $eq: ['$status', 'RTO'] }, 1, 0],
+                            $cond: [{ $in: ['$status', ['RTO', 'RTO_DELIVERED']] }, 1, 0],
                         },
                     },
                 },

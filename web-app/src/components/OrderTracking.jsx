@@ -110,6 +110,7 @@ const OrderTracking = () => {
                 return <AlertTriangle size={20} />;
             case 'CANCELLED':
             case 'RTO':
+            case 'RTO_DELIVERED':
                 return <XCircle size={20} />;
             default:
                 return <CheckCircle size={20} />;
@@ -125,6 +126,7 @@ const OrderTracking = () => {
                 return 'bg-amber-500 text-white border-amber-500';
             case 'CANCELLED':
             case 'RTO':
+            case 'RTO_DELIVERED':
                 return 'bg-red-500 text-white border-red-500';
             case 'SHIPPED':
                 return 'bg-indigo-500 text-white border-indigo-500';

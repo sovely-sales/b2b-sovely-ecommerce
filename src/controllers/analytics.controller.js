@@ -243,7 +243,7 @@ export const getResellerAnalytics = asyncHandler(async (req, res) => {
                     },
                 },
                 rtoOrders: {
-                    $sum: { $cond: [{ $eq: ['$status', 'RTO'] }, 1, 0] },
+                    $sum: { $cond: [{ $in: ['$status', ['RTO', 'RTO_DELIVERED']] }, 1, 0] },
                 },
                 ndrActionRequired: {
                     $sum: {
@@ -352,7 +352,12 @@ export const getSmartRestockPredictions = asyncHandler(async (req, res) => {
     const now = new Date();
 
     const purchaseHistory = await Order.aggregate([
-        { $match: { resellerId: resellerId, status: { $nin: ['CANCELLED', 'RTO'] } } },
+        {
+            $match: {
+                resellerId: resellerId,
+                status: { $nin: ['CANCELLED', 'RTO', 'RTO_DELIVERED'] },
+            },
+        },
         { $unwind: '$items' },
         { $match: { 'items.orderType': 'WHOLESALE' } },
         { $sort: { createdAt: 1 } },

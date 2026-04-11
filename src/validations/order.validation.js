@@ -9,6 +9,7 @@ const orderStatusEnum = z.enum([
     'PROFIT_CREDITED',
     'NDR',
     'RTO',
+    'RTO_DELIVERED',
     'CANCELLED',
     'ALL',
 ]);

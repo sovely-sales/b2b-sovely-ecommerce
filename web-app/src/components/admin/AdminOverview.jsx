@@ -57,6 +57,7 @@ const AdminOverview = ({ setActiveTab }) => {
     const getStatusColor = (status) => {
         switch (status?.toUpperCase()) {
             case 'DELIVERED':
+            case 'PROFIT_CREDITED':
                 return '#10b981';
             case 'PROCESSING':
                 return '#f59e0b';
@@ -64,6 +65,8 @@ const AdminOverview = ({ setActiveTab }) => {
                 return '#3b82f6';
             case 'PENDING':
                 return '#8b5cf6';
+            case 'RTO':
+            case 'RTO_DELIVERED':
             case 'CANCELLED':
                 return '#ef4444';
             default:

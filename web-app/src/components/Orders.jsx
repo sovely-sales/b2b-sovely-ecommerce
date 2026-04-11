@@ -33,6 +33,7 @@ const VALID_STATUS_FILTERS = new Set([
     'DELIVERED',
     'PROFIT_CREDITED',
     'RTO',
+    'RTO_DELIVERED',
     'CANCELLED',
 ]);
 
@@ -202,6 +203,7 @@ const Orders = () => {
                     timeline: 'bg-amber-500',
                 };
             case 'RTO':
+            case 'RTO_DELIVERED':
             case 'CANCELLED':
                 return {
                     bg: 'bg-red-50',
@@ -359,6 +361,7 @@ const Orders = () => {
                         <option value="DELIVERED">Delivered</option>
                         <option value="PROFIT_CREDITED">Completed & Paid</option>
                         <option value="RTO">Returned (RTO)</option>
+                        <option value="RTO_DELIVERED">RTO Delivered (Final)</option>
                         <option value="CANCELLED">Cancelled</option>
                     </select>
                     <select

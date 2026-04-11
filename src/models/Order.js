@@ -90,6 +90,7 @@ const orderSchema = new mongoose.Schema(
                 'NDR',
                 'DELIVERED',
                 'RTO',
+                'RTO_DELIVERED',
                 'PROFIT_CREDITED',
                 'CANCELLED',
             ],

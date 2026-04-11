@@ -17,6 +17,172 @@ import crypto from 'crypto';
 import fs from 'fs';
 import Papa from 'papaparse';
 
+const ALLOWED_ORDER_STATUSES = new Set([
+    'PENDING',
+    'PROCESSING',
+    'SHIPPED',
+    'NDR',
+    'DELIVERED',
+    'RTO',
+    'RTO_DELIVERED',
+    'PROFIT_CREDITED',
+    'CANCELLED',
+]);
+
+const FINAL_REFUND_STATUSES = new Set(['CANCELLED', 'RTO_DELIVERED']);
+
+const roundMoney = (value) => Number((Number(value) || 0).toFixed(2));
+
+const getProductTaxTotal = (order) =>
+    roundMoney(
+        (order.items || []).reduce((total, item) => {
+            const perUnitTax = Number(item.taxAmountPerUnit) || 0;
+            const quantity = Number(item.qty) || 0;
+            return total + perUnitTax * quantity;
+        }, 0)
+    );
+
+const getRtoDeliveredSettlementBreakdown = (order) => {
+    const productTaxTotal = getProductTaxTotal(order);
+    const refundProductPrincipalAndTax = roundMoney((order.subTotal || 0) + productTaxTotal);
+
+    const forwardCourierCharge = roundMoney(order.shippingTotal || 0);
+    const forwardCourierTax = roundMoney(forwardCourierCharge * 0.18);
+    const reverseCourierCharge = roundMoney(forwardCourierCharge + forwardCourierTax);
+
+    return {
+        refundProductPrincipalAndTax,
+        productTaxTotal,
+        reverseCourierCharge,
+        forwardCourierCharge,
+        forwardCourierTax,
+    };
+};
+
+const hasStatusInHistory = (order, statusCode) =>
+    (order.statusHistory || []).some((entry) => entry.status === statusCode);
+
+const restoreInventoryForOrder = async (order, session) => {
+    for (const item of order.items) {
+        await Product.findByIdAndUpdate(
+            item.productId,
+            { $inc: { 'inventory.stock': item.qty } },
+            { session }
+        );
+    }
+};
+
+const applyFinalStatusSettlement = async ({ order, targetStatus, session, source = 'MANUAL' }) => {
+    const sourceSuffix = source === 'BULK_SYNC' ? ' (via Bulk Sync)' : '';
+    const sourceCommentSuffix = source === 'BULK_SYNC' ? ' via bulk sync' : '';
+
+    const hasRefundProcessed = hasStatusInHistory(order, 'REFUND_PROCESSED');
+    const hasPenaltyApplied = hasStatusInHistory(order, 'RTO_PENALTY_APPLIED');
+    const hasInventoryRestocked = hasStatusInHistory(order, 'RESTOCKED');
+
+    let refundAmount = 0;
+    let refundDescription = '';
+    let reverseChargeAmount = 0;
+    let reverseChargeTax = 0;
+    let reverseChargeDescription = '';
+
+    if (targetStatus === 'CANCELLED' && !hasRefundProcessed) {
+        refundAmount = roundMoney(order.totalPlatformCost);
+        refundDescription = `Full refund for cancelled order ${order.orderId}${sourceSuffix}`;
+    }
+
+    if (targetStatus === 'RTO_DELIVERED') {
+        const {
+            refundProductPrincipalAndTax,
+            reverseCourierCharge,
+            forwardCourierTax,
+            forwardCourierCharge,
+        } = getRtoDeliveredSettlementBreakdown(order);
+
+        if (!hasRefundProcessed) {
+            refundAmount = refundProductPrincipalAndTax;
+            refundDescription = `RTO delivered refund (Product Price + Product Tax) for order ${order.orderId}${sourceSuffix}`;
+        }
+
+        if (!hasPenaltyApplied) {
+            reverseChargeAmount = reverseCourierCharge;
+            reverseChargeTax = forwardCourierTax;
+            reverseChargeDescription = `RTO delivered reverse courier charge (Forward freight ₹${forwardCourierCharge} + tax ₹${forwardCourierTax}) for order ${order.orderId}${sourceSuffix}`;
+        }
+    }
+
+    if (refundAmount > 0) {
+        const updatedReseller = await User.findByIdAndUpdate(
+            order.resellerId,
+            { $inc: { walletBalance: refundAmount } },
+            { new: true, session }
+        );
+
+        await WalletTransaction.create(
+            [
+                {
+                    resellerId: order.resellerId,
+                    type: 'CREDIT',
+                    purpose: 'REFUND',
+                    amount: refundAmount,
+                    closingBalance: updatedReseller.walletBalance,
+                    referenceId: `REF-${order.orderId}`,
+                    description: refundDescription,
+                    status: 'COMPLETED',
+                },
+            ],
+            { session }
+        );
+
+        order.statusHistory.push({
+            status: 'REFUND_PROCESSED',
+            comment: `₹${refundAmount} refunded to wallet${sourceCommentSuffix}.`,
+        });
+    }
+
+    if (reverseChargeAmount > 0) {
+        const updatedReseller = await User.findByIdAndUpdate(
+            order.resellerId,
+            { $inc: { walletBalance: -reverseChargeAmount } },
+            { new: true, session }
+        );
+
+        await WalletTransaction.create(
+            [
+                {
+                    resellerId: order.resellerId,
+                    type: 'DEBIT',
+                    purpose: 'RTO_PENALTY',
+                    amount: reverseChargeAmount,
+                    closingBalance: updatedReseller.walletBalance,
+                    referenceId: `RTO-${order.orderId}`,
+                    description: reverseChargeDescription,
+                    status: 'COMPLETED',
+                },
+            ],
+            { session }
+        );
+
+        order.statusHistory.push({
+            status: 'RTO_PENALTY_APPLIED',
+            comment: `₹${reverseChargeAmount} reverse courier charge debited (Tax ₹${reverseChargeTax})${sourceCommentSuffix}.`,
+        });
+    }
+
+    if (!hasInventoryRestocked) {
+        await restoreInventoryForOrder(order, session);
+        order.statusHistory.push({
+            status: 'RESTOCKED',
+            comment: `Inventory automatically restored due to ${targetStatus}${sourceCommentSuffix}.`,
+        });
+    }
+
+    return {
+        refundAmount,
+        reverseChargeAmount,
+    };
+};
+
 export const createOrder = asyncHandler(async (req, res) => {
     const rawIdempotencyKey = req.headers['x-idempotency-key'];
     if (!rawIdempotencyKey) throw new ApiError(400, 'Idempotency key is missing.');
@@ -484,13 +650,19 @@ export const getMyOrders = asyncHandler(async (req, res) => {
 export const updateOrderStatus = asyncHandler(async (req, res) => {
     const { status, awbNumber, courierName, ndrReason } = req.body;
     const { id } = req.params;
+    const normalizedStatus =
+        typeof status === 'string' ? status.trim().toUpperCase().replace(/\s+/g, '_') : '';
+
+    if (!normalizedStatus || !ALLOWED_ORDER_STATUSES.has(normalizedStatus)) {
+        throw new ApiError(400, 'Invalid order status');
+    }
 
     const order = await Order.findById(id);
     if (!order) throw new ApiError(404, 'Order not found');
 
-    if (status === 'SHIPPED') order.tracking = { awbNumber, courierName };
+    if (normalizedStatus === 'SHIPPED') order.tracking = { awbNumber, courierName };
 
-    if (status === 'NDR') {
+    if (normalizedStatus === 'NDR') {
         order.ndrDetails = {
             attemptCount: (order.ndrDetails?.attemptCount || 0) + 1,
             reason: ndrReason || 'Customer Unavailable',
@@ -506,78 +678,53 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
             : 'Order shipped',
         NDR: `Delivery attempt failed: ${ndrReason || 'Customer Unavailable'}`,
         DELIVERED: 'Order delivered to customer',
-        RTO: 'Order returned to origin (RTO)',
+        RTO: 'Order marked as RTO (in transit to origin)',
+        RTO_DELIVERED: 'RTO delivered to origin (final return)',
         CANCELLED: 'Order has been cancelled',
     };
 
-    if (['CANCELLED', 'RTO'].includes(status) && !['CANCELLED', 'RTO'].includes(order.status)) {
+    if (
+        FINAL_REFUND_STATUSES.has(normalizedStatus) &&
+        !FINAL_REFUND_STATUSES.has(order.status)
+    ) {
         const session = await mongoose.startSession();
         session.startTransaction();
 
         try {
-            let refundAmount = 0;
-            let description = '';
-
-            if (status === 'CANCELLED') {
-                refundAmount = order.totalPlatformCost;
-                description = `Full refund for cancelled order ${order.orderId}`;
-            } else if (status === 'RTO') {
-                refundAmount = order.subTotal + order.taxTotal + order.codCharge;
-                description = `RTO Refund (Principal + Tax + COD Fee) for order ${order.orderId}. Freight forfeited.`;
-            }
-
-            if (refundAmount > 0) {
-                const updatedReseller = await User.findByIdAndUpdate(
-                    order.resellerId,
-                    { $inc: { walletBalance: refundAmount } },
-                    { new: true, session }
-                );
-
-                await WalletTransaction.create(
-                    [
-                        {
-                            resellerId: order.resellerId,
-                            type: 'CREDIT',
-                            purpose: 'REFUND',
-                            amount: refundAmount,
-                            closingBalance: updatedReseller.walletBalance,
-                            referenceId: `REF-${order.orderId}`,
-                            description: description,
-                            status: 'COMPLETED',
-                        },
-                    ],
-                    { session }
-                );
-            }
-
-            for (const item of order.items) {
-                await Product.findByIdAndUpdate(
-                    item.productId,
-                    { $inc: { 'inventory.stock': item.qty } },
-                    { session }
-                );
-            }
-
             order.statusHistory.push({
-                status,
-                comment: statusComment[status],
+                status: normalizedStatus,
+                comment:
+                    statusComment[normalizedStatus] || `Status updated to ${normalizedStatus}`,
             });
 
-            order.statusHistory.push({
-                status: 'REFUND_PROCESSED',
-                comment: `₹${refundAmount} refunded to wallet.`,
+            await applyFinalStatusSettlement({
+                order,
+                targetStatus: normalizedStatus,
+                session,
             });
+
+            order.status = normalizedStatus;
+            await order.save({ session });
 
             await session.commitTransaction();
             session.endSession();
+
+            return res
+                .status(200)
+                .json(
+                    new ApiResponse(200, order, `Order status updated to ${normalizedStatus}`)
+                );
         } catch (error) {
             await session.abortTransaction();
             session.endSession();
-            throw new ApiError(500, 'Failed to process refund and restore inventory.');
+            throw new ApiError(500, 'Failed to process final settlement for this order status.');
         }
     }
 
-    if (status === 'DELIVERED' && order.status !== 'DELIVERED') {
+    if (
+        normalizedStatus === 'DELIVERED' &&
+        !['DELIVERED', 'PROFIT_CREDITED'].includes(order.status)
+    ) {
         if (order.payoutOnDelivery > 0 && order.paymentMethod === 'COD') {
             const session = await mongoose.startSession();
             session.startTransaction();
@@ -607,7 +754,7 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
 
                 order.statusHistory.push({
                     status: 'DELIVERED',
-                    comment: statusComment['DELIVERED'],
+                    comment: statusComment.DELIVERED,
                 });
                 order.statusHistory.push({
                     status: 'PROFIT_CREDITED',
@@ -632,19 +779,22 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     }
 
     if (
-        !['CANCELLED', 'RTO', 'DELIVERED'].includes(status) ||
-        (status === 'DELIVERED' && order.paymentMethod !== 'COD')
+        !['CANCELLED', 'RTO_DELIVERED', 'DELIVERED'].includes(normalizedStatus) ||
+        (normalizedStatus === 'DELIVERED' && order.paymentMethod !== 'COD')
     ) {
         order.statusHistory.push({
-            status,
-            comment: statusComment[status] || `Status updated to ${status}`,
+            status: normalizedStatus,
+            comment:
+                statusComment[normalizedStatus] || `Status updated to ${normalizedStatus}`,
         });
     }
 
-    order.status = status;
+    order.status = normalizedStatus;
     await order.save();
 
-    return res.status(200).json(new ApiResponse(200, order, `Order status updated to ${status}`));
+    return res
+        .status(200)
+        .json(new ApiResponse(200, order, `Order status updated to ${normalizedStatus}`));
 });
 
 export const resellerActionOnNDR = asyncHandler(async (req, res) => {
@@ -1482,8 +1632,10 @@ export const importWukusyStatusesCsv = asyncHandler(async (req, res) => {
 
         const platformOrderId = rawPlatformOrderId;
 
+        const normalizedWarehouseStatus = rawStatus.toLowerCase().replace(/[\s-]+/g, '_');
+
         let targetStatus = '';
-        switch (rawStatus) {
+        switch (normalizedWarehouseStatus) {
             case 'new':
                 targetStatus = 'PENDING';
                 break;
@@ -1493,13 +1645,17 @@ export const importWukusyStatusesCsv = asyncHandler(async (req, res) => {
             case 'shipped':
                 targetStatus = 'SHIPPED';
                 break;
-            case 'Cancelled-New':
+            case 'cancelled_new':
             case 'cancelled':
                 targetStatus = 'CANCELLED';
                 break;
             case 'rto':
             case 'returned':
                 targetStatus = 'RTO';
+                break;
+            case 'rto_delivered':
+            case 'returned_delivered':
+                targetStatus = 'RTO_DELIVERED';
                 break;
             case 'delivered':
                 targetStatus = 'DELIVERED';
@@ -1517,6 +1673,8 @@ export const importWukusyStatusesCsv = asyncHandler(async (req, res) => {
         }
 
         if (order.status === targetStatus) continue;
+        if (targetStatus === 'DELIVERED' && order.status === 'PROFIT_CREDITED') continue;
+        if (targetStatus === 'RTO' && order.status === 'RTO_DELIVERED') continue;
 
         if (wukusyAwb && targetStatus === 'SHIPPED') {
             const brandedAwb = `SOVELY-${wukusyAwb}`;
@@ -1529,67 +1687,31 @@ export const importWukusyStatusesCsv = asyncHandler(async (req, res) => {
         }
 
         if (
-            ['CANCELLED', 'RTO'].includes(targetStatus) &&
-            !['CANCELLED', 'RTO'].includes(order.status)
+            FINAL_REFUND_STATUSES.has(targetStatus) &&
+            !FINAL_REFUND_STATUSES.has(order.status)
         ) {
             const session = await mongoose.startSession();
             session.startTransaction();
             try {
-                let refundAmount = 0;
-                let description = '';
-
-                if (targetStatus === 'CANCELLED') {
-                    refundAmount = order.totalPlatformCost;
-                    description = `Full refund for cancelled order ${order.orderId} (via Bulk Sync)`;
-                } else if (targetStatus === 'RTO') {
-                    refundAmount = order.subTotal + order.taxTotal + order.codCharge;
-                    description = `RTO Refund (Freight forfeited) for order ${order.orderId} (via Bulk Sync)`;
-                }
-
-                if (refundAmount > 0) {
-                    const updatedReseller = await User.findByIdAndUpdate(
-                        order.resellerId,
-                        { $inc: { walletBalance: refundAmount } },
-                        { new: true, session }
-                    );
-
-                    await WalletTransaction.create(
-                        [
-                            {
-                                resellerId: order.resellerId,
-                                type: 'CREDIT',
-                                purpose: 'REFUND',
-                                amount: refundAmount,
-                                closingBalance: updatedReseller.walletBalance,
-                                referenceId: `REF-${order.orderId}`,
-                                description,
-                                status: 'COMPLETED',
-                            },
-                        ],
-                        { session }
-                    );
-
-                    order.statusHistory.push({
-                        status: 'REFUND_PROCESSED',
-                        comment: `₹${refundAmount} refunded to wallet via bulk sync.`,
-                    });
-                }
-
-                for (const item of order.items) {
-                    await Product.findByIdAndUpdate(
-                        item.productId,
-                        { $inc: { 'inventory.stock': item.qty } },
-                        { session }
-                    );
-                }
-
+                order.status = targetStatus;
                 order.statusHistory.push({
-                    status: 'RESTOCKED',
-                    comment: `Inventory automatically restored due to ${targetStatus}.`,
+                    status: targetStatus,
+                    comment: `Status updated to ${targetStatus} via Warehouse Sync.`,
                 });
+
+                await applyFinalStatusSettlement({
+                    order,
+                    targetStatus,
+                    session,
+                    source: 'BULK_SYNC',
+                });
+
+                await order.save({ session });
 
                 await session.commitTransaction();
                 session.endSession();
+                successCount++;
+                continue;
             } catch (err) {
                 await session.abortTransaction();
                 session.endSession();
@@ -1627,12 +1749,21 @@ export const importWukusyStatusesCsv = asyncHandler(async (req, res) => {
                     );
 
                     order.statusHistory.push({
+                        status: 'DELIVERED',
+                        comment: 'Order delivered to customer via warehouse sync.',
+                    });
+                    order.statusHistory.push({
                         status: 'PROFIT_CREDITED',
                         comment: `₹${order.payoutOnDelivery} credited to wallet via bulk sync.`,
                     });
 
+                    order.status = 'PROFIT_CREDITED';
+                    await order.save({ session });
+
                     await session.commitTransaction();
                     session.endSession();
+                    successCount++;
+                    continue;
                 } catch (err) {
                     await session.abortTransaction();
                     session.endSession();
@@ -1665,3 +1796,4 @@ export const importWukusyStatusesCsv = asyncHandler(async (req, res) => {
             )
         );
 });
+
