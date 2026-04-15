@@ -7,6 +7,7 @@ import {
     getOrderById,
     getAllAdminOrders,
     exportAdminOrdersToCsv,
+    exportMyOrdersToCsv,
     exportCourierOrdersToCsv,
     createBulkDropshipOrders,
     adminDispatchOrder,
@@ -25,6 +26,7 @@ router.use(verifyJWT);
 
 router.get('/all', authorizeRoles('ADMIN'), getAllAdminOrders);
 router.get('/export', authorizeRoles('ADMIN'), exportAdminOrdersToCsv);
+router.get('/export-me', exportMyOrdersToCsv);
 router.get('/export-courier', authorizeRoles('ADMIN'), exportCourierOrdersToCsv);
 router.route('/bulk-dropship').post(verifyJWT, createBulkDropshipOrders);
 router.put('/:id/status', authorizeRoles('ADMIN'), updateOrderStatus);

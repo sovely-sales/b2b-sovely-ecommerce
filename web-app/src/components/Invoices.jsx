@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     FileText,
     Download,
@@ -8,6 +9,8 @@ import {
     Loader2,
     Wallet,
     ShoppingBag,
+    Calendar,
+    X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
@@ -17,6 +20,47 @@ const Invoices = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [downloadingId, setDownloadingId] = useState(null);
+
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [exportStartDate, setExportStartDate] = useState('');
+    const [exportEndDate, setExportEndDate] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleExportMyInvoices = async () => {
+        if (!exportStartDate || !exportEndDate) {
+            toast.error('Please select both start and end dates');
+            return;
+        }
+        if (new Date(exportStartDate) > new Date(exportEndDate)) {
+            toast.error('Start date cannot be after end date');
+            return;
+        }
+
+        setIsExporting(true);
+        try {
+            const res = await api.get('/invoices/export', {
+                params: { startDate: exportStartDate, endDate: exportEndDate },
+                responseType: 'blob',
+            });
+
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute(
+                'download',
+                `my_invoices_export_${exportStartDate}_to_${exportEndDate}.csv`
+            );
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            toast.success('Invoices exported successfully!');
+        } catch (err) {
+            toast.error('Failed to export invoices. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     useEffect(() => {
         const fetchInvoices = async () => {
@@ -77,17 +121,47 @@ const Invoices = () => {
                     </p>
                 </div>
 
-                <div className="relative w-full sm:w-80">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
-                        <Search size={16} strokeWidth={2.5} />
+                <div className="flex w-full sm:w-auto items-center gap-3">
+                    <div className="relative w-full sm:w-60">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
+                            <Search size={16} strokeWidth={2.5} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search Invoice or Order ID..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-11 text-sm font-bold text-slate-900 shadow-sm transition-all outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-50"
+                        />
                     </div>
-                    <input
-                        type="text"
-                        placeholder="Search Invoice or Order ID..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full rounded-2xl border border-slate-200 bg-white py-3 pr-4 pl-11 text-sm font-bold text-slate-900 shadow-sm transition-all outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50"
-                    />
+                    <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+                        <Calendar size={14} className="mr-2 text-slate-400" />
+                        <input
+                            type="date"
+                            value={exportStartDate}
+                            onChange={(e) => setExportStartDate(e.target.value)}
+                            className="bg-transparent text-xs font-bold text-slate-700 outline-none"
+                            title="Export Start Date"
+                        />
+                    </div>
+                    <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+                        <Calendar size={14} className="mr-2 text-slate-400" />
+                        <input
+                            type="date"
+                            value={exportEndDate}
+                            onChange={(e) => setExportEndDate(e.target.value)}
+                            className="bg-transparent text-xs font-bold text-slate-700 outline-none"
+                            title="Export End Date"
+                        />
+                    </div>
+                    <button
+                        onClick={handleExportMyInvoices}
+                        disabled={isExporting}
+                        className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-extrabold text-white transition-all hover:bg-slate-800 disabled:opacity-50"
+                    >
+                        {isExporting ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div> : <Download size={18} />}
+                        Export
+                    </button>
                 </div>
             </div>
 
@@ -238,6 +312,7 @@ const Invoices = () => {
                     </div>
                 )}
             </div>
+            
         </main>
     );
 };

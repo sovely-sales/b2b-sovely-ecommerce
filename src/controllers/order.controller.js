@@ -1349,6 +1349,111 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
     return res.status(200).send(csvContent);
 });
 
+export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    const query = { resellerId: req.user._id };
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setUTCHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setUTCHours(23, 59, 59, 999);
+
+        query.createdAt = {
+            $gte: start,
+            $lte: end,
+        };
+    }
+
+    const orders = await Order.find(query)
+        .sort({ createdAt: -1 })
+        .populate('resellerId', 'name companyName email phoneNumber billingAddress');
+
+    const escapeCsv = (val) => {
+        if (val === null || val === undefined) return '';
+        let str = String(val).replace(/"/g, '""');
+        if (/^\+?\d{10,}$/.test(str) || /^\d{5,6}$/.test(str)) {
+            str = `\t${str}`;
+        }
+        return `"${str}"`;
+    };
+
+    const headers = [
+        'Platform order number',
+        'First Name',
+        'Last Name',
+        'Mobile',
+        'Shipping Address 1',
+        'City',
+        'State',
+        'Pincode',
+        'Company',
+        'SKU',
+        'Quantity',
+        'Selling Price',
+        'Status',
+        'Sovely GSTIN',
+        'Seller Name'
+    ];
+
+    let csvContent = '\uFEFF' + headers.map(escapeCsv).join(',') + '\n';
+
+    orders.forEach((order) => {
+        const isDropship = !!order.endCustomerDetails?.name;
+        const reseller = order.resellerId || {};
+
+        const fullName = (isDropship ? order.endCustomerDetails?.name : reseller.name) || '';
+        const nameParts = fullName.trim().split(/\s+/);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        const company = reseller.companyName || '';
+        const phone = (isDropship ? order.endCustomerDetails?.phone : reseller.phoneNumber) || '';
+        const shippingAddress1 =
+            (isDropship
+                ? order.endCustomerDetails?.address?.street
+                : reseller.billingAddress?.street) || '';
+        const city =
+            (isDropship
+                ? order.endCustomerDetails?.address?.city
+                : reseller.billingAddress?.city) || '';
+        const state =
+            (isDropship
+                ? order.endCustomerDetails?.address?.state
+                : reseller.billingAddress?.state) || '';
+        const pincode =
+            (isDropship ? order.endCustomerDetails?.address?.zip : reseller.billingAddress?.zip) ||
+            '';
+
+        order.items.forEach((item) => {
+            const row = [
+                order.orderId,
+                firstName,
+                lastName,
+                phone,
+                shippingAddress1,
+                city,
+                state,
+                pincode,
+                company,
+                item.sku,
+                item.qty,
+                item.resellerSellingPrice,
+                order.status,
+                '29DTGPS4598H2ZR',
+                reseller.name || req.user.name
+            ];
+            csvContent += row.map(escapeCsv).join(',') + '\n';
+        });
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    const filename =
+        startDate && endDate ? `my_orders_export_${startDate}_to_${endDate}.csv` : 'my_orders_export.csv';
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(csvContent);
+});
+
 export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
     const { startDate, endDate } = req.query;
 

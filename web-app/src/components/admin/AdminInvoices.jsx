@@ -10,8 +10,10 @@ import {
     Wallet,
     Package,
     Calendar,
+    X,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../utils/api.js';
 
 const AdminInvoices = () => {
@@ -24,6 +26,41 @@ const AdminInvoices = () => {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [filterOption, setFilterOption] = useState('ALL');
     const [downloadingId, setDownloadingId] = useState(null);
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleExportAdminInvoices = async () => {
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates');
+            return;
+        }
+        if (new Date(startDate) > new Date(endDate)) {
+            alert('Start date cannot be after end date');
+            return;
+        }
+
+        setIsExporting(true);
+        try {
+            const res = await api.get('/invoices/admin/export', {
+                params: { startDate, endDate },
+                responseType: 'blob',
+            });
+
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute(
+                'download',
+                `admin_invoices_export_${startDate}_to_${endDate}.csv`
+            );
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            alert('Failed to export invoices. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -131,7 +168,7 @@ const AdminInvoices = () => {
     return (
         <>
             {}
-            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-6">
+            <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-5 lg:grid-cols-7">
                 <div className="flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900 md:col-span-2 lg:col-span-2">
                     <Search size={18} className="text-slate-400" />
                     <input
@@ -176,6 +213,14 @@ const AdminInvoices = () => {
                         title="End Date"
                     />
                 </div>
+                <button
+                    onClick={handleExportAdminInvoices}
+                    disabled={isExporting}
+                    className="flex h-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-slate-800 disabled:opacity-50"
+                >
+                    {isExporting ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div> : <Download size={18} />}
+                    Export
+                </button>
             </div>
 
             {}
@@ -393,7 +438,8 @@ const AdminInvoices = () => {
                 >
                     Next <ChevronRight size={16} />
                 </button>
-            </div>
+        </div>
+
         </>
     );
 };

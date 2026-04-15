@@ -160,6 +160,152 @@ const generateTableRow = (doc, y, c1, c2, c3, c4, c5, c6, c7, c8) => {
         .text(c8, 450, y, { width: 100, align: 'right' });
 };
 
+export const exportAdminInvoicesToCsv = asyncHandler(async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    const query = {};
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setUTCHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setUTCHours(23, 59, 59, 999);
+
+        query.createdAt = {
+            $gte: start,
+            $lte: end,
+        };
+    }
+
+    const invoices = await Invoice.find(query)
+        .sort({ createdAt: -1 })
+        .populate('orderId', 'orderId')
+        .populate('resellerId', 'name companyName email phoneNumber');
+
+    const escapeCsv = (val) => {
+        if (val === null || val === undefined) return '';
+        let str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+    };
+
+    const headers = [
+        'Invoice Number',
+        'Date',
+        'Order Ref',
+        'Billed To Company',
+        'GSTIN',
+        'Invoice Type',
+        'Taxable Amount',
+        'CGST',
+        'SGST',
+        'IGST',
+        'Grand Total',
+        'Payment Options',
+        'Status'
+    ];
+
+    let csvContent = '\uFEFF' + headers.map(escapeCsv).join(',') + '\n';
+
+    invoices.forEach((inv) => {
+        const row = [
+            inv.invoiceNumber,
+            new Date(inv.createdAt).toISOString().split('T')[0],
+            inv.orderId?.orderId || 'WALLET-TOPUP',
+            inv.billedTo?.companyName || inv.resellerId?.companyName || inv.resellerId?.name || '',
+            inv.billedTo?.gstin || '',
+            inv.invoiceType,
+            inv.totalTaxableValue,
+            inv.totalCgst,
+            inv.totalSgst,
+            inv.totalIgst,
+            inv.grandTotal,
+            inv.paymentTerms,
+            inv.paymentStatus
+        ];
+        csvContent += row.map(escapeCsv).join(',') + '\n';
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    const filename =
+        startDate && endDate ? `invoices_export_${startDate}_to_${endDate}.csv` : 'invoices_export.csv';
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(csvContent);
+});
+
+export const exportMyInvoicesToCsv = asyncHandler(async (req, res) => {
+    const { startDate, endDate } = req.query;
+
+    const query = { resellerId: req.user._id };
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setUTCHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setUTCHours(23, 59, 59, 999);
+
+        query.createdAt = {
+            $gte: start,
+            $lte: end,
+        };
+    }
+
+    const invoices = await Invoice.find(query)
+        .sort({ createdAt: -1 })
+        .populate('orderId', 'orderId')
+        .populate('resellerId', 'name companyName email phoneNumber');
+
+    const escapeCsv = (val) => {
+        if (val === null || val === undefined) return '';
+        let str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+    };
+
+    const headers = [
+        'Invoice Number',
+        'Date',
+        'Order Ref',
+        'Billed To Company',
+        'GSTIN',
+        'Invoice Type',
+        'Taxable Amount',
+        'CGST',
+        'SGST',
+        'IGST',
+        'Grand Total',
+        'Payment Options',
+        'Status',
+        'Sovely GSTIN',
+        'Seller Name'
+    ];
+
+    let csvContent = '\uFEFF' + headers.map(escapeCsv).join(',') + '\n';
+
+    invoices.forEach((inv) => {
+        const row = [
+            inv.invoiceNumber,
+            new Date(inv.createdAt).toISOString().split('T')[0],
+            inv.orderId?.orderId || 'WALLET-TOPUP',
+            inv.billedTo?.companyName || inv.resellerId?.companyName || inv.resellerId?.name || '',
+            inv.billedTo?.gstin || '',
+            inv.invoiceType,
+            inv.totalTaxableValue,
+            inv.totalCgst,
+            inv.totalSgst,
+            inv.totalIgst,
+            inv.grandTotal,
+            inv.paymentTerms,
+            inv.paymentStatus,
+            '29DTGPS4598H2ZR',
+            inv.resellerId?.name || req.user.name
+        ];
+        csvContent += row.map(escapeCsv).join(',') + '\n';
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    const filename =
+        startDate && endDate ? `my_invoices_export_${startDate}_to_${endDate}.csv` : 'my_invoices_export.csv';
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(csvContent);
+});
+
 export const generateInvoicePDF = async (req, res, next) => {
     try {
         const query = {};

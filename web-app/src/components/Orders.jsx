@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Package,
     Truck,
@@ -19,6 +21,9 @@ import {
     Receipt,
     Scale,
     FileText,
+    Download,
+    Calendar,
+    X,
 } from 'lucide-react';
 import api from '../utils/api.js';
 import { useDebounce } from '../hooks/useDebounce.js';
@@ -65,7 +70,48 @@ const Orders = () => {
     const [ndrForms, setNdrForms] = useState({});
     const [submittingNdr, setSubmittingNdr] = useState(null);
 
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [exportStartDate, setExportStartDate] = useState('');
+    const [exportEndDate, setExportEndDate] = useState('');
+    const [isExporting, setIsExporting] = useState(false);
+
     const navigate = useNavigate();
+
+    const handleExportMyOrders = async () => {
+        if (!exportStartDate || !exportEndDate) {
+            toast.error('Please select both start and end dates for export');
+            return;
+        }
+        if (new Date(exportStartDate) > new Date(exportEndDate)) {
+            toast.error('Start date cannot be after end date');
+            return;
+        }
+
+        setIsExporting(true);
+        try {
+            const res = await api.get('/orders/export-me', {
+                params: { startDate: exportStartDate, endDate: exportEndDate },
+                responseType: 'blob',
+            });
+
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute(
+                'download',
+                `my_orders_export_${exportStartDate}_to_${exportEndDate}.csv`
+            );
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            toast.success('Orders exported successfully!');
+        } catch (err) {
+            toast.error('Failed to export orders. Please try again.');
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     useEffect(() => {
         const fetchOrders = async () => {
@@ -375,6 +421,34 @@ const Orders = () => {
                         <option value="latest">Newest First</option>
                         <option value="oldest">Oldest First</option>
                     </select>
+                    <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+                        <Calendar size={14} className="mr-2 text-slate-400" />
+                        <input
+                            type="date"
+                            value={exportStartDate}
+                            onChange={(e) => setExportStartDate(e.target.value)}
+                            className="bg-transparent text-xs font-bold text-slate-700 outline-none"
+                            title="Export Start Date"
+                        />
+                    </div>
+                    <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+                        <Calendar size={14} className="mr-2 text-slate-400" />
+                        <input
+                            type="date"
+                            value={exportEndDate}
+                            onChange={(e) => setExportEndDate(e.target.value)}
+                            className="bg-transparent text-xs font-bold text-slate-700 outline-none"
+                            title="Export End Date"
+                        />
+                    </div>
+                    <button
+                        onClick={handleExportMyOrders}
+                        disabled={isExporting}
+                        className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-extrabold text-white transition-all hover:bg-slate-800 disabled:opacity-50"
+                    >
+                        {isExporting ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div> : <Download size={18} />}
+                        Export
+                    </button>
                 </div>
             </div>
 
@@ -1035,6 +1109,7 @@ const Orders = () => {
                     )}
                 </div>
             )}
+
         </div>
     );
 };
