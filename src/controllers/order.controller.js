@@ -622,9 +622,22 @@ export const getOrderById = asyncHandler(async (req, res) => {
 
 export const getMyOrders = asyncHandler(async (req, res) => {
     const resellerId = req.user._id;
-    const { status, search, sort = 'latest', page = 1, limit = 10 } = req.query;
+    const { status, search, sort = 'latest', page = 1, limit = 10, startDate, endDate } = req.query;
 
     const query = { resellerId };
+
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setUTCHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setUTCHours(23, 59, 59, 999);
+
+        query.createdAt = {
+            $gte: start,
+            $lte: end,
+        };
+    }
+
     if (status && status !== 'ALL') {
         if (status === 'PENDING_PROCESSING') {
             query.status = { $in: ['PENDING', 'PROCESSING'] };
@@ -1435,7 +1448,7 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
                 item.resellerSellingPrice,
                 order.status,
                 '29DTGPS4598H2ZR',
-                reseller.name || req.user.name
+                'Sovely'
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });

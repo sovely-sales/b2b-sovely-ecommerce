@@ -98,7 +98,23 @@ export const getAllInvoices = asyncHandler(async (req, res) => {
 });
 
 export const getMyInvoices = asyncHandler(async (req, res) => {
-    const invoices = await Invoice.find({ resellerId: req.user._id })
+    const { startDate, endDate } = req.query;
+
+    const query = { resellerId: req.user._id };
+
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        start.setUTCHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setUTCHours(23, 59, 59, 999);
+
+        query.createdAt = {
+            $gte: start,
+            $lte: end,
+        };
+    }
+
+    const invoices = await Invoice.find(query)
         .sort({ createdAt: -1 })
         .populate('orderId', 'orderId');
 
@@ -294,7 +310,7 @@ export const exportMyInvoicesToCsv = asyncHandler(async (req, res) => {
             inv.paymentTerms,
             inv.paymentStatus,
             '29DTGPS4598H2ZR',
-            inv.resellerId?.name || req.user.name
+            'Sovely'
         ];
         csvContent += row.map(escapeCsv).join(',') + '\n';
     });

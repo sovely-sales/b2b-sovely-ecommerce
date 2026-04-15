@@ -28,6 +28,8 @@ export const orderValidation = {
             status: orderStatusEnum.optional(),
             search: z.string().trim().max(120).optional(),
             sort: z.enum(['latest', 'oldest']).optional(),
+            startDate: z.string().optional(),
+            endDate: z.string().optional(),
         }),
     }),
 };

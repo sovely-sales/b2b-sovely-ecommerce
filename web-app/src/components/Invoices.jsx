@@ -21,10 +21,13 @@ const Invoices = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [downloadingId, setDownloadingId] = useState(null);
 
-    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
     const [exportStartDate, setExportStartDate] = useState('');
     const [exportEndDate, setExportEndDate] = useState('');
     const [isExporting, setIsExporting] = useState(false);
+
+    const [listStartDate, setListStartDate] = useState('');
+    const [listEndDate, setListEndDate] = useState('');
 
     const handleExportMyInvoices = async () => {
         if (!exportStartDate || !exportEndDate) {
@@ -53,10 +56,22 @@ const Invoices = () => {
             document.body.appendChild(link);
             link.click();
             link.remove();
+            window.URL.revokeObjectURL(url);
 
             toast.success('Invoices exported successfully!');
+            setShowExportModal(false);
         } catch (err) {
-            toast.error('Failed to export invoices. Please try again.');
+            if (err.response?.data instanceof Blob) {
+                const text = await err.response.data.text();
+                try {
+                    const json = JSON.parse(text);
+                    toast.error(json.message || 'Export failed.');
+                } catch {
+                    toast.error('Failed to export invoices. Please try again.');
+                }
+            } else {
+                toast.error(err.response?.data?.message || 'Failed to export invoices. Please try again.');
+            }
         } finally {
             setIsExporting(false);
         }
@@ -65,7 +80,12 @@ const Invoices = () => {
     useEffect(() => {
         const fetchInvoices = async () => {
             try {
-                const res = await api.get('/invoices/me');
+                setIsLoading(true);
+                const params = {};
+                if (listStartDate) params.startDate = listStartDate;
+                if (listEndDate) params.endDate = listEndDate;
+
+                const res = await api.get('/invoices/me', { params });
                 setInvoices(res.data.data);
             } catch (error) {
                 console.error('Failed to fetch invoices', error);
@@ -75,7 +95,7 @@ const Invoices = () => {
             }
         };
         fetchInvoices();
-    }, []);
+    }, [listStartDate, listEndDate]);
 
     const filteredInvoices = invoices.filter(
         (inv) =>
@@ -134,32 +154,46 @@ const Invoices = () => {
                             className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-11 text-sm font-bold text-slate-900 shadow-sm transition-all outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-50"
                         />
                     </div>
-                    <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
-                        <Calendar size={14} className="mr-2 text-slate-400" />
-                        <input
-                            type="date"
-                            value={exportStartDate}
-                            onChange={(e) => setExportStartDate(e.target.value)}
-                            className="bg-transparent text-xs font-bold text-slate-700 outline-none"
-                            title="Export Start Date"
-                        />
+                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+                        <div className="flex items-center rounded-lg bg-slate-50 px-3 py-1.5 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
+                            <Calendar size={14} className="mr-2 text-slate-400" />
+                            <input
+                                type="date"
+                                value={listStartDate}
+                                onChange={(e) => setListStartDate(e.target.value)}
+                                className="bg-transparent text-xs font-bold text-slate-700 outline-none"
+                                title="List Start Date"
+                            />
+                        </div>
+                        <div className="flex items-center rounded-lg bg-slate-50 px-3 py-1.5 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
+                            <Calendar size={14} className="mr-2 text-slate-400" />
+                            <input
+                                type="date"
+                                value={listEndDate}
+                                onChange={(e) => setListEndDate(e.target.value)}
+                                className="bg-transparent text-xs font-bold text-slate-700 outline-none"
+                                title="List End Date"
+                            />
+                        </div>
+                        {(listStartDate || listEndDate) && (
+                            <button
+                                onClick={() => {
+                                    setListStartDate('');
+                                    setListEndDate('');
+                                }}
+                                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                title="Clear Dates"
+                            >
+                                <X size={14} />
+                            </button>
+                        )}
                     </div>
-                    <div className="flex items-center rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm transition-all focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
-                        <Calendar size={14} className="mr-2 text-slate-400" />
-                        <input
-                            type="date"
-                            value={exportEndDate}
-                            onChange={(e) => setExportEndDate(e.target.value)}
-                            className="bg-transparent text-xs font-bold text-slate-700 outline-none"
-                            title="Export End Date"
-                        />
-                    </div>
+
                     <button
-                        onClick={handleExportMyInvoices}
-                        disabled={isExporting}
-                        className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-extrabold text-white transition-all hover:bg-slate-800 disabled:opacity-50"
+                        onClick={() => setShowExportModal(true)}
+                        className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-extrabold text-white transition-all hover:bg-slate-800"
                     >
-                        {isExporting ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div> : <Download size={18} />}
+                        <Download size={18} />
                         Export
                     </button>
                 </div>
@@ -315,6 +349,82 @@ const Invoices = () => {
                 )}
             </div>
             
+        {showExportModal && (
+            <div
+                style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+                onClick={(e) => { if (e.target === e.currentTarget) setShowExportModal(false); }}
+            >
+                <div style={{ background: 'white', borderRadius: '1.5rem', padding: '2rem', width: '100%', maxWidth: '28rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
+                                <FileText size={18} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900">Export Invoices</h2>
+                                <p className="text-xs font-medium text-slate-500">Download as CSV file</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowExportModal(false)}
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">From Date</label>
+                            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                <Calendar size={16} className="text-slate-400" />
+                                <input
+                                    type="date"
+                                    value={exportStartDate}
+                                    onChange={(e) => setExportStartDate(e.target.value)}
+                                    className="flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">To Date</label>
+                            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                <Calendar size={16} className="text-slate-400" />
+                                <input
+                                    type="date"
+                                    value={exportEndDate}
+                                    onChange={(e) => setExportEndDate(e.target.value)}
+                                    className="flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs font-medium text-slate-500">
+                        GST invoices in this range will export as CSV with Sovely GSTIN details.
+                    </p>
+
+                    <div className="mt-6 flex gap-3">
+                        <button
+                            onClick={() => setShowExportModal(false)}
+                            className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-extrabold text-slate-700 hover:bg-slate-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleExportMyInvoices}
+                            disabled={isExporting}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-extrabold text-white hover:bg-slate-800 disabled:opacity-50"
+                        >
+                            {isExporting
+                                ? <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" /> Exporting...</>
+                                : <><Download size={16} /> Download CSV</>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
         </main>
     );
 };
