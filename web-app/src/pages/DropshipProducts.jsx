@@ -69,7 +69,7 @@ export default function DropshipProducts({
     const addToCart = useCartStore((state) => state.addToCart);
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
-    const [viewMode, setViewMode] = useState('table');
+    const [viewMode, setViewMode] = useState('grid');
 
     const loadMoreRef = useRef(null);
 
@@ -151,8 +151,13 @@ export default function DropshipProducts({
     }, [rawCategories]);
 
     const selectedCatId = useMemo(() => {
-        if (filters.category === 'All Categories') return null;
-        const found = dbCategories.find((c) => c.name === filters.category);
+        if (!filters.category || filters.category === 'All Categories') return null;
+        // If the value looks like a MongoDB ObjectId, use it directly
+        if (/^[a-f0-9]{24}$/i.test(filters.category)) return filters.category;
+        // Otherwise fall back to searching by name
+        const found = dbCategories.find(
+            (c) => c.name.trim().toLowerCase() === filters.category.trim().toLowerCase()
+        );
         return found ? found._id : null;
     }, [filters.category, dbCategories]);
 
@@ -306,7 +311,7 @@ export default function DropshipProducts({
                         >
                             <option value="All Categories">All Categories</option>
                             {dbCategories.map((cat) => (
-                                <option key={cat._id} value={cat.name}>
+                                <option key={cat._id} value={cat._id}>
                                     {cat.name}
                                 </option>
                             ))}

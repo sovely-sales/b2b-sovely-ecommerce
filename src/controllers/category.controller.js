@@ -13,17 +13,8 @@ export const getCategories = asyncHandler(async (req, res) => {
             },
         },
         {
-            $lookup: {
-                from: 'products',
-                localField: '_id',
-                foreignField: 'categoryId',
-                as: 'products',
-            },
-        },
-        {
             $project: {
                 name: 1,
-                productCount: { $size: '$products' },
             },
         },
         { $sort: { name: 1 } },
