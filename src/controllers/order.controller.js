@@ -1448,7 +1448,7 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
                 item.resellerSellingPrice,
                 order.status,
                 '29DTGPS4598H2ZR',
-                'Sovely'
+                'Sovely',
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });

@@ -312,7 +312,7 @@ export const exportMyInvoicesToCsv = asyncHandler(async (req, res) => {
             inv.paymentTerms,
             inv.paymentStatus,
             '29DTGPS4598H2ZR',
-            'Sovely'
+            'Sovely',
         ];
         csvContent += row.map(escapeCsv).join(',') + '\n';
     });
@@ -334,7 +334,7 @@ export const generateInvoicePDF = async (req, res, next) => {
 
         if (req.user.role !== 'ADMIN') query.resellerId = req.user._id;
 
-        const invoice = await Invoice.findOne(query).populate('orderId');
+        const invoice = await Invoice.findOne(query).populate('orderId').populate('resellerId');
         if (!invoice) throw new ApiError(404, 'Invoice not found');
 
         const doc = new PDFDocument({ margin: 40, size: 'A4' });
@@ -451,9 +451,16 @@ export const generateInvoicePDF = async (req, res, next) => {
             .fontSize(9)
             .font('Helvetica-Bold')
             .text('Billed To:', 40, currentY);
+
+        const billedName =
+            invoice.billedTo?.companyName ||
+            invoice.resellerId?.companyName ||
+            invoice.resellerId?.name ||
+            'Unknown Entity';
+
         doc.fillColor('#0f172a')
             .fontSize(10)
-            .text(invoice.billedTo?.companyName || req.user.name, 40, currentY + 15);
+            .text(billedName, 40, currentY + 15);
         doc.fontSize(9)
             .font('Helvetica')
             .fillColor('#475569')
@@ -595,10 +602,11 @@ export const generateInvoicePDF = async (req, res, next) => {
         }
 
         doc.font('Helvetica-Bold').fillColor('#334155');
+
         if (invoice.invoiceType !== 'WALLET_TOPUP') {
             doc.text('Subtotal (Taxable):', 340, currentY);
             doc.fillColor('#0f172a').text(
-                `₹ ${invoice.totalTaxableValue?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}`,
+                `Rs. ${invoice.totalTaxableValue?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00'}`,
                 450,
                 currentY,
                 { align: 'right', width: 100 }
@@ -608,7 +616,7 @@ export const generateInvoicePDF = async (req, res, next) => {
             if (invoice.isInterState) {
                 doc.fillColor('#334155').text('IGST Amount:', 340, currentY);
                 doc.fillColor('#0f172a').text(
-                    `₹ ${invoice.totalIgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+                    `Rs. ${invoice.totalIgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                     450,
                     currentY,
                     { align: 'right', width: 100 }
@@ -617,7 +625,7 @@ export const generateInvoicePDF = async (req, res, next) => {
             } else {
                 doc.fillColor('#334155').text('CGST Amount:', 340, currentY);
                 doc.fillColor('#0f172a').text(
-                    `₹ ${(invoice.totalCgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+                    `Rs. ${(invoice.totalCgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                     450,
                     currentY,
                     { align: 'right', width: 100 }
@@ -625,7 +633,7 @@ export const generateInvoicePDF = async (req, res, next) => {
                 currentY += 18;
                 doc.fillColor('#334155').text('SGST Amount:', 340, currentY);
                 doc.fillColor('#0f172a').text(
-                    `₹ ${(invoice.totalSgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+                    `Rs. ${(invoice.totalSgst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
                     450,
                     currentY,
                     { align: 'right', width: 100 }
@@ -639,8 +647,9 @@ export const generateInvoicePDF = async (req, res, next) => {
             .fontSize(11)
             .font('Helvetica-Bold')
             .text('Grand Total:', 350, currentY + 8);
+
         doc.text(
-            `₹ ${invoice.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+            `Rs. ${invoice.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
             450,
             currentY + 8,
             { align: 'right', width: 95 }
@@ -844,7 +853,12 @@ export const generateInvoiceBuffer = async (invoice, user) => {
 
             doc.font('Helvetica-Bold').text('Billed To:', 300, 100);
 
-            const billedName = invoice.billedTo?.companyName || user.companyName || user.name;
+            const billedName =
+                invoice.billedTo?.companyName ||
+                invoice.resellerId?.companyName ||
+                invoice.resellerId?.name ||
+                user.companyName ||
+                user.name;
             doc.font('Helvetica').text(`${billedName}\n${user.email}`, 300, 115);
 
             doc.rect(40, 170, 515, 45).fillAndStroke('#f8fafc', '#cbd5e1');
@@ -859,9 +873,10 @@ export const generateInvoiceBuffer = async (invoice, user) => {
             }
 
             doc.moveDown(4);
+
             doc.fontSize(14)
                 .font('Helvetica-Bold')
-                .text(`Grand Total: ₹ ${invoice.grandTotal.toLocaleString('en-IN')}`, {
+                .text(`Grand Total: Rs. ${invoice.grandTotal.toLocaleString('en-IN')}`, {
                     align: 'right',
                 });
 
