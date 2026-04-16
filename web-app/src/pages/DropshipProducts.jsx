@@ -152,9 +152,9 @@ export default function DropshipProducts({
 
     const selectedCatId = useMemo(() => {
         if (!filters.category || filters.category === 'All Categories') return null;
-        // If the value looks like a MongoDB ObjectId, use it directly
+        
         if (/^[a-f0-9]{24}$/i.test(filters.category)) return filters.category;
-        // Otherwise fall back to searching by name
+        
         const found = dbCategories.find(
             (c) => c.name.trim().toLowerCase() === filters.category.trim().toLowerCase()
         );

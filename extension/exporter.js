@@ -18,11 +18,11 @@ async function processCSV(csvText) {
         col.replace(/"/g, '').trim() === "Wukusy Order No"
     );
 
-    // ensure shipment columns exist
+    
     if (!header.includes("Courier")) header.push("Courier");
     if (!header.includes("Tracking")) header.push("Tracking");
 
-    // collect order numbers
+    
     const orderNumbers = dataRows
         .map(r => r[orderIndex])
         .filter(Boolean);
@@ -35,7 +35,7 @@ async function processCSV(csvText) {
 
     console.log("Shipments found:", Object.keys(shipments).length);
 
-    // merge shipment info into CSV rows
+    
     dataRows.forEach(row => {
 
         const orderNo = row[orderIndex];
@@ -110,14 +110,14 @@ async function fetchShipments(orderSet) {
                 // Super aggressive regex:
                 // Matches ANY letters/spaces/hyphens up until the VERY FIRST digit.
                 // Group 1: Courier (e.g., "DTDC", "BlueDart")
-                // Group 2: Tracking (e.g., "7D1306...", "769323...")
+                
                 const match = lines[0].match(/^([A-Za-z\s\-]+)(\d.*)$/);
                 
                 if (match) {
                     courier = match[1].trim();
                     tracking = match[2].trim();
                 } else {
-                    // Absolute fallback if no numbers exist in the string at all
+                    
                     courier = lines[0];
                 }
             }

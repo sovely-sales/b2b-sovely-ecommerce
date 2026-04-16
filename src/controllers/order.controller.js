@@ -1466,7 +1466,7 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
                 item.resellerSellingPrice,
                 order.status,
                 '29DTGPS4598H2ZR',
-                'Infinity Enterprises'
+                'Infinity Enterprises',
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });
@@ -1474,7 +1474,9 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
 
     res.setHeader('Content-Type', 'text/csv');
     const filename =
-        startDate && endDate ? `my_orders_export_${startDate}_to_${endDate}.csv` : 'my_orders_export.csv';
+        startDate && endDate
+            ? `my_orders_export_${startDate}_to_${endDate}.csv`
+            : 'my_orders_export.csv';
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(csvContent);
 });
@@ -1862,7 +1864,6 @@ export const importWukusyStatusesCsv = async (req, res) => {
                 .json({ message: 'Invalid CSV format. Missing required headers.' });
         }
 
-        // Wukusy mapping dictionary
         const WUKUSY_STATUS_MAP = {
             shipped: 'SHIPPED',
             confirmed: 'PROCESSING',
