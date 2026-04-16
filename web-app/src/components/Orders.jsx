@@ -24,6 +24,7 @@ import {
     Download,
     Calendar,
     X,
+    Copy,
 } from 'lucide-react';
 import api from '../utils/api.js';
 import { useDebounce } from '../hooks/useDebounce.js';
@@ -632,15 +633,24 @@ const Orders = () => {
                                                 {ord.ndrDetails?.reason || 'Customer Unavailable'}
                                             </span>
                                         )}
+                                        {ord.tracking?.courierName && (
+                                            <span className="flex items-center gap-1.5 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-[11px] font-extrabold text-indigo-700">
+                                                <Truck size={12} />
+                                                {ord.tracking.courierName}
+                                            </span>
+                                        )}
                                         {ord.tracking?.awbNumber && (
-                                            <div className="flex flex-col">
-                                                <span className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
-                                                    {ord.tracking.courierName || 'Courier'} AWB
-                                                </span>
-                                                <span className="font-mono font-bold text-slate-800">
-                                                    {ord.tracking.awbNumber}
-                                                </span>
-                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(ord.tracking.awbNumber);
+                                                    toast.success('Tracking ID copied!');
+                                                }}
+                                                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-extrabold text-slate-700 shadow-sm transition-colors hover:border-indigo-300 hover:text-indigo-700"
+                                                title="Click to copy tracking ID"
+                                            >
+                                                <span className="font-mono">{ord.tracking.awbNumber}</span>
+                                                <Copy size={11} className="text-slate-400" />
+                                            </button>
                                         )}
                                         {ord.tracking?.trackingUrl && (
                                             <a
@@ -649,7 +659,7 @@ const Orders = () => {
                                                 rel="noreferrer"
                                                 className="flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 font-bold text-indigo-700 transition-colors hover:bg-indigo-100 hover:text-indigo-900"
                                             >
-                                                <Truck size={16} /> Track
+                                                <Truck size={16} /> Live Track
                                             </a>
                                         )}
                                     </div>
@@ -1025,6 +1035,87 @@ const Orders = () => {
                                                         </span>
                                                     )}
                                                 </div>
+                                            </div>
+
+                                            {/* ── Shipment & Dispatch Info Card ── */}
+                                            <div className={`rounded-2xl border p-5 ${
+                                                ord.tracking?.awbNumber || ord.platformOrderNo
+                                                    ? 'border-indigo-100 bg-gradient-to-br from-indigo-50/60 to-slate-50'
+                                                    : 'border-slate-200 bg-slate-50'
+                                            }`}>
+                                                <h4 className="mb-4 flex items-center gap-2 text-xs font-extrabold tracking-widest text-slate-400 uppercase">
+                                                    <Truck size={16} /> Shipment &amp; Dispatch Info
+                                                </h4>
+
+                                                {(ord.tracking?.awbNumber || ord.tracking?.courierName || ord.platformOrderNo) ? (
+                                                    <div className="space-y-3">
+                                                        {/* Top row: Platform ID + Courier */}
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                                                                <p className="mb-1 text-[9px] font-extrabold tracking-widest text-slate-400 uppercase">Platform ID</p>
+                                                                {ord.platformOrderNo ? (
+                                                                    <p className="font-mono text-sm font-black text-indigo-700 break-all">{ord.platformOrderNo}</p>
+                                                                ) : (
+                                                                    <p className="text-sm font-bold text-slate-300">—</p>
+                                                                )}
+                                                            </div>
+                                                            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                                                                <p className="mb-1 text-[9px] font-extrabold tracking-widest text-slate-400 uppercase">Courier Partner</p>
+                                                                {ord.tracking?.courierName ? (
+                                                                    <p className="flex items-center gap-1.5 text-sm font-black text-slate-900">
+                                                                        <Truck size={14} className="text-indigo-500" />
+                                                                        {ord.tracking.courierName}
+                                                                    </p>
+                                                                ) : (
+                                                                    <p className="text-sm font-bold text-slate-300">—</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Tracking ID row */}
+                                                        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                                                            <p className="mb-2 text-[9px] font-extrabold tracking-widest text-slate-400 uppercase">Tracking ID / AWB</p>
+                                                            {ord.tracking?.awbNumber ? (
+                                                                <div className="flex items-center justify-between gap-3">
+                                                                    <span className="font-mono text-sm font-black text-slate-900 break-all">{ord.tracking.awbNumber}</span>
+                                                                    <div className="flex shrink-0 gap-2">
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                navigator.clipboard.writeText(ord.tracking.awbNumber);
+                                                                                toast.success('Tracking ID copied to clipboard!');
+                                                                            }}
+                                                                            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[10px] font-extrabold text-slate-600 transition-colors hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+                                                                        >
+                                                                            <Copy size={11} /> Copy
+                                                                        </button>
+                                                                        {ord.tracking?.trackingUrl && (
+                                                                            <a
+                                                                                href={ord.tracking.trackingUrl}
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className="flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[10px] font-extrabold text-indigo-700 transition-colors hover:bg-indigo-100"
+                                                                            >
+                                                                                <Truck size={11} /> Track
+                                                                            </a>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-sm font-bold text-slate-300">—</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-white p-4">
+                                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100">
+                                                            <Truck size={18} className="text-slate-300" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-black text-slate-400">Not yet dispatched</p>
+                                                            <p className="text-xs font-medium text-slate-300">Courier &amp; tracking details will appear here once shipped.</p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
