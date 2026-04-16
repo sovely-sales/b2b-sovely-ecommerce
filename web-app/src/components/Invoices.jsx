@@ -70,7 +70,9 @@ const Invoices = () => {
                     toast.error('Failed to export invoices. Please try again.');
                 }
             } else {
-                toast.error(err.response?.data?.message || 'Failed to export invoices. Please try again.');
+                toast.error(
+                    err.response?.data?.message || 'Failed to export invoices. Please try again.'
+                );
             }
         } finally {
             setIsExporting(false);
@@ -141,7 +143,7 @@ const Invoices = () => {
                     </p>
                 </div>
 
-                <div className="flex w-full sm:w-auto items-center gap-3">
+                <div className="flex w-full items-center gap-3 sm:w-auto">
                     <div className="relative w-full sm:w-60">
                         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
                             <Search size={16} strokeWidth={2.5} />
@@ -348,83 +350,118 @@ const Invoices = () => {
                     </div>
                 )}
             </div>
-            
-        {showExportModal && (
-            <div
-                style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-                onClick={(e) => { if (e.target === e.currentTarget) setShowExportModal(false); }}
-            >
-                <div style={{ background: 'white', borderRadius: '1.5rem', padding: '2rem', width: '100%', maxWidth: '28rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
-                                <FileText size={18} />
+
+            {showExportModal && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 9999,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        backdropFilter: 'blur(4px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1rem',
+                    }}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setShowExportModal(false);
+                    }}
+                >
+                    <div
+                        style={{
+                            background: 'white',
+                            borderRadius: '1.5rem',
+                            padding: '2rem',
+                            width: '100%',
+                            maxWidth: '28rem',
+                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                        }}
+                    >
+                        <div className="mb-6 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
+                                    <FileText size={18} />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-black text-slate-900">
+                                        Export Invoices
+                                    </h2>
+                                    <p className="text-xs font-medium text-slate-500">
+                                        Download as CSV file
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowExportModal(false)}
+                                className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    From Date
+                                </label>
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <Calendar size={16} className="text-slate-400" />
+                                    <input
+                                        type="date"
+                                        value={exportStartDate}
+                                        onChange={(e) => setExportStartDate(e.target.value)}
+                                        className="flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none"
+                                    />
+                                </div>
                             </div>
                             <div>
-                                <h2 className="text-lg font-black text-slate-900">Export Invoices</h2>
-                                <p className="text-xs font-medium text-slate-500">Download as CSV file</p>
+                                <label className="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                    To Date
+                                </label>
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <Calendar size={16} className="text-slate-400" />
+                                    <input
+                                        type="date"
+                                        value={exportEndDate}
+                                        onChange={(e) => setExportEndDate(e.target.value)}
+                                        className="flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none"
+                                    />
+                                </div>
                             </div>
                         </div>
-                        <button
-                            onClick={() => setShowExportModal(false)}
-                            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                        >
-                            <X size={18} />
-                        </button>
-                    </div>
 
-                    <div className="space-y-4">
-                        <div>
-                            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">From Date</label>
-                            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                <Calendar size={16} className="text-slate-400" />
-                                <input
-                                    type="date"
-                                    value={exportStartDate}
-                                    onChange={(e) => setExportStartDate(e.target.value)}
-                                    className="flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none"
-                                />
-                            </div>
+                        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs font-medium text-slate-500">
+                            GST invoices in this range will export as CSV with Sovely GSTIN details.
+                        </p>
+
+                        <div className="mt-6 flex gap-3">
+                            <button
+                                onClick={() => setShowExportModal(false)}
+                                className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-extrabold text-slate-700 hover:bg-slate-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleExportMyInvoices}
+                                disabled={isExporting}
+                                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-extrabold text-white hover:bg-slate-800 disabled:opacity-50"
+                            >
+                                {isExporting ? (
+                                    <>
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />{' '}
+                                        Exporting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download size={16} /> Download CSV
+                                    </>
+                                )}
+                            </button>
                         </div>
-                        <div>
-                            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">To Date</label>
-                            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                <Calendar size={16} className="text-slate-400" />
-                                <input
-                                    type="date"
-                                    value={exportEndDate}
-                                    onChange={(e) => setExportEndDate(e.target.value)}
-                                    className="flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs font-medium text-slate-500">
-                        GST invoices in this range will export as CSV with Sovely GSTIN details.
-                    </p>
-
-                    <div className="mt-6 flex gap-3">
-                        <button
-                            onClick={() => setShowExportModal(false)}
-                            className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-extrabold text-slate-700 hover:bg-slate-50"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleExportMyInvoices}
-                            disabled={isExporting}
-                            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-extrabold text-white hover:bg-slate-800 disabled:opacity-50"
-                        >
-                            {isExporting
-                                ? <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" /> Exporting...</>
-                                : <><Download size={16} /> Download CSV</>
-                            }
-                        </button>
                     </div>
                 </div>
-            </div>
-        )}
+            )}
         </main>
     );
 };

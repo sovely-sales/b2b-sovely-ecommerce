@@ -705,7 +705,6 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         throw new ApiError(400, getInvalidTransitionErrorMessage(order.status, normalizedStatus));
     }
 
-    // Update tracking info if provided (manual override)
     if (awbNumber !== undefined || courierName !== undefined) {
         order.tracking = {
             awbNumber: awbNumber || order.tracking?.awbNumber || '',
@@ -1418,7 +1417,7 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
         'Selling Price',
         'Status',
         'Seller GSTIN',
-        'Seller Name'
+        'Seller Name',
     ];
 
     let csvContent = '\uFEFF' + headers.map(escapeCsv).join(',') + '\n';

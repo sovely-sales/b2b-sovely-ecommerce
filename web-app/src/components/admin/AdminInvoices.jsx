@@ -48,10 +48,7 @@ const AdminInvoices = () => {
             const url = window.URL.createObjectURL(new Blob([res.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute(
-                'download',
-                `admin_invoices_export_${startDate}_to_${endDate}.csv`
-            );
+            link.setAttribute('download', `admin_invoices_export_${startDate}_to_${endDate}.csv`);
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -218,7 +215,11 @@ const AdminInvoices = () => {
                     disabled={isExporting}
                     className="flex h-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-slate-800 disabled:opacity-50"
                 >
-                    {isExporting ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div> : <Download size={18} />}
+                    {isExporting ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
+                    ) : (
+                        <Download size={18} />
+                    )}
                     Export
                 </button>
             </div>
@@ -438,8 +439,7 @@ const AdminInvoices = () => {
                 >
                     Next <ChevronRight size={16} />
                 </button>
-        </div>
-
+            </div>
         </>
     );
 };

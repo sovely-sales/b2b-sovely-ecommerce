@@ -152,9 +152,9 @@ export default function DropshipProducts({
 
     const selectedCatId = useMemo(() => {
         if (!filters.category || filters.category === 'All Categories') return null;
-        
+
         if (/^[a-f0-9]{24}$/i.test(filters.category)) return filters.category;
-        
+
         const found = dbCategories.find(
             (c) => c.name.trim().toLowerCase() === filters.category.trim().toLowerCase()
         );
