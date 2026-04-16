@@ -290,6 +290,7 @@ const AdminOrders = () => {
                 status: editForm.status,
                 courierName: editForm.courierName,
                 awbNumber: editForm.awbNumber,
+                platformOrderNo: editForm.platformOrderNo,
                 ndrReason: editForm.ndrReason,
             };
 
@@ -873,6 +874,8 @@ const AdminOrders = () => {
                                                                 order.tracking?.courierName || '',
                                                             awbNumber:
                                                                 order.tracking?.awbNumber || '',
+                                                            platformOrderNo:
+                                                                order.platformOrderNo || '',
                                                             ndrReason:
                                                                 order.ndrDetails?.reason || '',
                                                         });
@@ -1281,6 +1284,63 @@ const AdminOrders = () => {
                                                             )}
                                                         </select>
                                                     </div>
+
+                                                    {/* Manual Logistics Details */}
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="mb-1 block text-[10px] font-bold text-slate-500 uppercase">
+                                                                Courier Partner
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="e.g. Delhivery"
+                                                                value={editForm.courierName || ''}
+                                                                onChange={(e) =>
+                                                                    setEditForm({
+                                                                        ...editForm,
+                                                                        courierName: e.target.value,
+                                                                    })
+                                                                }
+                                                                className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-slate-900 outline-none focus:border-slate-600 focus:ring-1 focus:ring-slate-600"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="mb-1 block text-[10px] font-bold text-slate-500 uppercase">
+                                                                Tracking ID (AWB)
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="e.g. 1421...312"
+                                                                value={editForm.awbNumber || ''}
+                                                                onChange={(e) =>
+                                                                    setEditForm({
+                                                                        ...editForm,
+                                                                        awbNumber: e.target.value,
+                                                                    })
+                                                                }
+                                                                className="w-full rounded-lg border border-slate-300 bg-white p-2 text-xs font-bold text-slate-900 outline-none focus:border-slate-600 focus:ring-1 focus:ring-slate-600"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="mb-1 block text-[10px] font-bold text-slate-500 uppercase">
+                                                            Platform Order ID (Optional)
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="e.g. AMZ-12345"
+                                                            value={editForm.platformOrderNo || ''}
+                                                            onChange={(e) =>
+                                                                setEditForm({
+                                                                    ...editForm,
+                                                                    platformOrderNo: e.target.value,
+                                                                })
+                                                            }
+                                                            className="w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-slate-600 focus:ring-1 focus:ring-slate-600"
+                                                        />
+                                                    </div>
+
                                                     {editForm.status === 'NDR' && (
                                                         <div>
                                                             <label className="mb-1 flex items-center gap-1 text-[10px] font-bold text-amber-700 uppercase">

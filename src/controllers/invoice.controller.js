@@ -290,7 +290,7 @@ export const exportMyInvoicesToCsv = asyncHandler(async (req, res) => {
         'Grand Total',
         'Payment Options',
         'Status',
-        'Sovely GSTIN',
+        'Seller GSTIN',
         'Seller Name',
     ];
 
@@ -312,7 +312,7 @@ export const exportMyInvoicesToCsv = asyncHandler(async (req, res) => {
             inv.paymentTerms,
             inv.paymentStatus,
             '29DTGPS4598H2ZR',
-            'Sovely',
+            'Infinity Enterprises',
         ];
         csvContent += row.map(escapeCsv).join(',') + '\n';
     });
@@ -358,10 +358,16 @@ export const generateInvoicePDF = async (req, res, next) => {
             try {
                 doc.image(logoPath, 40, 25, { fit: [100, 60] });
             } catch (imgError) {
-                doc.fillColor('#1e293b').fontSize(22).font('Helvetica-Bold').text('SOVELY', 40, 30);
+                doc.fillColor('#1e293b')
+                    .fontSize(22)
+                    .font('Helvetica-Bold')
+                    .text('INFINITY ENTERPRISES', 40, 30);
             }
         } else {
-            doc.fillColor('#1e293b').fontSize(22).font('Helvetica-Bold').text('SOVELY', 40, 30);
+            doc.fillColor('#1e293b')
+                .fontSize(22)
+                .font('Helvetica-Bold')
+                .text('INFINITY ENTERPRISES', 40, 30);
         }
 
         const docTitle = invoice.invoiceType === 'WALLET_TOPUP' ? 'PAYMENT RECEIPT' : 'TAX INVOICE';
@@ -842,7 +848,10 @@ export const generateInvoiceBuffer = async (invoice, user) => {
             doc.on('end', () => resolve(Buffer.concat(chunks)));
             doc.on('error', (err) => reject(err));
 
-            doc.fontSize(24).font('Helvetica-Bold').fillColor('#0f172a').text('SOVELY', 40, 35);
+            doc.fontSize(24)
+                .font('Helvetica-Bold')
+                .fillColor('#0f172a')
+                .text('INFINITY ENTERPRISES', 40, 35);
             doc.fillColor('#0f172a')
                 .fontSize(18)
                 .font('Helvetica-Bold')
