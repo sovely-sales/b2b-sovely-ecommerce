@@ -110,12 +110,14 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
                 if (!handle) return;
 
                 if (!productMap.has(handle)) {
-                    // 1. Extract the prices
+                    // Extract raw numbers
                     const compareAtPrice = toNum(row['Variant Compare At Price']);
                     const variantPrice = toNum(row['Variant Price']);
+                    const costPerItem = toNum(row['Cost per item']);
 
-                    const actualPrice =
-                        compareAtPrice > 0 ? Math.round(compareAtPrice * 0.6) : variantPrice;
+                    const rawRetailPrice = compareAtPrice > 0 ? compareAtPrice : variantPrice;
+                    const baseCost =
+                        costPerItem > 0 ? costPerItem : Math.round(rawRetailPrice * 0.6);
 
                     productMap.set(handle, {
                         handle,
@@ -126,8 +128,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
                         tags: parseTags(row['Tags']),
                         sku: (row['Variant SKU'] || '').trim(),
                         weightGrams: toNum(row['Variant Grams']) || 100,
-                        price: actualPrice,
-                        cost: toNum(row['Cost per item']),
+                        cost: baseCost,
                         status: (row['Status'] || 'active').toLowerCase(),
                         images: [],
                     });
@@ -168,7 +169,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
     const bulkOps = [];
 
     for (const p of productMap.values()) {
-        if (!p.title || p.price <= 0) {
+        if (!p.title || p.cost <= 0) {
             skipped++;
             continue;
         }
@@ -184,8 +185,11 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
         }
 
         const catId = categoryIdMap.get(p.type) || categoryIdMap.get('General');
-        const srp = p.price;
-        const basePrice = p.cost > 0 ? p.cost : Math.round(srp * 0.8);
+
+        const basePrice = p.cost;
+        const srp = basePrice;
+        const estimatedMarginPercent = 0;
+
         const sku = p.sku || `SOV-${p.handle.substring(0, 20).toUpperCase()}`;
         const dimensions = parseDimensions(p.description);
         const weightGrams = parseWeightFromHTML(p.description, p.weightGrams) || 100;
@@ -200,6 +204,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
             images: p.images.sort((a, b) => a.position - b.position),
             dropshipBasePrice: basePrice,
             suggestedRetailPrice: srp,
+            estimatedMarginPercent,
             tieredPricing: [],
             weightGrams,
             dimensions,
@@ -207,7 +212,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
             gstSlab: 18,
             shippingDays: '3-5',
             moq: 1,
-            inventory: { stock: 500, alertThreshold: 20 },
+            inventory: { stock: 0, alertThreshold: 10 },
             status: p.status === 'active' ? 'active' : 'draft',
             returnPolicy: 'NO_RETURNS',
         };

@@ -200,7 +200,7 @@ export const exportAdminInvoicesToCsv = asyncHandler(async (req, res) => {
         'IGST',
         'Grand Total',
         'Payment Options',
-        'Status'
+        'Status',
     ];
 
     let csvContent = '\uFEFF' + headers.map(escapeCsv).join(',') + '\n';
@@ -219,14 +219,16 @@ export const exportAdminInvoicesToCsv = asyncHandler(async (req, res) => {
             inv.totalIgst,
             inv.grandTotal,
             inv.paymentTerms,
-            inv.paymentStatus
+            inv.paymentStatus,
         ];
         csvContent += row.map(escapeCsv).join(',') + '\n';
     });
 
     res.setHeader('Content-Type', 'text/csv');
     const filename =
-        startDate && endDate ? `invoices_export_${startDate}_to_${endDate}.csv` : 'invoices_export.csv';
+        startDate && endDate
+            ? `invoices_export_${startDate}_to_${endDate}.csv`
+            : 'invoices_export.csv';
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(csvContent);
 });
@@ -273,7 +275,7 @@ export const exportMyInvoicesToCsv = asyncHandler(async (req, res) => {
         'Payment Options',
         'Status',
         'Sovely GSTIN',
-        'Seller Name'
+        'Seller Name',
     ];
 
     let csvContent = '\uFEFF' + headers.map(escapeCsv).join(',') + '\n';
@@ -294,14 +296,16 @@ export const exportMyInvoicesToCsv = asyncHandler(async (req, res) => {
             inv.paymentTerms,
             inv.paymentStatus,
             '29DTGPS4598H2ZR',
-            inv.resellerId?.name || req.user.name
+            inv.resellerId?.name || req.user.name,
         ];
         csvContent += row.map(escapeCsv).join(',') + '\n';
     });
 
     res.setHeader('Content-Type', 'text/csv');
     const filename =
-        startDate && endDate ? `my_invoices_export_${startDate}_to_${endDate}.csv` : 'my_invoices_export.csv';
+        startDate && endDate
+            ? `my_invoices_export_${startDate}_to_${endDate}.csv`
+            : 'my_invoices_export.csv';
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.status(200).send(csvContent);
 });
