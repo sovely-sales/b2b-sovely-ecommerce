@@ -689,7 +689,7 @@ export const getMyOrders = asyncHandler(async (req, res) => {
 });
 
 export const updateOrderStatus = asyncHandler(async (req, res) => {
-    const { status, awbNumber, courierName, ndrReason } = req.body;
+    const { status, awbNumber, courierName, ndrReason, platformOrderNo } = req.body;
     const { id } = req.params;
     const normalizedStatus =
         typeof status === 'string' ? status.trim().toUpperCase().replace(/\s+/g, '_') : '';
@@ -705,7 +705,19 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         throw new ApiError(400, getInvalidTransitionErrorMessage(order.status, normalizedStatus));
     }
 
-    if (normalizedStatus === 'SHIPPED') order.tracking = { awbNumber, courierName };
+    // Update tracking info if provided (manual override)
+    if (awbNumber !== undefined || courierName !== undefined) {
+        order.tracking = {
+            awbNumber: awbNumber || order.tracking?.awbNumber || '',
+            courierName: courierName || order.tracking?.courierName || '',
+            trackingUrl: order.tracking?.trackingUrl || '',
+        };
+    }
+
+    // Update platform order number if provided
+    if (platformOrderNo !== undefined) {
+        order.platformOrderNo = platformOrderNo;
+    }
 
     if (normalizedStatus === 'NDR') {
         order.ndrDetails = {
@@ -1285,7 +1297,7 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
     };
 
     const headers = [
-        'Platform order number',
+        'Wukusy Order No',
         'First Name',
         'Last Name',
         'Mobile',
@@ -1298,6 +1310,9 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
         'Quantity',
         'Selling Price',
         'Status',
+        'Platform Order No',
+        'Courier',
+        'Tracking',
     ];
 
     let csvContent = '\uFEFF' + headers.map(escapeCsv).join(',') + '\n';
@@ -1344,6 +1359,9 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
                 item.qty,
                 item.resellerSellingPrice,
                 order.status,
+                '', // Platform Order No
+                '', // Courier
+                '', // Tracking
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });
@@ -1399,7 +1417,7 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
         'Quantity',
         'Selling Price',
         'Status',
-        'Sovely GSTIN',
+        'Seller GSTIN',
         'Seller Name'
     ];
 
@@ -1448,7 +1466,7 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
                 item.resellerSellingPrice,
                 order.status,
                 '29DTGPS4598H2ZR',
-                'Sovely'
+                'Infinity Enterprises'
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });
@@ -1477,7 +1495,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
         .populate('resellerId', 'name companyName email phoneNumber billingAddress');
 
     const headers = [
-        'Platform order number',
+        'Wukusy Order No',
         'First Name',
         'Last Name',
         'Company',
@@ -1491,6 +1509,10 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
         'Quantity',
         'Payment Method',
         'Selling Price',
+        'Status',
+        'Platform Order No',
+        'Courier',
+        'Tracking',
     ];
 
     const escapeCsv = (val) => {
@@ -1554,6 +1576,10 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
                 item.qty,
                 order.paymentMethod,
                 item.resellerSellingPrice || item.platformBasePrice,
+                order.status, // Status
+                '', // Platform Order No
+                '', // Courier
+                '', // Tracking
             ];
 
             csvContent += row.map(escapeCsv).join(',') + '\n';
@@ -1657,7 +1683,7 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
     }).populate('resellerId');
 
     const headers = [
-        'Platform order number',
+        'Wukusy Order No',
         'First Name',
         'Last Name',
         'Company',
@@ -1671,6 +1697,10 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
         'Quantity',
         'Payment Method',
         'Selling Price',
+        'Status',
+        'Platform Order No',
+        'Courier',
+        'Tracking',
     ];
 
     const escapeCsv = (val) => {
@@ -1735,6 +1765,10 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
                 item.qty,
                 order.paymentMethod === 'COD' ? 'Prepaid' : order.paymentMethod, // Adjust if Wukusy requires strict 'Prepaid'
                 item.resellerSellingPrice || item.platformBasePrice,
+                order.status, // Status
+                '', // Platform Order No
+                '', // Courier
+                '', // Tracking
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });
