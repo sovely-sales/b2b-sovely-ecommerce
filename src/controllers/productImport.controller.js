@@ -110,14 +110,11 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
                 if (!handle) return;
 
                 if (!productMap.has(handle)) {
-                    // Extract raw numbers
-                    const compareAtPrice = toNum(row['Variant Compare At Price']);
+                    // Extract exact numbers from the CSV
                     const variantPrice = toNum(row['Variant Price']);
                     const costPerItem = toNum(row['Cost per item']);
 
-                    const rawRetailPrice = compareAtPrice > 0 ? compareAtPrice : variantPrice;
-                    const baseCost =
-                        costPerItem > 0 ? costPerItem : Math.round(rawRetailPrice * 0.6);
+                    const baseCost = costPerItem > 0 ? costPerItem : Math.round(variantPrice * 0.6);
 
                     productMap.set(handle, {
                         handle,
@@ -129,11 +126,11 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
                         sku: (row['Variant SKU'] || '').trim(),
                         weightGrams: toNum(row['Variant Grams']) || 100,
                         cost: baseCost,
+                        srp: variantPrice > 0 ? variantPrice : baseCost,
                         status: (row['Status'] || 'active').toLowerCase(),
                         images: [],
                     });
                 }
-
                 const imgSrc = (row['Image Src'] || '').trim();
                 if (imgSrc) {
                     const product = productMap.get(handle);
@@ -187,7 +184,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
         const catId = categoryIdMap.get(p.type) || categoryIdMap.get('General');
 
         const basePrice = p.cost;
-        const srp = basePrice;
+        const srp = p.srp;
         const estimatedMarginPercent = 0;
 
         const sku = p.sku || `SOV-${p.handle.substring(0, 20).toUpperCase()}`;
