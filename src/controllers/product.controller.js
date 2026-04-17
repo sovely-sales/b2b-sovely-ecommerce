@@ -167,6 +167,17 @@ export const getProducts = asyncHandler(async (req, res) => {
         query['inventory.stock'] = { $gt: 0 };
     }
 
+    if (req.query.stock && req.query.stock !== 'ALL') {
+        const stockMode = req.query.stock;
+        if (stockMode === 'IN_STOCK') {
+            query['inventory.stock'] = { $gt: 10 };
+        } else if (stockMode === 'LOW_STOCK') {
+            query['inventory.stock'] = { $gt: 0, $lte: 10 };
+        } else if (stockMode === 'OUT_OF_STOCK') {
+            query['inventory.stock'] = { $lte: 0 };
+        }
+    }
+
     if (req.query.lowRtoRisk === 'true') {
         query.historicalRtoRate = { $lte: 10 };
     }
