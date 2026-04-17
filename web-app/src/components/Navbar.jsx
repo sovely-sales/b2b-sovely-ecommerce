@@ -182,6 +182,12 @@ function Navbar() {
     const handleQuickAdd = async (e, product) => {
         e.preventDefault();
         e.stopPropagation();
+
+        if (!user) {
+            navigate(ROUTES.LOGIN);
+            return;
+        }
+
         setAddedSku(product._id);
         const res = await addToCart(product._id, product.moq || 10, 'DROPSHIP', 0);
         if (res.success) {

@@ -97,14 +97,16 @@ function App() {
                     <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
 
                     {}
+                    <Route element={<MainLayout />}>
+                        <Route path={ROUTES.CATALOG} element={<LandingPage />} />
+                        <Route path="/category/:categoryName" element={<LandingPage />} />
+                        <Route path="/product/:productId" element={<ProductPage />} />
+                        <Route path={ROUTES.SEARCH} element={<SearchResults />} />
+                    </Route>
+
+                    {}
                     <Route element={<ProtectedRoute />}>
                         <Route element={<MainLayout />}>
-                            {}
-                            <Route path={ROUTES.CATALOG} element={<LandingPage />} />
-                            <Route path="/category/:categoryName" element={<LandingPage />} />
-                            <Route path="/product/:productId" element={<ProductPage />} />
-                            <Route path={ROUTES.SEARCH} element={<SearchResults />} />
-
                             {}
                             <Route path={ROUTES.ORDERS} element={<OrderCenter />} />
                             <Route path="/orders/:id/track" element={<OrderTracking />} />

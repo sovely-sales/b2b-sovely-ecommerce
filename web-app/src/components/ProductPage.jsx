@@ -1,6 +1,7 @@
 import StructuredDescription from './StructuredDescription';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ShoppingCart,
@@ -53,6 +54,7 @@ const parseSellingPrice = (value) => {
 const ProductPage = () => {
     const { productId } = useParams();
     const navigate = useNavigate();
+    const { user } = useContext(AuthContext);
     const { addToCart, isLoading: isCartLoading } = useCartStore();
 
     const [product, setProduct] = useState(null);
@@ -128,6 +130,10 @@ const ProductPage = () => {
     };
 
     const handleAddToCartClick = () => {
+        if (!user) {
+            navigate(ROUTES.LOGIN);
+            return;
+        }
         if (orderType === 'DROPSHIP') setIsAssignModalOpen(true);
         else executeAddToCart();
     };

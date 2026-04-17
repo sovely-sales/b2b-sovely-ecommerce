@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useContext } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, AlignJustify, LayoutGrid, Box, ShoppingCart, X, FilterX } from 'lucide-react';
 
@@ -66,6 +67,7 @@ export default function DropshipProducts({
     globalSearchQuery = '',
     initialCategory = 'All Categories',
 }) {
+    const { user } = useContext(AuthContext);
     const addToCart = useCartStore((state) => state.addToCart);
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -265,6 +267,11 @@ export default function DropshipProducts({
     );
 
     const executeBulkAdd = async () => {
+        if (!user) {
+            navigate(ROUTES.LOGIN);
+            return;
+        }
+
         setIsAddingBulk(true);
         for (const itemId of Object.keys(bulkCart)) {
             const { product, qty } = bulkCart[itemId];

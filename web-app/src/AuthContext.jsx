@@ -24,9 +24,23 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('reseller_cart');
 
             const currentPath = window.location.pathname;
-            const publicPaths = ['/', '/login', '/forgot-password', '/terms', '/privacy'];
+            const publicPaths = [
+                '/',
+                '/login',
+                '/forgot-password',
+                '/terms',
+                '/privacy',
+                '/catalog',
+                '/category',
+                '/product',
+                '/search',
+            ];
 
-            if (!publicPaths.includes(currentPath)) {
+            const isPublicPath = publicPaths.some(
+                (path) => currentPath === path || currentPath.startsWith(`${path}/`)
+            );
+
+            if (!isPublicPath) {
                 window.location.href = '/login?session_expired=true';
             }
         };

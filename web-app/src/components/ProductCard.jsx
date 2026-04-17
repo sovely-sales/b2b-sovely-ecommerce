@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Check, Plus, Minus } from 'lucide-react';
 import { useCartStore } from '../store/cartStore';
 import { ROUTES } from '../utils/routes';
+import { AuthContext } from '../AuthContext';
 
 export default function ProductCard({ product }) {
+    const { user } = useContext(AuthContext);
     const addToCart = useCartStore((state) => state.addToCart);
     const navigate = useNavigate();
     const [isAdded, setIsAdded] = useState(false);
@@ -21,6 +23,12 @@ export default function ProductCard({ product }) {
     const handleAdd = async (e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        if (!user) {
+            navigate(ROUTES.LOGIN);
+            return;
+        }
+
         if (isOutOfStock) return;
 
         setIsAdded(true);

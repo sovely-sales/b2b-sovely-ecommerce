@@ -1,7 +1,7 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { TrendingUp, ShieldCheck, Truck, ArrowRight, BarChart3, Globe2 } from 'lucide-react';
+import { TrendingUp, ShieldCheck, Truck, ArrowRight, BarChart3, Globe2, Search, LayoutGrid } from 'lucide-react';
 import { ROUTES } from '../utils/routes';
 
 const fadeUp = {
@@ -18,6 +18,16 @@ const staggerContainer = {
 };
 
 const MarketingLandingPage = () => {
+    const [searchQuery, setSearchQuery] = useState('');
+    const navigate = useNavigate();
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            navigate(`${ROUTES.SEARCH}?q=${encodeURIComponent(searchQuery.trim())}`);
+        }
+    };
+
     return (
         <div className="flex w-full flex-col bg-white">
             {}
@@ -62,21 +72,46 @@ const MarketingLandingPage = () => {
                         with guaranteed margins.
                     </motion.p>
 
+                    <motion.div variants={fadeUp} className="mx-auto mt-10 max-w-xl">
+                        <form
+                            onSubmit={handleSearch}
+                            className="group relative flex items-center overflow-hidden rounded-2xl border-2 border-slate-200 bg-white shadow-xl transition-all focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10"
+                        >
+                            <div className="pl-5 text-slate-400">
+                                <Search size={20} strokeWidth={2.5} />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Search products, SKUs, or factories..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-transparent px-4 py-5 text-lg font-bold text-slate-900 outline-none placeholder:font-medium placeholder:text-slate-400"
+                            />
+                            <button
+                                type="submit"
+                                className="mr-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white transition-all hover:bg-emerald-700 active:scale-95"
+                            >
+                                Search
+                            </button>
+                        </form>
+                    </motion.div>
+
                     <motion.div
                         variants={fadeUp}
-                        className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
+                        className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row"
                     >
                         <Link
-                            to={ROUTES.CONTACT_US}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-8 py-4 text-base font-extrabold text-white shadow-xl shadow-slate-900/20 transition-all hover:-translate-y-1 hover:bg-slate-800 sm:w-auto"
+                            to={ROUTES.CATALOG}
+                            className="flex items-center gap-2 text-sm font-black text-emerald-700 transition-colors hover:text-emerald-800"
                         >
-                            Request Account Access <ArrowRight size={18} />
+                            <LayoutGrid size={18} /> Or Browse All Categories
                         </Link>
+                        <span className="hidden h-1 w-1 rounded-full bg-slate-300 sm:block"></span>
                         <Link
-                            to={ROUTES.LOGIN}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white/80 px-8 py-4 text-base font-extrabold text-slate-700 backdrop-blur-sm transition-all hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
+                            to={ROUTES.CONTACT_US}
+                            className="text-sm font-bold text-slate-500 transition-colors hover:text-slate-900"
                         >
-                            Sign In to Dashboard
+                            Contact us for bulk pricing
                         </Link>
                     </motion.div>
 
