@@ -78,6 +78,7 @@ export default function DropshipProducts({
     const [filters, setFilters] = useState({
         category: searchParams.get('category') || initialCategory,
         brand: searchParams.get('brand') || 'All Brands',
+        stock: searchParams.get('stock') || 'ALL',
         sort: searchParams.get('sort') || 'default',
         minPrice: searchParams.get('minPrice') || '',
         maxPrice: searchParams.get('maxPrice') || '',
@@ -105,6 +106,7 @@ export default function DropshipProducts({
 
         updateParam('category', filters.category, 'All Categories');
         updateParam('brand', filters.brand, 'All Brands');
+        updateParam('stock', filters.stock, 'ALL');
         updateParam('sort', filters.sort, 'default');
         updateParam('minPrice', filters.minPrice, '');
         updateParam('maxPrice', filters.maxPrice, '');
@@ -125,6 +127,7 @@ export default function DropshipProducts({
             setFilters({
                 category: 'All Categories',
                 brand: 'All Brands',
+                stock: 'ALL',
                 sort: 'default',
                 minPrice: '',
                 maxPrice: '',
@@ -168,6 +171,7 @@ export default function DropshipProducts({
             'products',
             selectedCatId,
             filters.brand,
+            filters.stock,
             filters.sort,
             debouncedMinPrice,
             debouncedMaxPrice,
@@ -182,6 +186,7 @@ export default function DropshipProducts({
             if (globalSearchQuery) params.append('search', globalSearchQuery);
             if (filters.sort !== 'default') params.append('sort', filters.sort);
             if (filters.brand !== 'All Brands') params.append('vendor', filters.brand);
+            if (filters.stock !== 'ALL') params.append('stock', filters.stock);
             if (debouncedMinPrice) params.append('minBasePrice', debouncedMinPrice);
             if (debouncedMaxPrice) params.append('maxBasePrice', debouncedMaxPrice);
 
@@ -286,6 +291,7 @@ export default function DropshipProducts({
         setFilters({
             category: 'All Categories',
             brand: 'All Brands',
+            stock: 'ALL',
             sort: 'default',
             minPrice: '',
             maxPrice: '',
@@ -297,6 +303,7 @@ export default function DropshipProducts({
     const hasActiveFilters =
         filters.category !== 'All Categories' ||
         filters.brand !== 'All Brands' ||
+        filters.stock !== 'ALL' ||
         filters.minPrice ||
         filters.maxPrice ||
         filters.minWeight ||
@@ -340,6 +347,23 @@ export default function DropshipProducts({
                                     {b}
                                 </option>
                             ))}
+                        </select>
+                        <ChevronDown
+                            size={16}
+                            className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-slate-400"
+                        />
+                    </div>
+
+                    <div className="relative">
+                        <select
+                            value={filters.stock}
+                            onChange={(e) => setFilters((p) => ({ ...p, stock: e.target.value }))}
+                            className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pr-10 pl-4 text-sm font-semibold text-slate-900 shadow-sm transition-shadow outline-none hover:border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 sm:w-auto"
+                        >
+                            <option value="ALL">All Stock Levels</option>
+                            <option value="IN_STOCK">In Stock (&gt;10)</option>
+                            <option value="LOW_STOCK">Low Stock (1-10)</option>
+                            <option value="OUT_OF_STOCK">Out of Stock (0)</option>
                         </select>
                         <ChevronDown
                             size={16}
