@@ -141,15 +141,16 @@ function parseCsvToOrders(csvText) {
         const tracking = col(row, 'Tracking');
         return {
             wukusyOrderNo: col(row, 'Wukusy Order No'),
-            platformOrderNo: col(row, 'Platform Order No'),
+            sovelyOrderId: col(row, 'Sovely Order ID') || col(row, 'Platform Order No'), // Support both
+            platformId: col(row, 'Platform ID') || col(row, 'Marketplace ID'),
             orderDate: col(row, 'Order Date'),
             customerName: col(row, 'Customer Name'),
             phone: col(row, 'Phone'),
-            city: col(row, 'city'),
+            city: col(row, 'city') || col(row, 'City'),
             state: col(row, 'State'),
             sku: col(row, 'SKU'),
             quantity: col(row, 'Quantity'),
-            sellingPrice: col(row, 'Sellling Price'),
+            sellingPrice: col(row, 'Sellling Price') || col(row, 'Selling Price'),
             orderProfit: col(row, 'Order Profit'),
             paymentStatus: col(row, 'Payment Status'),
             rawStatus: col(row, 'Status'),
@@ -405,11 +406,12 @@ const AdminOrders = () => {
         const uploadToast = toast.loading('Syncing statuses with Wukusy...');
 
         const csvLines = [
-            'Wukusy Order No,Platform Order No,Order Date,Customer Name,Phone,city,State,SKU,Quantity,Sellling Price,Order Profit,Payment Status,Status,Courier,Tracking',
+            'Wukusy Order No,Sovely Order ID,Platform ID,Order Date,Customer Name,Phone,city,State,SKU,Quantity,Selling Price,Order Profit,Payment Status,Status,Courier,Tracking',
             ...parsedOrders.map((o) =>
                 [
                     o.wukusyOrderNo,
-                    o.platformOrderNo,
+                    o.sovelyOrderId,
+                    o.platformId,
                     o.orderDate,
                     o.customerName,
                     o.phone,
@@ -516,8 +518,7 @@ const AdminOrders = () => {
                             Warehouse Sync Pipeline (Sovely server)
                         </h2>
                         <p className="mt-1 text-xs font-bold text-indigo-700/70">
-                            Export new processing orders and sync back shipping/cancellation
-                            statuses.
+                            Export processing orders for Wukusy and sync back statuses.
                         </p>
                     </div>
                     <div className="flex w-full flex-col items-center gap-3 md:w-auto md:flex-row">
@@ -965,7 +966,7 @@ const AdminOrders = () => {
                                                         •
                                                     </span>
                                                     <p className="font-mono text-[10px] font-bold text-indigo-600">
-                                                        Platform: {selectedOrder.platformOrderNo}
+                                                        Platform ID: {selectedOrder.platformOrderNo}
                                                     </p>
                                                 </>
                                             )}

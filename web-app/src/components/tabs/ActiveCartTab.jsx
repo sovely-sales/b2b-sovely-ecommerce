@@ -85,6 +85,7 @@ export default function ActiveCartTab({ setActiveTab }) {
     const navigate = useNavigate();
 
     const [paymentMethods, setPaymentMethods] = useState({});
+    const [platformOrderNos, setPlatformOrderNos] = useState({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -252,7 +253,7 @@ export default function ActiveCartTab({ setActiveTab }) {
 
             const res = await api.post(
                 '/orders',
-                { paymentMethods },
+                { paymentMethods, platformOrderNos },
                 { headers: { 'x-idempotency-key': idempotencyKey } }
             );
 
@@ -329,6 +330,22 @@ export default function ActiveCartTab({ setActiveTab }) {
                                                 {group.details.address.state}{' '}
                                                 {group.details.address.zip} • {group.details.phone}
                                             </p>
+                                        )}
+                                        {group.icon === 'dropship' && group.details && (
+                                            <div className="mt-3 max-w-xs">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Platform ID (Amazon/Flipkart Order No)"
+                                                    value={platformOrderNos[group.key] || ''}
+                                                    onChange={(e) =>
+                                                        setPlatformOrderNos((prev) => ({
+                                                            ...prev,
+                                                            [group.key]: e.target.value,
+                                                        }))
+                                                    }
+                                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 transition-all outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                                                />
+                                            </div>
                                         )}
                                     </div>
                                 </div>

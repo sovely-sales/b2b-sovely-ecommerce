@@ -215,7 +215,7 @@ export const createOrder = asyncHandler(async (req, res) => {
     const existingTransaction = await IdempotencyRecord.findOne({ key: idempotencyKey });
     if (existingTransaction) return res.status(200).json(existingTransaction.response);
 
-    const { paymentMethods = {}, wholesaleBranchId } = req.body;
+    const { paymentMethods = {}, platformOrderNos = {}, wholesaleBranchId } = req.body;
     const resellerId = req.user._id;
 
     const cart = await Cart.findOne({ resellerId });
@@ -280,7 +280,8 @@ export const createOrder = asyncHandler(async (req, res) => {
 
                 const groupKey = `DROPSHIP_${customer.phone}_${customer.address.zip}`;
                 if (!dropshipGroups[groupKey]) {
-                    dropshipGroups[groupKey] = { customerDetails: customer, items: [] };
+                    const groupPlatformId = platformOrderNos[groupKey] || '';
+                    dropshipGroups[groupKey] = { customerDetails: customer, items: [], platformOrderNo: groupPlatformId };
                 }
                 dropshipGroups[groupKey].items.push(processedItem);
             } else {
@@ -431,6 +432,7 @@ export const createOrder = asyncHandler(async (req, res) => {
                 resellerId,
                 endCustomerDetails: customer,
                 status: 'PENDING',
+                platformOrderNo: group.platformOrderNo,
                 paymentMethod: currentPaymentMethod,
                 subTotal: dsSubTotal,
                 taxTotal: dsTaxTotal,
@@ -1403,7 +1405,8 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
     };
 
     const headers = [
-        'Platform order number',
+        'Sovely Order ID',
+        'Marketplace Ref ID',
         'First Name',
         'Last Name',
         'Mobile',
@@ -1452,6 +1455,7 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
         order.items.forEach((item) => {
             const row = [
                 order.orderId,
+                order.platformOrderNo || '',
                 firstName,
                 lastName,
                 phone,
@@ -1578,7 +1582,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
                 order.paymentMethod,
                 item.resellerSellingPrice || item.platformBasePrice,
                 order.status, // Status
-                '', // Platform Order No
+                order.platformOrderNo || '', // Platform Order No
                 '', // Courier
                 '', // Tracking
             ];
@@ -1684,20 +1688,24 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
     }).populate('resellerId');
 
     const headers = [
-        'Platform order num',
+        'Sovely Order ID',
         'First Name',
         'Last Name',
         'Company',
         'Mobile',
-        'Shipping Add',
-        'Shipping Add',
+        'Shipping Add 1',
+        'Shipping Add 2',
         'City',
         'State',
         'Pincode',
         'SKU',
         'Quantity',
-        'Payment Met',
-        'Sellling Price',
+        'Payment Method',
+        'Selling Price',
+        'Status',
+        'Platform ID',
+        'Courier',
+        'Tracking',
     ];
 
     const escapeCsv = (val) => {
@@ -1763,7 +1771,7 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
                 order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
                 item.resellerSellingPrice || item.platformBasePrice,
                 order.status, // Status
-                '', // Platform Order No
+                order.platformOrderNo || '', // Platform Order No
                 '', // Courier
                 '', // Tracking
             ];
@@ -1847,15 +1855,17 @@ export const importWukusyStatusesCsv = async (req, res) => {
         const dataRows = rows.slice(1);
 
         const wukusyOrderNoIdx = header.indexOf('Wukusy Order No');
-        const platformOrderNoIdx = header.indexOf('Platform Order No');
+        const sovelyOrderIdIdx = header.indexOf('Sovely Order ID'); // Priority internal search
+        const platformOrderNoIdx = header.indexOf('Platform Order No'); // Legacy fallback
+        const platformIdIdx = header.indexOf('Platform ID'); 
         const statusIdx = header.indexOf('Status');
         const courierIdx = header.indexOf('Courier');
         const trackingIdx = header.indexOf('Tracking');
 
-        if (platformOrderNoIdx === -1 || statusIdx === -1) {
+        if ((sovelyOrderIdIdx === -1 && platformOrderNoIdx === -1) || statusIdx === -1) {
             return res
                 .status(400)
-                .json({ message: 'Invalid CSV format. Missing required headers.' });
+                .json({ message: 'Invalid CSV format. Missing required headers (Sovely Order ID or Status).' });
         }
 
         const WUKUSY_STATUS_MAP = {
@@ -1885,17 +1895,18 @@ export const importWukusyStatusesCsv = async (req, res) => {
                     : '';
 
             const wukusyOrderNo = cleanField(row[wukusyOrderNoIdx]);
-            const platformOrderNo = cleanField(row[platformOrderNoIdx]);
+            const sovelyOrderId = cleanField(row[sovelyOrderIdIdx]) || cleanField(row[platformOrderNoIdx]);
+            const platformId = cleanField(row[platformIdIdx]);
             const rawStatus = cleanField(row[statusIdx]).toLowerCase();
             const courier = cleanField(row[courierIdx]);
             const tracking = cleanField(row[trackingIdx]);
 
-            if (!platformOrderNo) continue;
+            if (!sovelyOrderId) continue;
 
             const mappedStatus = WUKUSY_STATUS_MAP[rawStatus];
 
-            // FIX: Search your database using the Platform Order No (your local orderId)
-            const order = await Order.findOne({ orderId: platformOrderNo });
+            // FIX: Search your database using the Sovely Order ID (your local orderId)
+            const order = await Order.findOne({ orderId: sovelyOrderId });
 
             if (!order) {
                 skipped++;
@@ -1904,9 +1915,9 @@ export const importWukusyStatusesCsv = async (req, res) => {
 
             let isModified = false;
 
-            // Optionally map the external Wukusy ID if you ever need it
-            if (wukusyOrderNo && order.platformOrderNo !== wukusyOrderNo) {
-                order.platformOrderNo = wukusyOrderNo;
+            // Update the platform reference if provided
+            if (platformId && order.platformOrderNo !== platformId) {
+                order.platformOrderNo = platformId;
                 isModified = true;
             }
 
