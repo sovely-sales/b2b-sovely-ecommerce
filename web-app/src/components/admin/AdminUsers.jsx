@@ -174,9 +174,7 @@ const AdminUsers = () => {
         setIsSaving(true);
         try {
             const res = await api.put(`/users/admin/${adminEditForm.id}/update`, adminEditForm);
-            setUsers((prev) =>
-                prev.map((u) => (u._id === adminEditForm.id ? res.data.data : u))
-            );
+            setUsers((prev) => prev.map((u) => (u._id === adminEditForm.id ? res.data.data : u)));
             setIsEditModalOpen(false);
             alert('User profile updated successfully.');
         } catch (err) {
@@ -469,8 +467,7 @@ const AdminUsers = () => {
                                                             title="Review Account Updates"
                                                             className="flex items-center gap-1 rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-200"
                                                         >
-                                                            <FileSearch size={14} /> Review
-                                                            Updates
+                                                            <FileSearch size={14} /> Review Updates
                                                         </button>
                                                     )}
                                                 </div>
@@ -995,7 +992,8 @@ const AdminUsers = () => {
                     <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-[2rem] bg-white shadow-2xl">
                         <div className="flex items-center justify-between border-b border-slate-100 p-6">
                             <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-900">
-                                <Edit2 size={24} className="text-slate-400" /> Administrative Profile Editor
+                                <Edit2 size={24} className="text-slate-400" /> Administrative
+                                Profile Editor
                             </h2>
                             <button
                                 onClick={() => setIsEditModalOpen(false)}
@@ -1006,7 +1004,11 @@ const AdminUsers = () => {
                         </div>
 
                         <div className="custom-scrollbar flex-1 overflow-y-auto p-6">
-                            <form id="adminEditForm" onSubmit={handleAdminUpdate} className="space-y-6">
+                            <form
+                                id="adminEditForm"
+                                onSubmit={handleAdminUpdate}
+                                className="space-y-6"
+                            >
                                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div>
                                         <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
@@ -1015,7 +1017,12 @@ const AdminUsers = () => {
                                         <input
                                             type="text"
                                             value={adminEditForm.name}
-                                            onChange={(e) => setAdminEditForm({...adminEditForm, name: e.target.value})}
+                                            onChange={(e) =>
+                                                setAdminEditForm({
+                                                    ...adminEditForm,
+                                                    name: e.target.value,
+                                                })
+                                            }
                                             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
                                         />
                                     </div>
@@ -1026,7 +1033,12 @@ const AdminUsers = () => {
                                         <input
                                             type="email"
                                             value={adminEditForm.email}
-                                            onChange={(e) => setAdminEditForm({...adminEditForm, email: e.target.value})}
+                                            onChange={(e) =>
+                                                setAdminEditForm({
+                                                    ...adminEditForm,
+                                                    email: e.target.value,
+                                                })
+                                            }
                                             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
                                         />
                                     </div>
@@ -1037,7 +1049,12 @@ const AdminUsers = () => {
                                         <input
                                             type="text"
                                             value={adminEditForm.companyName}
-                                            onChange={(e) => setAdminEditForm({...adminEditForm, companyName: e.target.value})}
+                                            onChange={(e) =>
+                                                setAdminEditForm({
+                                                    ...adminEditForm,
+                                                    companyName: e.target.value,
+                                                })
+                                            }
                                             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
                                         />
                                     </div>
@@ -1048,7 +1065,12 @@ const AdminUsers = () => {
                                         <input
                                             type="text"
                                             value={adminEditForm.gstin}
-                                            onChange={(e) => setAdminEditForm({...adminEditForm, gstin: e.target.value.toUpperCase()})}
+                                            onChange={(e) =>
+                                                setAdminEditForm({
+                                                    ...adminEditForm,
+                                                    gstin: e.target.value.toUpperCase(),
+                                                })
+                                            }
                                             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 font-mono text-sm uppercase outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
                                         />
                                     </div>
@@ -1058,7 +1080,12 @@ const AdminUsers = () => {
                                         </label>
                                         <select
                                             value={adminEditForm.role}
-                                            onChange={(e) => setAdminEditForm({...adminEditForm, role: e.target.value})}
+                                            onChange={(e) =>
+                                                setAdminEditForm({
+                                                    ...adminEditForm,
+                                                    role: e.target.value,
+                                                })
+                                            }
                                             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
                                         >
                                             <option value="CUSTOMER">Customer / Reseller</option>
@@ -1075,26 +1102,40 @@ const AdminUsers = () => {
                                                     Amount to Add / Subtract
                                                 </label>
                                                 <div className="relative">
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-emerald-600">₹</span>
+                                                    <span className="absolute top-1/2 left-4 -translate-y-1/2 font-bold text-emerald-600">
+                                                        ₹
+                                                    </span>
                                                     <input
                                                         type="number"
                                                         placeholder="e.g. 500 or -200"
                                                         value={adminEditForm.walletAdjustment}
-                                                        onChange={(e) => setAdminEditForm({...adminEditForm, walletAdjustment: e.target.value})}
-                                                        className="w-full rounded-xl border border-emerald-200 bg-white py-2.5 pl-8 pr-4 text-sm font-bold text-emerald-900 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                                        onChange={(e) =>
+                                                            setAdminEditForm({
+                                                                ...adminEditForm,
+                                                                walletAdjustment: e.target.value,
+                                                            })
+                                                        }
+                                                        className="w-full rounded-xl border border-emerald-200 bg-white py-2.5 pr-4 pl-8 text-sm font-bold text-emerald-900 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                                                     />
                                                 </div>
                                             </div>
                                             <div className="h-12 border-l border-emerald-200"></div>
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] font-bold text-emerald-700 uppercase">Current Balance</span>
+                                                <span className="text-[10px] font-bold text-emerald-700 uppercase">
+                                                    Current Balance
+                                                </span>
                                                 <span className="text-xl font-black text-emerald-900">
-                                                    ₹{users.find(u => u._id === adminEditForm.id)?.walletBalance?.toLocaleString('en-IN') || '0.00'}
+                                                    ₹
+                                                    {users
+                                                        .find((u) => u._id === adminEditForm.id)
+                                                        ?.walletBalance?.toLocaleString('en-IN') ||
+                                                        '0.00'}
                                                 </span>
                                             </div>
                                         </div>
                                         <p className="mt-2 text-[10px] font-medium text-emerald-600 italic">
-                                            * Updates will record a "Manual Adjustment" transaction in the user's wallet history.
+                                            * Updates will record a "Manual Adjustment" transaction
+                                            in the user's wallet history.
                                         </p>
                                     </div>
                                 </div>

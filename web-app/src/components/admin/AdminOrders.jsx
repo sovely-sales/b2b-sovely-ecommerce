@@ -141,7 +141,7 @@ function parseCsvToOrders(csvText) {
         const tracking = col(row, 'Tracking');
         return {
             wukusyOrderNo: col(row, 'Wukusy Order No'),
-            sovelyOrderId: col(row, 'Sovely Order ID') || col(row, 'Platform Order No'), // Support both
+            sovelyOrderId: col(row, 'Sovely Order ID') || col(row, 'Platform Order No'),
             platformId: col(row, 'Platform ID') || col(row, 'Marketplace ID'),
             orderDate: col(row, 'Order Date'),
             customerName: col(row, 'Customer Name'),

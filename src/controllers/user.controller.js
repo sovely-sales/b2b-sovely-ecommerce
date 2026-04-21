@@ -447,14 +447,12 @@ export const updateUserByAdmin = asyncHandler(async (req, res) => {
     if (gstin !== undefined) updateData.gstin = gstin.trim().toUpperCase();
     if (role !== undefined) updateData.role = role;
 
-    // Handle Wallet Adjustment
     if (walletAdjustment && walletAdjustment !== 0) {
         const adjustment = Number(walletAdjustment);
         if (isNaN(adjustment)) throw new ApiError(400, 'Invalid wallet adjustment amount');
 
         user.walletBalance = (user.walletBalance || 0) + adjustment;
-        
-        // Record Transaction
+
         await WalletTransaction.create({
             resellerId: user._id,
             type: adjustment > 0 ? 'CREDIT' : 'DEBIT',
@@ -467,7 +465,6 @@ export const updateUserByAdmin = asyncHandler(async (req, res) => {
         });
     }
 
-    // Apply other updates
     Object.assign(user, updateData);
     await user.save({ validateBeforeSave: false });
 

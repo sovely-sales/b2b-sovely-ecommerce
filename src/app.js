@@ -64,6 +64,8 @@ app.use((req, res, next) => {
     next();
 });
 
+app.use('/api/webhooks/razorpay', express.raw({ type: 'application/json' }));
+
 app.use(
     express.json({
         limit: '5mb',
@@ -75,24 +77,20 @@ app.use(
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(cookieParser());
 app.use(express.static('public'));
+
 app.use('/api/webhooks', webhookRouter);
 
 const apiVersion = '/api/v1';
 app.use(`${apiVersion}/products`, productRouter);
-
 app.use(`${apiVersion}/health`, healthRouter);
 app.use(`${apiVersion}/auth`, authRouter);
 app.use(`${apiVersion}/users`, userRouter);
-
 app.use(`${apiVersion}/categories`, categoryRouter);
-
 app.use(`${apiVersion}/cart`, cartRouter);
 app.use(`${apiVersion}/orders`, orderRouter);
-
 app.use(`${apiVersion}/invoices`, invoiceRouter);
 app.use(`${apiVersion}/payments`, paymentRouter);
 app.use(`${apiVersion}/wallet`, walletRouter);
-
 app.use(`${apiVersion}/analytics`, analyticsRouter);
 
 app.use((req, res, next) => {

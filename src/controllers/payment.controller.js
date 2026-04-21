@@ -44,9 +44,7 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Missing required payment parameters');
     }
 
-    const isMock =
-        process.env.RAZORPAY_KEY_ID === undefined ||
-        process.env.RAZORPAY_KEY_ID === 'rzp_test_dummy';
+    const isMock = !process.env.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID === 'rzp_test_dummy';
 
     if (!isMock) {
         const body = razorpay_order_id + '|' + razorpay_payment_id;
@@ -60,51 +58,52 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
         }
     }
 
+    const invoiceCheck = await Invoice.findOne({ _id: invoiceId, resellerId });
+    if (!invoiceCheck) throw new ApiError(404, 'Invoice not found');
+    if (invoiceCheck.paymentStatus === 'PAID') {
+        return res.status(200).json(new ApiResponse(200, null, 'Payment already processed'));
+    }
+    if (invoiceCheck.razorpayOrderId !== razorpay_order_id) {
+        throw new ApiError(
+            400,
+            'Payment origin mismatch: Invoice does not match the Razorpay order'
+        );
+    }
+
+    const expectedAmountInPaise = Math.round(invoiceCheck.grandTotal * 100);
+
+    if (!isMock) {
+        const rzpPayment = await razorpayInstance.payments.fetch(razorpay_payment_id);
+        if (rzpPayment.amount !== expectedAmountInPaise) {
+            throw new ApiError(400, 'SECURITY ALERT: Amount mismatch.');
+        }
+        if (rzpPayment.status === 'authorized') {
+            await razorpayInstance.payments.capture(
+                razorpay_payment_id,
+                expectedAmountInPaise,
+                'INR'
+            );
+        } else if (rzpPayment.status !== 'captured') {
+            throw new ApiError(400, `Payment status: ${rzpPayment.status}. Expected captured.`);
+        }
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        const existingPayment = await Payment.findOne({
-            gatewayPaymentId: razorpay_payment_id,
-        }).session(session);
-        if (existingPayment) {
+        const lockedInvoice = await Invoice.findOneAndUpdate(
+            { _id: invoiceId, paymentStatus: { $ne: 'PAID' } },
+            { $set: { paymentStatus: 'PAID' } },
+            { new: true, session }
+        );
+
+        if (!lockedInvoice) {
             await session.abortTransaction();
             session.endSession();
             return res
                 .status(200)
-                .json(new ApiResponse(200, existingPayment, 'Payment already processed'));
-        }
-
-        const invoice = await Invoice.findOne({ _id: invoiceId, resellerId }).session(session);
-        if (!invoice) throw new ApiError(404, 'Invoice not found');
-        if (invoice.paymentStatus === 'PAID')
-            throw new ApiError(400, 'Invoice already marked as PAID');
-
-        if (invoice.razorpayOrderId !== razorpay_order_id) {
-            throw new ApiError(
-                400,
-                'Payment origin mismatch: Invoice does not match the Razorpay order'
-            );
-        }
-
-        const expectedAmountInPaise = Math.round(invoice.grandTotal * 100);
-
-        if (!isMock) {
-            const rzpPayment = await razorpayInstance.payments.fetch(razorpay_payment_id);
-
-            if (rzpPayment.amount !== expectedAmountInPaise) {
-                throw new ApiError(400, `SECURITY ALERT: Amount mismatch.`);
-            }
-
-            if (rzpPayment.status === 'authorized') {
-                await razorpayInstance.payments.capture(
-                    razorpay_payment_id,
-                    expectedAmountInPaise,
-                    'INR'
-                );
-            } else if (rzpPayment.status !== 'captured') {
-                throw new ApiError(400, `Payment status: ${rzpPayment.status}. Expected captured.`);
-            }
+                .json(new ApiResponse(200, null, 'Payment was just processed by webhook'));
         }
 
         const paymentArray = await Payment.create(
@@ -114,10 +113,10 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
                     gatewayOrderId: razorpay_order_id,
                     gatewayPaymentId: razorpay_payment_id,
                     gatewaySignature: razorpay_signature,
-                    amount: invoice.grandTotal,
+                    amount: lockedInvoice.grandTotal,
                     paymentMethod: 'UNKNOWN',
                     purpose:
-                        invoice.invoiceType === 'WALLET_TOPUP'
+                        lockedInvoice.invoiceType === 'WALLET_TOPUP'
                             ? 'WALLET_RECHARGE'
                             : 'DIRECT_ORDER_PAYMENT',
                     status: 'CAPTURED',
@@ -127,19 +126,16 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
         );
         const payment = paymentArray[0];
 
-        invoice.paymentStatus = 'PAID';
-        await invoice.save({ session });
-
-        if (invoice.invoiceType === 'ORDER_BILL' && invoice.orderId) {
-            const order = await Order.findById(invoice.orderId).session(session);
-            if (order) {
-                order.status = 'PROCESSING';
-                await order.save({ session });
-            }
-        } else if (invoice.invoiceType === 'WALLET_TOPUP') {
+        if (lockedInvoice.invoiceType === 'ORDER_BILL' && lockedInvoice.orderId) {
+            await Order.findByIdAndUpdate(
+                lockedInvoice.orderId,
+                { status: 'PROCESSING' },
+                { session }
+            );
+        } else if (lockedInvoice.invoiceType === 'WALLET_TOPUP') {
             const updatedUser = await User.findByIdAndUpdate(
                 resellerId,
-                { $inc: { walletBalance: invoice.grandTotal } },
+                { $inc: { walletBalance: lockedInvoice.grandTotal } },
                 { new: true, session }
             );
 
@@ -151,7 +147,7 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
                         resellerId: resellerId,
                         type: 'CREDIT',
                         purpose: 'WALLET_RECHARGE',
-                        amount: invoice.grandTotal,
+                        amount: lockedInvoice.grandTotal,
                         closingBalance: updatedUser.walletBalance,
                         referenceId: razorpay_payment_id,
                         description: `Wallet top-up via Razorpay (${razorpay_payment_id})`,
@@ -166,7 +162,13 @@ export const verifyPaymentSignature = asyncHandler(async (req, res) => {
 
         return res
             .status(200)
-            .json(new ApiResponse(200, { payment, invoice }, 'Payment verified securely'));
+            .json(
+                new ApiResponse(
+                    200,
+                    { payment, invoice: lockedInvoice },
+                    'Payment verified securely'
+                )
+            );
     } catch (error) {
         await session.abortTransaction();
         session.endSession();
@@ -200,12 +202,13 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
     invoice.razorpayOrderId = order.id;
     await invoice.save();
 
-    return res.status(200).json(
-        new ApiResponse(
-            200,
-
-            { razorpayOrder: order, amount: amountInINR, key_id },
-            'Razorpay order created securely'
-        )
-    );
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { razorpayOrder: order, amount: amountInINR, key_id },
+                'Razorpay order created securely'
+            )
+        );
 });

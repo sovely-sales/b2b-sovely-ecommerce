@@ -661,36 +661,50 @@ export default function ActiveCartTab({ setActiveTab }) {
                                             (sum, item) => sum + (Number(item.billableWeight) || 0),
                                             0
                                         );
-                                        
+
                                         if (shippingTotal <= 0) return null;
 
                                         const isDropship = group.key.startsWith('DROPSHIP');
                                         let label = 'Wholesale Delivery';
-                                        
+
                                         if (isDropship) {
-                                            const nameText = group.title.replace('Dropship Destination: ', '');
+                                            const nameText = group.title.replace(
+                                                'Dropship Destination: ',
+                                                ''
+                                            );
                                             label = `To: ${nameText}`;
                                         }
 
                                         return (
-                                            <div key={group.key} className="flex justify-between items-start">
+                                            <div
+                                                key={group.key}
+                                                className="flex items-start justify-between"
+                                            >
                                                 <div className="flex flex-col truncate pr-2">
-                                                    <span className="truncate text-slate-700" title={label}>
+                                                    <span
+                                                        className="truncate text-slate-700"
+                                                        title={label}
+                                                    >
                                                         {label}
                                                     </span>
-                                                    <span className="text-[9px] text-slate-400 font-medium mt-0.5">
+                                                    <span className="mt-0.5 text-[9px] font-medium text-slate-400">
                                                         Weight: {billableWeight.toFixed(2)} kg
                                                     </span>
                                                 </div>
-                                                <span className="text-slate-800 shrink-0">
-                                                    + ₹{shippingTotal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                                                <span className="shrink-0 text-slate-800">
+                                                    + ₹
+                                                    {shippingTotal.toLocaleString('en-IN', {
+                                                        minimumFractionDigits: 0,
+                                                        maximumFractionDigits: 2,
+                                                    })}
                                                 </span>
                                             </div>
                                         );
                                     })}
                                 </div>
                                 <p className="mt-3 border-t border-slate-200 pt-2 text-[9px] leading-relaxed font-bold text-slate-400">
-                                    *Rates calculated per destination using 0.5kg slab intervals. Separate tracking IDs will be generated for each location.
+                                    *Rates calculated per destination using 0.5kg slab intervals.
+                                    Separate tracking IDs will be generated for each location.
                                 </p>
                             </div>
 

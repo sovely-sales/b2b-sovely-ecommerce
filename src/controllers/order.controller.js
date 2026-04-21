@@ -281,7 +281,11 @@ export const createOrder = asyncHandler(async (req, res) => {
                 const groupKey = `DROPSHIP_${customer.phone}_${customer.address.zip}`;
                 if (!dropshipGroups[groupKey]) {
                     const groupPlatformId = platformOrderNos[groupKey] || '';
-                    dropshipGroups[groupKey] = { customerDetails: customer, items: [], platformOrderNo: groupPlatformId };
+                    dropshipGroups[groupKey] = {
+                        customerDetails: customer,
+                        items: [],
+                        platformOrderNo: groupPlatformId,
+                    };
                 }
                 dropshipGroups[groupKey].items.push(processedItem);
             } else {
@@ -1855,9 +1859,9 @@ export const importWukusyStatusesCsv = async (req, res) => {
         const dataRows = rows.slice(1);
 
         const wukusyOrderNoIdx = header.indexOf('Wukusy Order No');
-        const sovelyOrderIdIdx = header.indexOf('Sovely Order ID'); // Priority internal search
-        const platformOrderNoIdx = header.indexOf('Platform Order No'); // Legacy fallback
-        const platformIdIdx = header.indexOf('Platform ID'); 
+        const sovelyOrderIdIdx = header.indexOf('Sovely Order ID');
+        const platformOrderNoIdx = header.indexOf('Platform Order No');
+        const platformIdIdx = header.indexOf('Platform ID');
         const statusIdx = header.indexOf('Status');
         const courierIdx = header.indexOf('Courier');
         const trackingIdx = header.indexOf('Tracking');
@@ -1865,7 +1869,10 @@ export const importWukusyStatusesCsv = async (req, res) => {
         if ((sovelyOrderIdIdx === -1 && platformOrderNoIdx === -1) || statusIdx === -1) {
             return res
                 .status(400)
-                .json({ message: 'Invalid CSV format. Missing required headers (Sovely Order ID or Status).' });
+                .json({
+                    message:
+                        'Invalid CSV format. Missing required headers (Sovely Order ID or Status).',
+                });
         }
 
         const WUKUSY_STATUS_MAP = {
@@ -1895,7 +1902,8 @@ export const importWukusyStatusesCsv = async (req, res) => {
                     : '';
 
             const wukusyOrderNo = cleanField(row[wukusyOrderNoIdx]);
-            const sovelyOrderId = cleanField(row[sovelyOrderIdIdx]) || cleanField(row[platformOrderNoIdx]);
+            const sovelyOrderId =
+                cleanField(row[sovelyOrderIdIdx]) || cleanField(row[platformOrderNoIdx]);
             const platformId = cleanField(row[platformIdIdx]);
             const rawStatus = cleanField(row[statusIdx]).toLowerCase();
             const courier = cleanField(row[courierIdx]);

@@ -22,9 +22,10 @@ export const razorpayWebhook = async (req, res) => {
         return res.status(500).json({ status: 'error', message: 'Server configuration error' });
     }
 
-    const shasum = crypto.createHmac('sha256', secret);
+    const payload = Buffer.isBuffer(req.body) ? req.body : req.rawBody || JSON.stringify(req.body);
 
-    shasum.update(req.rawBody || JSON.stringify(req.body));
+    const shasum = crypto.createHmac('sha256', secret);
+    shasum.update(payload);
     const digest = shasum.digest('hex');
 
     if (digest !== req.headers['x-razorpay-signature']) {
@@ -32,10 +33,17 @@ export const razorpayWebhook = async (req, res) => {
         return res.status(400).json({ status: 'error', message: 'Invalid signature' });
     }
 
-    const event = req.body.event;
+    let eventBody;
+    try {
+        eventBody = Buffer.isBuffer(req.body) ? JSON.parse(req.body.toString('utf8')) : req.body;
+    } catch (err) {
+        return res.status(400).json({ status: 'error', message: 'Invalid JSON payload' });
+    }
+
+    const event = eventBody.event;
 
     if (event === 'payment.captured') {
-        const paymentEntity = req.body.payload.payment.entity;
+        const paymentEntity = eventBody.payload.payment.entity;
         const razorpayOrderId = paymentEntity.order_id;
         const razorpayPaymentId = paymentEntity.id;
 
@@ -43,32 +51,30 @@ export const razorpayWebhook = async (req, res) => {
         session.startTransaction();
 
         try {
-            const existingPayment = await Payment.findOne({
-                gatewayPaymentId: razorpayPaymentId,
-            }).session(session);
-            if (existingPayment) {
-                await session.abortTransaction();
-                session.endSession();
-                return res.status(200).json({ status: 'ok', message: 'Already processed' });
-            }
+            const lockedInvoice = await Invoice.findOneAndUpdate(
+                { razorpayOrderId, paymentStatus: { $ne: 'PAID' } },
+                { $set: { paymentStatus: 'PAID' } },
+                { new: true, session }
+            );
 
-            const invoice = await Invoice.findOne({ razorpayOrderId }).session(session);
-            if (!invoice || invoice.paymentStatus === 'PAID') {
+            if (!lockedInvoice) {
                 await session.abortTransaction();
                 session.endSession();
-                return res.status(200).json({ status: 'ok', message: 'Invoice not found/paid' });
+                return res
+                    .status(200)
+                    .json({ status: 'ok', message: 'Already processed by frontend' });
             }
 
             await Payment.create(
                 [
                     {
-                        resellerId: invoice.resellerId,
+                        resellerId: lockedInvoice.resellerId,
                         gatewayOrderId: razorpayOrderId,
                         gatewayPaymentId: razorpayPaymentId,
-                        amount: invoice.grandTotal,
+                        amount: lockedInvoice.grandTotal,
                         paymentMethod: 'UNKNOWN',
                         purpose:
-                            invoice.invoiceType === 'WALLET_TOPUP'
+                            lockedInvoice.invoiceType === 'WALLET_TOPUP'
                                 ? 'WALLET_RECHARGE'
                                 : 'DIRECT_ORDER_PAYMENT',
                         status: 'CAPTURED',
@@ -77,24 +83,27 @@ export const razorpayWebhook = async (req, res) => {
                 { session }
             );
 
-            invoice.paymentStatus = 'PAID';
-            await invoice.save({ session });
-
-            if (invoice.invoiceType === 'WALLET_TOPUP') {
+            if (lockedInvoice.invoiceType === 'ORDER_BILL' && lockedInvoice.orderId) {
+                await Order.findByIdAndUpdate(
+                    lockedInvoice.orderId,
+                    { status: 'PROCESSING' },
+                    { session }
+                );
+            } else if (lockedInvoice.invoiceType === 'WALLET_TOPUP') {
                 const updatedUser = await User.findByIdAndUpdate(
-                    invoice.resellerId,
-                    { $inc: { walletBalance: invoice.grandTotal } },
+                    lockedInvoice.resellerId,
+                    { $inc: { walletBalance: lockedInvoice.grandTotal } },
                     { new: true, session }
                 );
 
                 await WalletTransaction.create(
                     [
                         {
-                            resellerId: invoice.resellerId,
+                            resellerId: lockedInvoice.resellerId,
                             type: 'CREDIT',
                             purpose: 'WALLET_RECHARGE',
-                            amount: invoice.grandTotal,
-                            closingBalance: updatedUser.walletBalance,
+                            amount: lockedInvoice.grandTotal,
+                            closingBalance: updatedUser?.walletBalance || 0,
                             referenceId: 'TOP-' + razorpayPaymentId,
                             description: `Wallet top-up via Webhook Fallback (${razorpayPaymentId})`,
                             status: 'COMPLETED',
@@ -106,7 +115,7 @@ export const razorpayWebhook = async (req, res) => {
 
             await session.commitTransaction();
             session.endSession();
-            console.log(`✅ Webhook Processed: Wallet Top-up for Order ${razorpayOrderId}`);
+            console.log(`✅ Webhook Processed: Order Fulfillment/Top-up for ${razorpayOrderId}`);
 
             return res.status(200).json({ status: 'ok' });
         } catch (error) {
@@ -116,17 +125,18 @@ export const razorpayWebhook = async (req, res) => {
             return res.status(500).json({ status: 'error' });
         }
     } else if (event === 'payment.failed') {
-        const paymentEntity = req.body.payload.payment.entity;
+        const paymentEntity = eventBody.payload.payment.entity;
         const razorpayOrderId = paymentEntity.order_id;
         const razorpayPaymentId = paymentEntity.id;
         const errorDesc = paymentEntity.error_description || 'External payment failure';
 
         try {
-            const invoice = await Invoice.findOne({ razorpayOrderId });
-            if (invoice && invoice.paymentStatus !== 'PAID') {
-                invoice.paymentStatus = 'FAILED';
-                await invoice.save();
+            const invoice = await Invoice.findOneAndUpdate(
+                { razorpayOrderId, paymentStatus: { $ne: 'PAID' } },
+                { $set: { paymentStatus: 'FAILED' } }
+            );
 
+            if (invoice) {
                 await Payment.findOneAndUpdate(
                     { gatewayOrderId: razorpayOrderId },
                     {
@@ -150,9 +160,8 @@ export const razorpayWebhook = async (req, res) => {
                         status: 'FAILED',
                     });
                 }
-
                 console.log(
-                    `❌ Webhook Processed: Marked Invoice ${invoice.invoiceNumber} as FAILED`
+                    `❌ Webhook Processed: Marked Invoice ${invoice.invoiceNumber || razorpayOrderId} as FAILED`
                 );
             }
             return res.status(200).json({ status: 'ok' });

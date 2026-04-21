@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { TrendingUp, ShieldCheck, Truck, ArrowRight, BarChart3, Globe2, Search, LayoutGrid } from 'lucide-react';
+import {
+    TrendingUp,
+    ShieldCheck,
+    Truck,
+    ArrowRight,
+    BarChart3,
+    Globe2,
+    Search,
+    LayoutGrid,
+} from 'lucide-react';
 import { ROUTES } from '../utils/routes';
 
 const fadeUp = {
