@@ -34,6 +34,7 @@ export default function QuickOrderTab({ setActiveTab }) {
 
     const downloadTemplate = () => {
         const headers = [
+            'Platform ID',
             'SKU',
             'Quantity',
             'Customer Name',
@@ -47,6 +48,7 @@ export default function QuickOrderTab({ setActiveTab }) {
             'Payment Status',
         ];
         const sampleRow = [
+            'AMZN-12345',
             'SAMPLE-SKU-001',
             '1',
             'Rahul Sharma',
@@ -120,6 +122,7 @@ export default function QuickOrderTab({ setActiveTab }) {
                     `${row['shipping address1'] || ''} ${row['shipping address2'] || ''}`.trim();
                 rawOrders.push({
                     id: `row-${Date.now()}-${i}`,
+                    platformId: row['platform id']?.trim() || row['marketplace id']?.trim() || '',
                     sku,
                     qty,
                     customerName: row['customer name']?.trim(),
@@ -198,6 +201,7 @@ export default function QuickOrderTab({ setActiveTab }) {
         try {
             await api.post('/orders/bulk-dropship', {
                 orders: validOrders.map((o) => ({
+                    platformId: o.platformId,
                     productId: o.productId,
                     qty: o.qty,
                     resellerSellingPrice: o.resellerSellingPrice,
