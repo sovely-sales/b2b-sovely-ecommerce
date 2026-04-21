@@ -1145,6 +1145,7 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
                 orderId: dsOrderId,
                 resellerId,
                 endCustomerDetails: inputOrder.endCustomerDetails,
+                platformOrderNo: inputOrder.platformId || '',
                 status: 'PENDING',
                 paymentMethod: inputOrder.paymentMethod,
 
