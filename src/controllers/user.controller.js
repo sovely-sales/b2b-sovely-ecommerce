@@ -317,6 +317,9 @@ export const updateMyProfile = asyncHandler(async (req, res) => {
         yearEstablished,
     } = req.body;
 
+    const userToUpdate = await User.findById(req.user._id);
+    if (!userToUpdate) throw new ApiError(404, 'User not found');
+
     if (email) {
         const existingUser = await User.findOne({
             email,
@@ -328,40 +331,63 @@ export const updateMyProfile = asyncHandler(async (req, res) => {
         }
     }
 
-    const updateData = {};
-    if (name !== undefined) updateData.name = name.trim();
-    if (email !== undefined) updateData.email = email.trim().toLowerCase();
+    let hasPendingUpdate = false;
+    if (!userToUpdate.pendingUpdates) userToUpdate.pendingUpdates = {};
 
-    if (companyName !== undefined) updateData.companyName = companyName.trim();
-    if (gstin !== undefined) updateData.gstin = gstin.trim().toUpperCase() || undefined;
-    if (panNumber !== undefined) updateData.panNumber = panNumber.trim().toUpperCase() || undefined;
-    if (entityType !== undefined) updateData.entityType = entityType.trim();
-    if (industry !== undefined) updateData.industry = industry.trim();
-    if (website !== undefined) updateData.website = website.trim();
-    if (yearEstablished !== undefined) updateData.yearEstablished = yearEstablished.trim();
-
-    if (billingAddress) {
-        if (billingAddress.street !== undefined)
-            updateData['billingAddress.street'] = billingAddress.street?.trim() || '';
-        if (billingAddress.city !== undefined)
-            updateData['billingAddress.city'] = billingAddress.city?.trim() || '';
-        if (billingAddress.state !== undefined)
-            updateData['billingAddress.state'] = billingAddress.state?.trim() || '';
-        if (billingAddress.zip !== undefined)
-            updateData['billingAddress.zip'] = billingAddress.zip?.trim() || '';
+    if (companyName !== undefined && companyName.trim() !== (userToUpdate.companyName || '')) {
+        userToUpdate.pendingUpdates.companyName = companyName.trim();
+        hasPendingUpdate = true;
+    }
+    
+    if (gstin !== undefined) {
+        const newGstin = gstin.trim().toUpperCase();
+        if (newGstin !== (userToUpdate.gstin || '')) {
+            userToUpdate.pendingUpdates.gstin = newGstin;
+            hasPendingUpdate = true;
+        }
     }
 
-    if (emailNotifications !== undefined) updateData.emailNotifications = emailNotifications;
-    if (orderSms !== undefined) updateData.orderSms = orderSms;
-    if (promotionalEmails !== undefined) updateData.promotionalEmails = promotionalEmails;
+    if (panNumber !== undefined) {
+        const newPan = panNumber.trim().toUpperCase();
+        if (newPan !== (userToUpdate.panNumber || '')) {
+            userToUpdate.pendingUpdates.panNumber = newPan;
+            hasPendingUpdate = true;
+        }
+    }
 
-    const user = await User.findByIdAndUpdate(
-        req.user._id,
-        { $set: updateData },
-        { new: true, runValidators: true }
-    ).select('-passwordHash -refreshToken');
+    if (hasPendingUpdate) {
+        userToUpdate.updateRequestStatus = 'PENDING';
+    }
 
-    return res.status(200).json(new ApiResponse(200, user, 'Profile updated successfully'));
+    if (name !== undefined) userToUpdate.name = name.trim();
+    if (email !== undefined) userToUpdate.email = email.trim().toLowerCase();
+
+    if (entityType !== undefined) userToUpdate.entityType = entityType.trim();
+    if (industry !== undefined) userToUpdate.industry = industry.trim();
+    if (website !== undefined) userToUpdate.website = website.trim();
+    if (yearEstablished !== undefined) userToUpdate.yearEstablished = yearEstablished.trim();
+
+    if (billingAddress) {
+        if (!userToUpdate.billingAddress) userToUpdate.billingAddress = {};
+        if (billingAddress.street !== undefined)
+            userToUpdate.billingAddress.street = billingAddress.street?.trim() || '';
+        if (billingAddress.city !== undefined)
+            userToUpdate.billingAddress.city = billingAddress.city?.trim() || '';
+        if (billingAddress.state !== undefined)
+            userToUpdate.billingAddress.state = billingAddress.state?.trim() || '';
+        if (billingAddress.zip !== undefined)
+            userToUpdate.billingAddress.zip = billingAddress.zip?.trim() || '';
+    }
+
+    if (emailNotifications !== undefined) userToUpdate.emailNotifications = emailNotifications;
+    if (orderSms !== undefined) userToUpdate.orderSms = orderSms;
+    if (promotionalEmails !== undefined) userToUpdate.promotionalEmails = promotionalEmails;
+
+    await userToUpdate.save({ validateBeforeSave: true });
+    
+    const user = await User.findById(req.user._id).select('-passwordHash -refreshToken');
+
+    return res.status(200).json(new ApiResponse(200, user, hasPendingUpdate ? 'Profile updated. Sensitive details pending admin review.' : 'Profile updated successfully'));
 });
 
 export const requestProfileUpdate = asyncHandler(async (req, res) => {
