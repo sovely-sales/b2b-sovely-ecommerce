@@ -18,6 +18,7 @@ import {
     Calendar,
     ShieldCheck,
     RefreshCcw,
+    Trash2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../utils/api.js';
@@ -453,6 +454,26 @@ const AdminOrders = () => {
         }
     };
 
+    const handleDeleteOrder = async (id, orderId) => {
+        if (
+            !window.confirm(
+                `Are you absolutely sure you want to delete order ${orderId}? This action is permanent and cannot be undone.`
+            )
+        ) {
+            return;
+        }
+
+        const deleteToast = toast.loading(`Deleting order ${orderId}...`);
+        try {
+            await api.delete(`/orders/${id}`);
+            setOrders((prev) => prev.filter((o) => o._id !== id));
+            setSelectedOrder(null);
+            toast.success(`Order ${orderId} deleted permanently`, { id: deleteToast });
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to delete order', { id: deleteToast });
+        }
+    };
+
     const handleExportCourierOrders = async () => {
         if (!exportStartDate || !exportEndDate) {
             toast.error('Please select both start and end dates');
@@ -855,40 +876,55 @@ const AdminOrders = () => {
                                             </td>
 
                                             <td className="px-4 py-3 text-center">
-                                                <button
-                                                    onClick={() => {
-                                                        const availableStatuses =
-                                                            getManualOverrideStatuses(order.status);
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            const availableStatuses =
+                                                                getManualOverrideStatuses(order.status);
 
-                                                        setSelectedOrder(order);
-                                                        setViewMode(isCompleted);
-                                                        setEwayBillNumber(
-                                                            order.ewayBillNumber || ''
-                                                        );
-                                                        setEditForm({
-                                                            status: availableStatuses.includes(
-                                                                order.status
-                                                            )
-                                                                ? order.status
-                                                                : '',
-                                                            courierName:
-                                                                order.tracking?.courierName || '',
-                                                            awbNumber:
-                                                                order.tracking?.awbNumber || '',
-                                                            platformOrderNo:
-                                                                order.platformOrderNo || '',
-                                                            ndrReason:
-                                                                order.ndrDetails?.reason || '',
-                                                        });
-                                                    }}
-                                                    className={`rounded px-3 py-1.5 text-[10px] font-extrabold transition-colors ${
-                                                        isCompleted
-                                                            ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                                            : 'bg-slate-900 text-white hover:bg-slate-800'
-                                                    }`}
-                                                >
-                                                    {isCompleted ? 'VIEW' : 'PROCESS'}
-                                                </button>
+                                                            setSelectedOrder(order);
+                                                            setViewMode(isCompleted);
+                                                            setEwayBillNumber(
+                                                                order.ewayBillNumber || ''
+                                                            );
+                                                            setEditForm({
+                                                                status: availableStatuses.includes(
+                                                                    order.status
+                                                                )
+                                                                    ? order.status
+                                                                    : '',
+                                                                courierName:
+                                                                    order.tracking?.courierName || '',
+                                                                awbNumber:
+                                                                    order.tracking?.awbNumber || '',
+                                                                platformOrderNo:
+                                                                    order.platformOrderNo || '',
+                                                                ndrReason:
+                                                                    order.ndrDetails?.reason || '',
+                                                            });
+                                                        }}
+                                                        className={`rounded px-3 py-1.5 text-[10px] font-extrabold transition-colors ${
+                                                            isCompleted
+                                                                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                                : 'bg-slate-900 text-white hover:bg-slate-800'
+                                                        }`}
+                                                    >
+                                                        {isCompleted ? 'VIEW' : 'PROCESS'}
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteOrder(
+                                                                order._id,
+                                                                order.orderId
+                                                            );
+                                                        }}
+                                                        className="rounded bg-red-50 p-1.5 text-red-600 transition-colors hover:bg-red-100"
+                                                        title="Delete Order"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -1368,7 +1404,7 @@ const AdminOrders = () => {
                                     )}
                                 </div>
 
-                                <div className="flex gap-3 border-t border-slate-200 bg-white p-4">
+                                <div className="flex flex-wrap gap-3 border-t border-slate-200 bg-white p-4">
                                     <button
                                         onClick={() => setSelectedOrder(null)}
                                         className="flex-1 rounded-lg border border-slate-300 bg-white py-3 text-xs font-extrabold text-slate-600 transition-colors hover:bg-slate-50"
@@ -1384,6 +1420,15 @@ const AdminOrders = () => {
                                             {isSaving ? 'Processing...' : 'Save Manual Update'}
                                         </button>
                                     )}
+                                    <button
+                                        onClick={() =>
+                                            handleDeleteOrder(selectedOrder._id, selectedOrder.orderId)
+                                        }
+                                        className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs font-extrabold text-red-600 transition-colors hover:bg-red-100"
+                                        title="Permanently Delete Order"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
                             </motion.div>
                         </>

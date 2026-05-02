@@ -1989,3 +1989,37 @@ export const importWukusyStatusesCsv = async (req, res) => {
         return res.status(500).json({ message: 'Server error processing the CSV file.' });
     }
 };
+
+export const deleteOrder = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const order = await Order.findById(id);
+    if (!order) {
+        throw new ApiError(404, 'Order not found');
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const hasInventoryRestocked = (order.statusHistory || []).some(
+            (h) => h.status === 'RESTOCKED'
+        );
+        if (!hasInventoryRestocked && !['CANCELLED', 'RTO_DELIVERED'].includes(order.status)) {
+            await restoreInventoryForOrder(order, session);
+        }
+
+        await Invoice.deleteMany({ orderId: order._id }).session(session);
+
+        await Order.findByIdAndDelete(id).session(session);
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.status(200).json(new ApiResponse(200, null, 'Order deleted successfully'));
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new ApiError(500, error.message || 'Failed to delete order');
+    }
+});
