@@ -345,12 +345,18 @@ export const createOrder = asyncHandler(async (req, res) => {
             const whOrderId = `Sov-${Math.floor(10000000 + Math.random() * 90000000)}`;
             generatedOrderIds.push(whOrderId);
 
+            const whPlatformId = platformOrderNos['WHOLESALE'];
+            if (!whPlatformId) {
+                throw new ApiError(400, 'Platform Order Number is mandatory for Wholesale orders.');
+            }
+
             ordersToCreate.push({
                 orderId: whOrderId,
                 resellerId,
                 billingDetails: buyerSnapshot,
                 shippingDetails: buyerSnapshot,
                 status: 'PENDING',
+                platformOrderNo: whPlatformId,
                 paymentMethod: 'PREPAID_WALLET',
                 subTotal: whSubTotal,
                 taxTotal: whTaxTotal,
@@ -428,6 +434,13 @@ export const createOrder = asyncHandler(async (req, res) => {
                     )}. Minimum customer total required is ₹${roundMoney(dsTotalCost).toFixed(
                         2
                     )}, current is ₹${roundMoney(totalCustomerPayment).toFixed(2)}.`
+                );
+            }
+
+            if (!group.platformOrderNo) {
+                throw new ApiError(
+                    400,
+                    `Platform Order Number is mandatory for destination ${customer.address.zip}.`
                 );
             }
 
@@ -1303,7 +1316,7 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
     };
 
     const headers = [
-        'Wukusy Order No',
+        'Platform order number',
         'First Name',
         'Last Name',
         'Mobile',
@@ -1332,7 +1345,7 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
 
-        const company = reseller.companyName || '';
+        const company = reseller.name || '';
         const phone = (isDropship ? order.endCustomerDetails?.phone : reseller.phoneNumber) || '';
         const shippingAddress1 =
             (isDropship
@@ -1439,7 +1452,7 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
 
-        const company = reseller.companyName || '';
+        const company = reseller.name || '';
         const phone = (isDropship ? order.endCustomerDetails?.phone : reseller.phoneNumber) || '';
         const shippingAddress1 =
             (isDropship
@@ -1505,7 +1518,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
         .populate('resellerId', 'name companyName email phoneNumber billingAddress');
 
     const headers = [
-        'Wukusy Order No',
+        'Platform order number',
         'First Name',
         'Last Name',
         'Company',
@@ -1541,7 +1554,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
 
         let firstName = '';
         let lastName = '';
-        let company = '';
+        let company = order.resellerId?.name || '';
         let mobile = '';
         let address1 = '';
         let address2 = '';
@@ -1562,7 +1575,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
             const nameParts = (order.resellerId?.name || '').split(' ');
             firstName = nameParts[0] || '';
             lastName = nameParts.slice(1).join(' ') || '';
-            company = order.resellerId?.companyName || '';
+            company = order.resellerId?.name || '';
             mobile = order.resellerId?.phoneNumber || order.resellerId?.email || '';
             address1 = order.resellerId?.billingAddress?.street || '';
             city = order.resellerId?.billingAddress?.city || '';
@@ -1693,7 +1706,7 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
     }).populate('resellerId');
 
     const headers = [
-        'Sovely Order ID',
+        'Platform order number',
         'First Name',
         'Last Name',
         'Company',
@@ -1728,9 +1741,9 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
     orders.forEach((order) => {
         const isDropship = !!order.endCustomerDetails?.name;
 
+        let company = order.resellerId?.name || '';
         let firstName = '',
             lastName = '',
-            company = '',
             mobile = '';
         let address1 = '',
             address2 = '',
@@ -1751,7 +1764,7 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
             const nameParts = (order.resellerId?.name || '').split(' ');
             firstName = nameParts[0] || '';
             lastName = nameParts.slice(1).join(' ') || '';
-            company = order.resellerId?.companyName || '';
+            company = order.resellerId?.name || '';
             mobile = order.resellerId?.phoneNumber || order.resellerId?.email || '';
             address1 = order.resellerId?.billingAddress?.street || '';
             city = order.resellerId?.billingAddress?.city || '';

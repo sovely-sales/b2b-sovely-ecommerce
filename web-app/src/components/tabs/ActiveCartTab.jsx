@@ -218,6 +218,13 @@ export default function ActiveCartTab({ setActiveTab }) {
                 'Please assign destinations for all dropship items before checking out.'
             );
 
+        const missingPlatformIdGroup = groupedCart.find((g) => !g.isWarning && !platformOrderNos[g.key]);
+        if (missingPlatformIdGroup) {
+            return setError(
+                `Platform Order Number is mandatory for ${missingPlatformIdGroup.key === 'WHOLESALE' ? 'Wholesale order' : `destination ${missingPlatformIdGroup.details?.address?.zip}`}.`
+            );
+        }
+
         const negativeMarginGroup = groupedCart.find((group) => {
             if (group.icon !== 'dropship') return false;
             const paymentMethod = paymentMethods[group.key] ?? 'COD';
@@ -331,11 +338,11 @@ export default function ActiveCartTab({ setActiveTab }) {
                                                 {group.details.address.zip} • {group.details.phone}
                                             </p>
                                         )}
-                                        {group.icon === 'dropship' && group.details && (
+                                        {(group.key === 'WHOLESALE' || (group.icon === 'dropship' && group.details)) && (
                                             <div className="mt-3 max-w-xs">
                                                 <input
                                                     type="text"
-                                                    placeholder="Platform ID (Amazon/Flipkart Order No)"
+                                                    placeholder="Platform ID (Amazon/Flipkart Order No) *"
                                                     value={platformOrderNos[group.key] || ''}
                                                     onChange={(e) =>
                                                         setPlatformOrderNos((prev) => ({
