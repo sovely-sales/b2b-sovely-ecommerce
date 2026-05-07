@@ -19,8 +19,11 @@
       "destination": "src/index.js"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "source": "/(.*)",
-      "destination": "web-app/$1"
+      "destination": "web-app/index.html"
     }
   ]
 }
