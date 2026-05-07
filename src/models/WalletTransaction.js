@@ -48,6 +48,11 @@ const walletTransactionSchema = new mongoose.Schema(
             enum: ['PENDING', 'COMPLETED', 'FAILED'],
             default: 'COMPLETED',
         },
+        performedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            comment: 'Admin who performed the manual adjustment',
+        },
     },
     { timestamps: true }
 );

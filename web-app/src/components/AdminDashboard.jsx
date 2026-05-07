@@ -12,6 +12,7 @@ import {
     ShieldCheck,
     LogOut,
     Landmark,
+    Wallet,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
@@ -23,6 +24,7 @@ import AdminProducts from './admin/AdminProducts';
 import AdminUsers from './admin/AdminUsers';
 import AdminInvoices from './admin/AdminInvoices';
 import AdminWithdrawals from './admin/AdminWithdrawals';
+import AdminWalletLog from './admin/AdminWalletLog';
 import { AuthContext } from '../AuthContext';
 
 const ADMIN_TABS = [
@@ -32,6 +34,7 @@ const ADMIN_TABS = [
     { id: 'users', icon: ShieldCheck, label: 'Users & Resellers' },
     { id: 'invoices', icon: FileText, label: 'Invoices' },
     { id: 'withdrawals', icon: Landmark, label: 'Payouts' },
+    { id: 'wallet-logs', icon: Wallet, label: 'Financial Ledger' },
     { id: 'bulk-upload', icon: Upload, label: 'Mass Import (CSV)' },
 ];
 
@@ -71,6 +74,8 @@ const AdminDashboard = () => {
                 return <AdminInvoices />;
             case 'withdrawals':
                 return <AdminWithdrawals />;
+            case 'wallet-logs':
+                return <AdminWalletLog />;
             default:
                 return <AdminOrders />;
         }

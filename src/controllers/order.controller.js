@@ -17,6 +17,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import Papa from 'papaparse';
 
+
 const ALLOWED_ORDER_STATUSES = new Set([
     'PENDING',
     'PROCESSING',
@@ -1319,19 +1320,17 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
         'Platform order number',
         'First Name',
         'Last Name',
+        'Company',
         'Mobile',
         'Shipping Address 1',
+        'Shipping Address 2',
         'City',
         'State',
         'Pincode',
-        'Company',
         'SKU',
         'Quantity',
+        'Payment Method',
         'Selling Price',
-        'Status',
-        'Platform Order No',
-        'Courier',
-        'Tracking',
     ];
 
     let csvContent = '\uFEFF' + headers.map(escapeCsv).join(',') + '\n';
@@ -1365,22 +1364,20 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
 
         order.items.forEach((item) => {
             const row = [
-                order.orderId,
+                order.platformOrderNo || order.orderId,
                 firstName,
                 lastName,
+                company,
                 phone,
                 shippingAddress1,
+                '', // Shipping Address 2
                 city,
                 state,
                 pincode,
-                company,
                 item.sku,
                 item.qty,
-                item.resellerSellingPrice,
-                order.status,
-                '', // Platform Order No
-                '', // Courier
-                '', // Tracking
+                order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
+                item.resellerSellingPrice || item.platformBasePrice,
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });
@@ -1532,10 +1529,6 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
         'Quantity',
         'Payment Method',
         'Selling Price',
-        'Status',
-        'Platform Order No',
-        'Courier',
-        'Tracking',
     ];
 
     const escapeCsv = (val) => {
@@ -1585,7 +1578,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
 
         order.items.forEach((item) => {
             const row = [
-                order.orderId,
+                order.platformOrderNo || order.orderId,
                 firstName,
                 lastName,
                 company,
@@ -1597,12 +1590,8 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
                 pincode,
                 item.sku,
                 item.qty,
-                order.paymentMethod,
+                order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
                 item.resellerSellingPrice || item.platformBasePrice,
-                order.status, // Status
-                order.platformOrderNo || '', // Platform Order No
-                '', // Courier
-                '', // Tracking
             ];
 
             csvContent += row.map(escapeCsv).join(',') + '\n';
@@ -1711,8 +1700,8 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
         'Last Name',
         'Company',
         'Mobile',
-        'Shipping Add 1',
-        'Shipping Add 2',
+        'Shipping Address 1',
+        'Shipping Address 2',
         'City',
         'State',
         'Pincode',
@@ -1720,10 +1709,6 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
         'Quantity',
         'Payment Method',
         'Selling Price',
-        'Status',
-        'Platform ID',
-        'Courier',
-        'Tracking',
     ];
 
     const escapeCsv = (val) => {
@@ -1774,7 +1759,7 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
 
         order.items.forEach((item) => {
             const row = [
-                order.orderId,
+                order.platformOrderNo || order.orderId, // Column 1: Platform Order Number (fallback to orderId if null)
                 firstName,
                 lastName,
                 company,
@@ -1788,10 +1773,6 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
                 item.qty,
                 order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
                 item.resellerSellingPrice || item.platformBasePrice,
-                order.status, // Status
-                order.platformOrderNo || '', // Platform Order No
-                '', // Courier
-                '', // Tracking
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });
@@ -1803,82 +1784,83 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
 });
 
 function parseCSVText(text) {
-    const rows = [];
-    let row = [],
-        field = '',
-        i = 0,
-        insideQuotes = false;
-    while (i < text.length) {
-        const char = text[i];
-        if (insideQuotes) {
-            if (char === '"') {
-                if (text[i + 1] === '"') {
-                    field += '"';
-                    i += 2;
-                    continue;
-                }
-                insideQuotes = false;
-                i++;
-                continue;
-            }
-            field += char;
-            i++;
-            continue;
-        }
-        if (char === '"') {
-            insideQuotes = true;
-            i++;
-            continue;
-        }
-        if (char === ',') {
-            row.push(field);
-            field = '';
-            i++;
-            continue;
-        }
-        if (char === '\n') {
-            row.push(field);
-            rows.push(row);
-            row = [];
-            field = '';
-            i++;
-            continue;
-        }
-        if (char === '\r') {
-            i++;
-            continue;
-        }
-        field += char;
-        i++;
-    }
-    row.push(field);
-    rows.push(row);
-    return rows;
+    const { data } = Papa.parse(text.trim(), {
+        skipEmptyLines: 'greedy',
+        header: false,
+    });
+    return data;
 }
 
 export const importWukusyStatusesCsv = async (req, res) => {
     try {
-        if (!req.file || !req.file.buffer) {
-            return res.status(400).json({ message: 'No CSV file uploaded or file is empty.' });
+        if (!req.file) {
+            return res.status(400).json({ message: 'No CSV file uploaded.' });
         }
 
-        const csvText = req.file.buffer.toString('utf-8');
+        let csvText = '';
+        if (req.file.buffer) {
+            csvText = req.file.buffer.toString('utf-8');
+        } else if (req.file.path) {
+            csvText = fs.readFileSync(req.file.path, 'utf-8');
+            // Clean up the temp file
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (err) {
+                console.error('Failed to delete temp file:', err);
+            }
+        }
+
+        if (!csvText || csvText.trim().length === 0) {
+            return res.status(400).json({ message: 'CSV file is empty.' });
+        }
+
         const rows = parseCSVText(csvText);
 
         if (rows.length < 2) {
             return res.status(400).json({ message: 'CSV appears to be empty.' });
         }
 
-        const header = rows[0].map((h) => h.trim().replace(/^"+|"+$/g, ''));
+        const cleanField = (val) =>
+            val
+                ? val
+                      .replace(/^"+|"+$/g, '')
+                      .replace(/^=/, '')
+                      .trim()
+                : '';
+
+        const header = rows[0].map((h) => cleanField(h));
         const dataRows = rows.slice(1);
 
-        const wukusyOrderNoIdx = header.indexOf('Wukusy Order No');
-        const sovelyOrderIdIdx = header.indexOf('Sovely Order ID');
-        const platformOrderNoIdx = header.indexOf('Platform Order No');
-        const platformIdIdx = header.indexOf('Platform ID');
-        const statusIdx = header.indexOf('Status');
-        const courierIdx = header.indexOf('Courier');
-        const trackingIdx = header.indexOf('Tracking');
+        // 1. Find indices with case-insensitive matching and trimming
+        const cleanH = (h) => (h || '').toString().trim();
+        const lowerH = (h) => cleanH(h).toLowerCase();
+
+        const wukusyOrderNoIdx = header.findIndex(h => {
+            const l = lowerH(h);
+            return l === 'wukusy order no' || l === 'wukusy o' || l === 'wukuy o' || l.includes('wukusy');
+        });
+        const sovelyOrderIdIdx = header.findIndex(h => {
+            const l = lowerH(h);
+            return l === 'sovely order id' || l === 'sovely id';
+        });
+        const platformOrderNoIdx = header.findIndex(h => {
+            const l = lowerH(h);
+            return l === 'platform id' || l === 'platform order no' || l === 'platform o' || l === 'order id' || l === 'order no';
+        });
+        const statusIdx = header.findIndex(h => {
+            const l = lowerH(h);
+            return l === 'status' || l === 'order status' || l === 'shipment status';
+        });
+        const courierIdx = header.findIndex(h => {
+            const l = lowerH(h);
+            return l === 'courier' || l === 'courier name' || l === 'carrier';
+        });
+        const trackingIdx = header.findIndex(h => {
+            const l = lowerH(h);
+            return l === 'tracking' || l === 'tracking no' || l === 'awb' || l === 'waybill';
+        });
+
+        console.log(`[Bulk Sync] Headers found: WukusyIdx=${wukusyOrderNoIdx}, SovelyIdx=${sovelyOrderIdIdx}, PlatformIdx=${platformOrderNoIdx}, StatusIdx=${statusIdx}`);
 
         if ((sovelyOrderIdIdx === -1 && platformOrderNoIdx === -1) || statusIdx === -1) {
             return res
@@ -1899,12 +1881,15 @@ export const importWukusyStatusesCsv = async (req, res) => {
             rto: 'RTO',
             'rto delivered': 'RTO_DELIVERED',
             label_printed: 'SHIPPED',
+            label_prin: 'SHIPPED',
+            paid: 'SHIPPED', // In Wukusy, 'paid' often means shipped/ready
         };
 
         let updated = 0;
         let skipped = 0;
 
-        for (const row of dataRows) {
+        for (let i = 0; i < dataRows.length; i++) {
+            const row = dataRows[i];
             if (!row || row.length < header.length) continue;
 
             const cleanField = (val) =>
@@ -1916,30 +1901,77 @@ export const importWukusyStatusesCsv = async (req, res) => {
                     : '';
 
             const wukusyOrderNo = cleanField(row[wukusyOrderNoIdx]);
-            const sovelyOrderId =
-                cleanField(row[sovelyOrderIdIdx]) || cleanField(row[platformOrderNoIdx]);
-            const platformId = cleanField(row[platformIdIdx]);
+            const sovelyOrderId = cleanField(row[sovelyOrderIdIdx]);
+            const platformOrderNo = cleanField(row[platformOrderNoIdx]);
             const rawStatus = cleanField(row[statusIdx]).toLowerCase();
             const courier = cleanField(row[courierIdx]);
             const tracking = cleanField(row[trackingIdx]);
 
-            if (!sovelyOrderId) continue;
+            if (!sovelyOrderId && !platformOrderNo) {
+                console.log(`[Bulk Sync] Row ${i + 1} skipped: No ID found in columns.`);
+                continue;
+            }
 
-            const mappedStatus = WUKUSY_STATUS_MAP[rawStatus];
+            // Create a flexible regex for matching (treats - and _ as interchangeable)
+            const makeFlexible = (id) => (id ? id.replace(/[-_]/g, '[-_]') : '');
+            const flexPlatform = makeFlexible(platformOrderNo);
+            const flexSovely = makeFlexible(sovelyOrderId);
 
-            // FIX: Search your database using the Sovely Order ID (your local orderId)
-            const order = await Order.findOne({ orderId: sovelyOrderId });
+            // Search by Sovely Order ID first, then fallback to Platform Order No
+            let order = null;
+            if (sovelyOrderId) {
+                // Search both fields with this value
+                order = await Order.findOne({
+                    $or: [
+                        { orderId: sovelyOrderId },
+                        { platformOrderNo: sovelyOrderId },
+                        { orderId: { $regex: new RegExp(`^${flexSovely}$`, 'i') } },
+                        { platformOrderNo: { $regex: new RegExp(`^${flexSovely}$`, 'i') } }
+                    ],
+                    status: { $in: ['PENDING', 'PROCESSING', 'SHIPPED'] }
+                });
+                if (order) console.log(`[Bulk Sync] Row ${i + 1}: Found by Sovely Column value: ${order.orderId}`);
+            }
+
+            if (!order && platformOrderNo) {
+                // Search both fields with this value as well
+                order = await Order.findOne({
+                    $or: [
+                        { platformOrderNo: platformOrderNo },
+                        { orderId: platformOrderNo },
+                        { platformOrderNo: { $regex: new RegExp(`^${flexPlatform}$`, 'i') } },
+                        { orderId: { $regex: new RegExp(`^${flexPlatform}$`, 'i') } }
+                    ],
+                    status: { $in: ['PENDING', 'PROCESSING', 'SHIPPED'] },
+                }).sort({ createdAt: -1 });
+                if (order) console.log(`[Bulk Sync] Row ${i + 1}: Found by Platform Column value: ${order.orderId}`);
+            }
+
+            if (!order && sovelyOrderId) {
+                // Last ditch effort: try Sovely ID case-insensitive
+                 order = await Order.findOne({
+                    orderId: { $regex: new RegExp(`^${sovelyOrderId}$`, 'i') },
+                    status: { $in: ['PENDING', 'PROCESSING', 'SHIPPED'] },
+                });
+            }
 
             if (!order) {
-                skipped++;
+                console.log(`[Bulk Sync] Row ${i + 1}: Order NOT FOUND for IDs: Sovely=${sovelyOrderId}, Platform=${platformOrderNo}`);
+                continue;
+            }
+
+            const mappedStatus = WUKUSY_STATUS_MAP[rawStatus];
+            console.log(`[Bulk Sync] Row ${i + 1} Found: ${order.orderId}. RawStatus="${rawStatus}" -> Mapped="${mappedStatus || 'SKIP'}"`);
+
+            if (!mappedStatus) {
                 continue;
             }
 
             let isModified = false;
 
             // Update the platform reference if provided
-            if (platformId && order.platformOrderNo !== platformId) {
-                order.platformOrderNo = platformId;
+            if (platformOrderNo && order.platformOrderNo !== platformOrderNo) {
+                order.platformOrderNo = platformOrderNo;
                 isModified = true;
             }
 
@@ -1953,6 +1985,11 @@ export const importWukusyStatusesCsv = async (req, res) => {
                 if (tracking && order.tracking.awbNumber !== tracking) {
                     order.tracking.awbNumber = tracking;
                     order.tracking.trackingNumber = tracking;
+                    isModified = true;
+                }
+                // Store Wukusy Order Number for audit
+                if (wukusyOrderNo) {
+                    order.wukusyOrderNo = wukusyOrderNo;
                     isModified = true;
                 }
             }

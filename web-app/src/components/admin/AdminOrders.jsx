@@ -62,6 +62,8 @@ const WUKUSY_STATUS_MAP = {
     pending: 'PENDING',
     delivered: 'DELIVERED',
     label_printed: 'SHIPPED',
+    label_prin: 'SHIPPED',
+    paid: 'SHIPPED',
 };
 
 function cleanField(val = '') {
@@ -127,34 +129,55 @@ function parseCSVText(text) {
 
 function parseCsvToOrders(csvText) {
     const rows = parseCSVText(csvText);
-    const headerIndex = rows.findIndex((row) =>
-        row.some((col) => cleanField(col) === 'Wukusy Order No')
+    const headerRow = rows.find((row) =>
+        row.some((col) => {
+            const c = cleanField(col).toLowerCase();
+            return c.includes('wukusy order') || c === 'wukusy o' || c === 'wukuy o';
+        })
     );
-    if (headerIndex === -1) return null;
+    if (!headerRow) return null;
 
-    const header = rows[headerIndex].map(cleanField);
-    const dataRows = rows.slice(headerIndex + 1).filter((r) => r.some((c) => c.trim()));
-    const col = (row, name) => cleanField(row[header.indexOf(name)] ?? '');
+    const header = headerRow.map((h) => cleanField(h).toLowerCase());
+    const dataRows = rows.slice(rows.indexOf(headerRow) + 1).filter((r) => r.some((c) => c.trim()));
+
+    const findCol = (row, aliases) => {
+        for (const alias of aliases) {
+            const idx = header.indexOf(alias.toLowerCase());
+            if (idx !== -1) return cleanField(row[idx] ?? '');
+        }
+        return '';
+    };
 
     return dataRows.map((row) => {
-        const rawStatus = col(row, 'Status').toLowerCase();
-        const courier = col(row, 'Courier');
-        const tracking = col(row, 'Tracking');
+        const rawStatus = findCol(row, ['Status', 'Order Status']).toLowerCase();
+        const courier = findCol(row, ['Courier', 'Courier Name', 'Delivery Partner']);
+        const tracking = findCol(row, ['Tracking', 'AWB', 'AWB Number', 'Tracking Number']);
+        
+        // Match Sovely ID using various possible column names
+        const sovelyOrderId = findCol(row, [
+            'Sovely Order ID',
+            'Platform Order No',
+            'Platform order number',
+            'Platform Order Number',
+            'Platform ID',
+            'Marketplace ID'
+        ]);
+
         return {
-            wukusyOrderNo: col(row, 'Wukusy Order No'),
-            sovelyOrderId: col(row, 'Sovely Order ID') || col(row, 'Platform Order No'),
-            platformId: col(row, 'Platform ID') || col(row, 'Marketplace ID'),
-            orderDate: col(row, 'Order Date'),
-            customerName: col(row, 'Customer Name'),
-            phone: col(row, 'Phone'),
-            city: col(row, 'city') || col(row, 'City'),
-            state: col(row, 'State'),
-            sku: col(row, 'SKU'),
-            quantity: col(row, 'Quantity'),
-            sellingPrice: col(row, 'Sellling Price') || col(row, 'Selling Price'),
-            orderProfit: col(row, 'Order Profit'),
-            paymentStatus: col(row, 'Payment Status'),
-            rawStatus: col(row, 'Status'),
+            wukusyOrderNo: findCol(row, ['Wukusy Order No', 'Wukusy O', 'Wukuy O']),
+            sovelyOrderId: sovelyOrderId,
+            platformId: findCol(row, ['Platform ID', 'Marketplace ID']),
+            orderDate: findCol(row, ['Order Date', 'Date']),
+            customerName: findCol(row, ['Customer Name', 'Customer', 'Recipient']),
+            phone: findCol(row, ['Phone', 'Mobile', 'Contact']),
+            city: findCol(row, ['city', 'City', 'Town']),
+            state: findCol(row, ['State', 'Province']),
+            sku: findCol(row, ['SKU', 'Product SKU', 'Item Code']),
+            quantity: findCol(row, ['Quantity', 'Qty', 'Units']),
+            sellingPrice: findCol(row, ['Sellling Price', 'Selling Price', 'Price']),
+            orderProfit: findCol(row, ['Order Profit', 'Profit']),
+            paymentStatus: findCol(row, ['Payment Status', 'Payment']),
+            rawStatus: findCol(row, ['Status']),
             mappedStatus: WUKUSY_STATUS_MAP[rawStatus] || 'PROCESSING',
             courier,
             tracking,

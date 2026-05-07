@@ -487,6 +487,7 @@ export const updateUserByAdmin = asyncHandler(async (req, res) => {
             closingBalance: user.walletBalance,
             referenceId: `ADMIN-${Date.now()}`,
             description: `Manual adjustment by administrator.`,
+            performedBy: req.user._id,
             status: 'COMPLETED',
         });
     }
@@ -753,4 +754,31 @@ export const markNotificationsAsRead = asyncHandler(async (req, res) => {
     );
 
     return res.status(200).json(new ApiResponse(200, null, 'Notifications marked as read'));
+});
+
+export const getAdminAdjustmentHistory = asyncHandler(async (req, res) => {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = { purpose: 'ADMIN_ADJUSTMENT' };
+
+    const total = await WalletTransaction.countDocuments(query);
+    const logs = await WalletTransaction.find(query)
+        .populate('resellerId', 'name phoneNumber companyName')
+        .populate('performedBy', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                logs,
+                pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+            },
+            'Adjustment history fetched successfully'
+        )
+    );
 });
