@@ -23,7 +23,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "web-app/index.html"
+      "destination": "/index.html"
     }
   ]
 }
