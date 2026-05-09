@@ -13,6 +13,8 @@ import {
     LogOut,
     Landmark,
     Wallet,
+    Headphones,
+    History,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
@@ -25,6 +27,8 @@ import AdminUsers from './admin/AdminUsers';
 import AdminInvoices from './admin/AdminInvoices';
 import AdminWithdrawals from './admin/AdminWithdrawals';
 import AdminWalletLog from './admin/AdminWalletLog';
+import AdminTickets from './admin/AdminTickets';
+import AdminSyncHistory from './admin/AdminSyncHistory';
 import { AuthContext } from '../AuthContext';
 
 const ADMIN_TABS = [
@@ -36,6 +40,8 @@ const ADMIN_TABS = [
     { id: 'withdrawals', icon: Landmark, label: 'Payouts' },
     { id: 'wallet-logs', icon: Wallet, label: 'Financial Ledger' },
     { id: 'bulk-upload', icon: Upload, label: 'Mass Import (CSV)' },
+    { id: 'support-desk', icon: Headphones, label: 'Support Desk' },
+    { id: 'sync-history', icon: History, label: 'Sync History' },
 ];
 
 const AdminDashboard = () => {
@@ -76,6 +82,10 @@ const AdminDashboard = () => {
                 return <AdminWithdrawals />;
             case 'wallet-logs':
                 return <AdminWalletLog />;
+            case 'support-desk':
+                return <AdminTickets setActiveTab={setActiveTab} />;
+            case 'sync-history':
+                return <AdminSyncHistory />;
             default:
                 return <AdminOrders />;
         }

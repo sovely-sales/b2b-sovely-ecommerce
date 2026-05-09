@@ -8,6 +8,7 @@ import { WalletTransaction } from '../models/WalletTransaction.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { logSync } from '../utils/syncLogger.js';
 import { createInvoiceFromOrder, generateInvoiceBuffer } from './invoice.controller.js';
 import { logisticsService } from '../services/logistics.service.js';
 import { emailService } from '../services/email.service.js';
@@ -1387,6 +1388,17 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
     const filename =
         startDate && endDate ? `orders_export_${startDate}_to_${endDate}.csv` : 'orders_export.csv';
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    await logSync({
+        adminId: req.user._id,
+        type: 'EXPORT',
+        purpose: 'Admin Orders CSV Export',
+        filename: filename,
+        fileSize: `${(Buffer.byteLength(csvContent, 'utf8') / 1024).toFixed(2)} KB`,
+        status: 'SUCCESS',
+        details: { orderCount: orders.length, dateRange: { startDate, endDate } }
+    });
+
     return res.status(200).send(csvContent);
 });
 

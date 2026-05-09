@@ -21,6 +21,7 @@ import {
     Box,
     Clock,
     Wallet,
+    Headphones,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -514,6 +515,15 @@ function Navbar() {
                                 >
                                     <LayoutGrid size={20} strokeWidth={2.5} />
                                     <span className="hidden text-sm sm:block">Operations</span>
+                                </Link>
+
+                                <Link
+                                    to={ROUTES.MY_ACCOUNT}
+                                    state={{ tab: 'SUPPORT' }}
+                                    className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                                >
+                                    <Headphones size={20} strokeWidth={2.5} />
+                                    <span className="hidden text-sm sm:block">Support</span>
                                 </Link>
                             </div>
                         )}

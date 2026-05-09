@@ -5,6 +5,7 @@ import { Category } from '../models/Category.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { logSync } from '../utils/syncLogger.js';
 
 const toNum = (val) => {
     if (!val) return 0;
@@ -241,6 +242,16 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
         `✅ Import Finished: ${inserted} inserted, ${updated} updated, ${skipped} skipped.`
     );
 
+    await logSync({
+        adminId: req.user._id,
+        type: 'IMPORT',
+        purpose: 'Product Catalog Import',
+        filename: req.file.originalname,
+        fileSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
+        status: errors.length > 0 ? 'PARTIAL_SUCCESS' : 'SUCCESS',
+        details: { inserted, updated, skipped, errors: errors.slice(0, 10) }
+    });
+
     return res
         .status(200)
         .json(
@@ -316,6 +327,16 @@ export const syncInventoryFromCSV = asyncHandler(async (req, res) => {
     }
 
     console.log(`✅ Inventory Sync Finished: ${updated} updated, ${notFound} SKUs not found.`);
+
+    await logSync({
+        adminId: req.user._id,
+        type: 'SYNC',
+        purpose: 'Inventory Bulk Sync',
+        filename: req.file.originalname,
+        fileSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
+        status: errors.length > 0 ? (updated > 0 ? 'PARTIAL_SUCCESS' : 'FAILURE') : 'SUCCESS',
+        details: { updated, notFound, errors: errors.slice(0, 10) }
+    });
 
     return res
         .status(200)

@@ -32,6 +32,7 @@ const OrderTracking = lazy(() => import('./components/OrderTracking'));
 const AccountHub = lazy(() => import('./components/AccountHub'));
 const Wallet = lazy(() => import('./components/tabs/WalletTab'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const SupportDashboard = lazy(() => import('./pages/SupportDashboard'));
 
 const NotFound = () => (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center font-sans">
@@ -114,8 +115,11 @@ function App() {
                             {}
                             <Route path={ROUTES.MY_ACCOUNT} element={<AccountHub />} />
 
-                            {}
+                            {/* Wallet */}
                             <Route path={ROUTES.WALLET} element={<Wallet />} />
+
+                            {/* Support */}
+                            <Route path="/support" element={<SupportDashboard />} />
 
                             {}
                             <Route

@@ -33,6 +33,8 @@ import AddressBookTab from './tabs/AddressBookTab';
 import { Users } from 'lucide-react';
 import ResellerAnalytics from './ResellerAnalytics';
 import WalletTab from './tabs/WalletTab';
+import SupportTab from './tabs/SupportTab';
+import { Headphones } from 'lucide-react';
 
 const TABS = [
     { id: 'OVERVIEW', label: 'Analytics & Overview', icon: TrendingUp },
@@ -41,6 +43,7 @@ const TABS = [
     { id: 'PROFILE', label: 'Business Profile', icon: Building2 },
     { id: 'SECURITY', label: 'Security & Access', icon: Lock },
     { id: 'NOTIFICATIONS', label: 'Preferences', icon: Bell },
+    { id: 'SUPPORT', label: 'Support Desk', icon: Headphones },
 ];
 
 export default function AccountHub() {
@@ -439,8 +442,9 @@ export default function AccountHub() {
 
                             {activeTab === 'WALLET' && <WalletTab />}
                             {activeTab === 'ADDRESS_BOOK' && <AddressBookTab />}
+                            {activeTab === 'SUPPORT' && <SupportTab />}
 
-                            {}
+                            {/* --- Profile Tab --- */}
                             {activeTab === 'PROFILE' && (
                                 <div className="space-y-8">
                                     {}

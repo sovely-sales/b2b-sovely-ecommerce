@@ -16,11 +16,9 @@ const startServer = async () => {
 
         cron.schedule('0 2 * * *', () => syncProductRtoRates(), { timezone: 'Asia/Kolkata' });
 
-        if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
-            app.listen(process.env.PORT || 8000, () => {
-                console.log(`⚙️ Server is running at port : ${process.env.PORT || 8000}`);
-            });
-        }
+        app.listen(process.env.PORT || 8000, () => {
+            console.log(`⚙️ Server is running at port : ${process.env.PORT || 8000}`);
+        });
     } catch (err) {
         console.log('MONGO db connection failed !!! ', err);
     }
@@ -28,4 +26,3 @@ const startServer = async () => {
 
 startServer();
 
-export default app;
