@@ -1,17 +1,21 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 
 const __dirname = import.meta.dirname;
+const isVercel = process.env.VERCEL === '1';
 
-const tempDir = path.join(__dirname, '../../public/temp');
-const avatarDir = path.join(__dirname, '../../public/avatars');
+const tempDir = isVercel ? os.tmpdir() : path.join(__dirname, '../../public/temp');
+const avatarDir = isVercel ? os.tmpdir() : path.join(__dirname, '../../public/avatars');
 
-[tempDir, avatarDir].forEach((dir) => {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
-});
+if (!isVercel) {
+    [tempDir, avatarDir].forEach((dir) => {
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+    });
+}
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {

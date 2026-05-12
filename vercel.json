@@ -15,11 +15,8 @@
   ],
   "rewrites": [
     {
-      "source": "/api/v1/(.*)",
+      "source": "/api/(.*)",
       "destination": "src/index.js"
-    },
-    {
-      "handle": "filesystem"
     },
     {
       "source": "/(.*)",

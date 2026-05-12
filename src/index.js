@@ -14,7 +14,9 @@ const startServer = async () => {
         await connectDB();
         console.log('✅ MongoDB connected');
 
-        cron.schedule('0 2 * * *', () => syncProductRtoRates(), { timezone: 'Asia/Kolkata' });
+        if (process.env.VERCEL !== '1') {
+            cron.schedule('0 2 * * *', () => syncProductRtoRates(), { timezone: 'Asia/Kolkata' });
+        }
 
         if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
             app.listen(process.env.PORT || 8000, () => {
