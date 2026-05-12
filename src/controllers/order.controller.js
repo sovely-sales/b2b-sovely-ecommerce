@@ -18,7 +18,6 @@ import crypto from 'crypto';
 import fs from 'fs';
 import Papa from 'papaparse';
 
-
 const ALLOWED_ORDER_STATUSES = new Set([
     'PENDING',
     'PROCESSING',
@@ -1396,7 +1395,7 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
         filename: filename,
         fileSize: `${(Buffer.byteLength(csvContent, 'utf8') / 1024).toFixed(2)} KB`,
         status: 'SUCCESS',
-        details: { orderCount: orders.length, dateRange: { startDate, endDate } }
+        details: { orderCount: orders.length, dateRange: { startDate, endDate } },
     });
 
     return res.status(200).send(csvContent);
@@ -1847,40 +1846,51 @@ export const importWukusyStatusesCsv = async (req, res) => {
         const cleanH = (h) => (h || '').toString().trim();
         const lowerH = (h) => cleanH(h).toLowerCase();
 
-        const wukusyOrderNoIdx = header.findIndex(h => {
+        const wukusyOrderNoIdx = header.findIndex((h) => {
             const l = lowerH(h);
-            return l === 'wukusy order no' || l === 'wukusy o' || l === 'wukuy o' || l.includes('wukusy');
+            return (
+                l === 'wukusy order no' ||
+                l === 'wukusy o' ||
+                l === 'wukuy o' ||
+                l.includes('wukusy')
+            );
         });
-        const sovelyOrderIdIdx = header.findIndex(h => {
+        const sovelyOrderIdIdx = header.findIndex((h) => {
             const l = lowerH(h);
             return l === 'sovely order id' || l === 'sovely id';
         });
-        const platformOrderNoIdx = header.findIndex(h => {
+        const platformOrderNoIdx = header.findIndex((h) => {
             const l = lowerH(h);
-            return l === 'platform id' || l === 'platform order no' || l === 'platform o' || l === 'order id' || l === 'order no';
+            return (
+                l === 'platform id' ||
+                l === 'platform order no' ||
+                l === 'platform o' ||
+                l === 'order id' ||
+                l === 'order no'
+            );
         });
-        const statusIdx = header.findIndex(h => {
+        const statusIdx = header.findIndex((h) => {
             const l = lowerH(h);
             return l === 'status' || l === 'order status' || l === 'shipment status';
         });
-        const courierIdx = header.findIndex(h => {
+        const courierIdx = header.findIndex((h) => {
             const l = lowerH(h);
             return l === 'courier' || l === 'courier name' || l === 'carrier';
         });
-        const trackingIdx = header.findIndex(h => {
+        const trackingIdx = header.findIndex((h) => {
             const l = lowerH(h);
             return l === 'tracking' || l === 'tracking no' || l === 'awb' || l === 'waybill';
         });
 
-        console.log(`[Bulk Sync] Headers found: WukusyIdx=${wukusyOrderNoIdx}, SovelyIdx=${sovelyOrderIdIdx}, PlatformIdx=${platformOrderNoIdx}, StatusIdx=${statusIdx}`);
+        console.log(
+            `[Bulk Sync] Headers found: WukusyIdx=${wukusyOrderNoIdx}, SovelyIdx=${sovelyOrderIdIdx}, PlatformIdx=${platformOrderNoIdx}, StatusIdx=${statusIdx}`
+        );
 
         if ((sovelyOrderIdIdx === -1 && platformOrderNoIdx === -1) || statusIdx === -1) {
-            return res
-                .status(400)
-                .json({
-                    message:
-                        'Invalid CSV format. Missing required headers (Sovely Order ID or Status).',
-                });
+            return res.status(400).json({
+                message:
+                    'Invalid CSV format. Missing required headers (Sovely Order ID or Status).',
+            });
         }
 
         const WUKUSY_STATUS_MAP = {
@@ -1938,11 +1948,14 @@ export const importWukusyStatusesCsv = async (req, res) => {
                         { orderId: sovelyOrderId },
                         { platformOrderNo: sovelyOrderId },
                         { orderId: { $regex: new RegExp(`^${flexSovely}$`, 'i') } },
-                        { platformOrderNo: { $regex: new RegExp(`^${flexSovely}$`, 'i') } }
+                        { platformOrderNo: { $regex: new RegExp(`^${flexSovely}$`, 'i') } },
                     ],
-                    status: { $in: ['PENDING', 'PROCESSING', 'SHIPPED'] }
+                    status: { $in: ['PENDING', 'PROCESSING', 'SHIPPED'] },
                 });
-                if (order) console.log(`[Bulk Sync] Row ${i + 1}: Found by Sovely Column value: ${order.orderId}`);
+                if (order)
+                    console.log(
+                        `[Bulk Sync] Row ${i + 1}: Found by Sovely Column value: ${order.orderId}`
+                    );
             }
 
             if (!order && platformOrderNo) {
@@ -1952,28 +1965,35 @@ export const importWukusyStatusesCsv = async (req, res) => {
                         { platformOrderNo: platformOrderNo },
                         { orderId: platformOrderNo },
                         { platformOrderNo: { $regex: new RegExp(`^${flexPlatform}$`, 'i') } },
-                        { orderId: { $regex: new RegExp(`^${flexPlatform}$`, 'i') } }
+                        { orderId: { $regex: new RegExp(`^${flexPlatform}$`, 'i') } },
                     ],
                     status: { $in: ['PENDING', 'PROCESSING', 'SHIPPED'] },
                 }).sort({ createdAt: -1 });
-                if (order) console.log(`[Bulk Sync] Row ${i + 1}: Found by Platform Column value: ${order.orderId}`);
+                if (order)
+                    console.log(
+                        `[Bulk Sync] Row ${i + 1}: Found by Platform Column value: ${order.orderId}`
+                    );
             }
 
             if (!order && sovelyOrderId) {
                 // Last ditch effort: try Sovely ID case-insensitive
-                 order = await Order.findOne({
+                order = await Order.findOne({
                     orderId: { $regex: new RegExp(`^${sovelyOrderId}$`, 'i') },
                     status: { $in: ['PENDING', 'PROCESSING', 'SHIPPED'] },
                 });
             }
 
             if (!order) {
-                console.log(`[Bulk Sync] Row ${i + 1}: Order NOT FOUND for IDs: Sovely=${sovelyOrderId}, Platform=${platformOrderNo}`);
+                console.log(
+                    `[Bulk Sync] Row ${i + 1}: Order NOT FOUND for IDs: Sovely=${sovelyOrderId}, Platform=${platformOrderNo}`
+                );
                 continue;
             }
 
             const mappedStatus = WUKUSY_STATUS_MAP[rawStatus];
-            console.log(`[Bulk Sync] Row ${i + 1} Found: ${order.orderId}. RawStatus="${rawStatus}" -> Mapped="${mappedStatus || 'SKIP'}"`);
+            console.log(
+                `[Bulk Sync] Row ${i + 1} Found: ${order.orderId}. RawStatus="${rawStatus}" -> Mapped="${mappedStatus || 'SKIP'}"`
+            );
 
             if (!mappedStatus) {
                 continue;
