@@ -32,6 +32,7 @@ app.use(
 
 const allowedOrigins = [
     process.env.CORS_ORIGIN,
+    'https://b2bu.sovely.in',
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
