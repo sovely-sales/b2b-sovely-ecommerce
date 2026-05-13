@@ -19,7 +19,16 @@
       "dest": "src/index.js"
     },
     {
-      "handle": "filesystem"
+      "src": "/avatars/(.*)",
+      "dest": "src/index.js"
+    },
+    {
+      "src": "/images/(.*)",
+      "dest": "src/index.js"
+    },
+    {
+      "src": "/(.*\\.(js|css|png|jpg|jpeg|svg|ico|woff|woff2|ttf|eot|json|map|webp|gif)$)",
+      "dest": "/$1"
     },
     {
       "src": "/(.*)",
