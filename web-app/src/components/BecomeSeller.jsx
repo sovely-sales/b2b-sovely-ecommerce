@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Factory, Banknote, Truck, ShieldCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
+import api from '../utils/api';
+import toast from 'react-hot-toast';
 
 export default function BecomeSeller() {
     const [step, setStep] = useState(1);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formData, setFormData] = useState({
+        company: '',
+        gstin: '',
+        name: '',
+        email: '',
+        phone: '',
+        category: 'Electronics & Gadgets',
+    });
 
     const perks = [
         {
@@ -113,9 +124,34 @@ export default function BecomeSeller() {
                                 </p>
 
                                 <form
-                                    onSubmit={(e) => {
+                                    onSubmit={async (e) => {
                                         e.preventDefault();
-                                        setStep(2);
+                                        setIsSubmitting(true);
+                                        try {
+                                            const payload = {
+                                                name: formData.name,
+                                                email: formData.email,
+                                                phone: formData.phone,
+                                                company: formData.company,
+                                                volume: 'seller', // Indicator for seller request
+                                                message: `GSTIN: ${formData.gstin} | Category: ${formData.category}`,
+                                            };
+                                            const response = await api.post(
+                                                '/access-requests',
+                                                payload
+                                            );
+                                            if (response.data.success) {
+                                                setStep(2);
+                                            }
+                                        } catch (error) {
+                                            console.error('Seller application error:', error);
+                                            toast.error(
+                                                error.response?.data?.message ||
+                                                    'Failed to submit application'
+                                            );
+                                        } finally {
+                                            setIsSubmitting(false);
+                                        }
                                     }}
                                     className="space-y-5"
                                 >
@@ -126,20 +162,51 @@ export default function BecomeSeller() {
                                         <input
                                             required
                                             type="text"
+                                            value={formData.company}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, company: e.target.value })
+                                            }
                                             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30"
                                             placeholder="Acme Manufacturing Ltd."
                                         />
                                     </div>
-                                    <div>
-                                        <label className="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                            GST Identification Number
-                                        </label>
-                                        <input
-                                            required
-                                            type="text"
-                                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium tracking-widest text-slate-900 uppercase transition-all outline-none focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30"
-                                            placeholder="22AAAAA0000A1Z5"
-                                        />
+                                    <div className="grid grid-cols-2 gap-5">
+                                        <div>
+                                            <label className="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                GSTIN
+                                            </label>
+                                            <input
+                                                required
+                                                type="text"
+                                                value={formData.gstin}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        gstin: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium tracking-widest text-slate-900 uppercase transition-all outline-none focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30"
+                                                placeholder="22AAAAA0000A1Z5"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                Work Email
+                                            </label>
+                                            <input
+                                                required
+                                                type="email"
+                                                value={formData.email}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        email: e.target.value,
+                                                    })
+                                                }
+                                                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30"
+                                                placeholder="vendor@company.com"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-5">
                                         <div>
@@ -149,6 +216,10 @@ export default function BecomeSeller() {
                                             <input
                                                 required
                                                 type="text"
+                                                value={formData.name}
+                                                onChange={(e) =>
+                                                    setFormData({ ...formData, name: e.target.value })
+                                                }
                                                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30"
                                                 placeholder="Full Name"
                                             />
@@ -160,6 +231,10 @@ export default function BecomeSeller() {
                                             <input
                                                 required
                                                 type="tel"
+                                                value={formData.phone}
+                                                onChange={(e) =>
+                                                    setFormData({ ...formData, phone: e.target.value })
+                                                }
                                                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30"
                                                 placeholder="+91"
                                             />
@@ -169,7 +244,13 @@ export default function BecomeSeller() {
                                         <label className="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase">
                                             Primary Category
                                         </label>
-                                        <select className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30">
+                                        <select
+                                            value={formData.category}
+                                            onChange={(e) =>
+                                                setFormData({ ...formData, category: e.target.value })
+                                            }
+                                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-900 transition-all outline-none focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/30"
+                                        >
                                             <option>Electronics & Gadgets</option>
                                             <option>Home & Kitchen Appliances</option>
                                             <option>Fashion & Apparel</option>
@@ -180,9 +261,16 @@ export default function BecomeSeller() {
                                     </div>
                                     <button
                                         type="submit"
-                                        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-8 py-4 text-sm font-bold tracking-wide text-white shadow-md transition-all duration-300 hover:bg-slate-800 hover:shadow-lg"
+                                        disabled={isSubmitting}
+                                        className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-8 py-4 text-sm font-bold tracking-wide text-white shadow-md transition-all duration-300 hover:bg-slate-800 hover:shadow-lg disabled:opacity-70"
                                     >
-                                        Submit Application <ArrowRight size={18} />
+                                        {isSubmitting ? (
+                                            'Transmitting Application...'
+                                        ) : (
+                                            <>
+                                                Submit Application <ArrowRight size={18} />
+                                            </>
+                                        )}
                                     </button>
                                 </form>
                             </motion.div>

@@ -13,6 +13,7 @@ import {
     Package,
     RefreshCw,
 } from 'lucide-react';
+import Papa from 'papaparse';
 import { useCartStore } from '../store/cartStore';
 import { AuthContext } from '../AuthContext';
 import api from '../utils/api.js';
@@ -102,6 +103,23 @@ const BulkUpload = () => {
     const handleManualSubmit = () => {
         processCSVText(manualInput);
     };
+    
+    const downloadFailures = (failedData, filenamePrefix) => {
+        if (!failedData || failedData.length === 0) return;
+
+        const csv = Papa.unparse(failedData);
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute(
+            'download',
+            `${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.csv`
+        );
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const runAdminImport = async () => {
         if (!uploadedFile) return;
@@ -125,6 +143,13 @@ const BulkUpload = () => {
             setImportResult(data);
             setSuccessMsg(res.data?.message || 'Process complete!');
             setParsedData((prev) => prev.map((p) => ({ ...p, status: 'success' })));
+
+            if (data?.failedSkus && data.failedSkus.length > 0) {
+                downloadFailures(data.failedSkus, 'inventory_sync_failures');
+            }
+            if (data?.failedRows && data.failedRows.length > 0) {
+                downloadFailures(data.failedRows, 'catalog_import_failures');
+            }
         } catch (err) {
             const msg = err.response?.data?.message || `Process failed: ${err.message}`;
             setError(msg);

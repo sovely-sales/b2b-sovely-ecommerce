@@ -165,10 +165,16 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
 
     let skipped = 0;
     const bulkOps = [];
+    const failedRows = [];
 
     for (const p of productMap.values()) {
         if (!p.title || p.cost <= 0) {
             skipped++;
+            failedRows.push({
+                Handle: p.handle,
+                Title: p.title,
+                Reason: p.cost <= 0 ? 'Zero or missing cost' : 'Missing title',
+            });
             continue;
         }
 
@@ -249,18 +255,16 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
         filename: req.file.originalname,
         fileSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
         status: errors.length > 0 ? 'PARTIAL_SUCCESS' : 'SUCCESS',
-        details: { inserted, updated, skipped, errors: errors.slice(0, 10) }
+        details: { inserted, updated, skipped, errors: errors.slice(0, 10) },
     });
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                { inserted, updated, skipped, errors: errors.slice(0, 10) },
-                `Import complete: ${inserted} new products, ${updated} updated, ${skipped} skipped.`
-            )
-        );
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { inserted, updated, skipped, failedRows, errors: errors.slice(0, 10) },
+            `Import complete: ${inserted} new products, ${updated} updated, ${skipped} skipped.`
+        )
+    );
 });
 
 export const syncInventoryFromCSV = asyncHandler(async (req, res) => {
@@ -301,6 +305,7 @@ export const syncInventoryFromCSV = asyncHandler(async (req, res) => {
     let notFound = 0;
     const errors = [];
     const bulkOps = [];
+    const failedSkus = [];
 
     for (const [sku, newStock] of inventoryUpdates.entries()) {
         if (existingSkus.has(sku)) {
@@ -312,6 +317,11 @@ export const syncInventoryFromCSV = asyncHandler(async (req, res) => {
             });
         } else {
             notFound++;
+            failedSkus.push({
+                SKU: sku,
+                Reason: 'Product not found in database',
+                ActionRecommended: 'Create product first or check SKU'
+            });
             errors.push(`SKU ${sku} not found in database.`);
         }
     }
@@ -343,8 +353,8 @@ export const syncInventoryFromCSV = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                { updated, notFound, errors: errors.slice(0, 10) },
-                `Inventory Sync complete: ${updated} products updated.`
+                { updated, notFound, failedSkus, errors: errors.slice(0, 10) },
+                `Inventory Sync complete: ${updated} products updated. ${notFound} failures.`
             )
         );
 });
