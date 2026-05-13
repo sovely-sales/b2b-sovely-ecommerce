@@ -2,6 +2,7 @@ import { Product } from '../models/Product.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { qikinkService } from '../services/qikink.service.js';
 
 export const createProduct = asyncHandler(async (req, res) => {
     let {
@@ -68,6 +69,11 @@ export const createProduct = asyncHandler(async (req, res) => {
         moq,
         status,
         tags,
+    });
+
+    // Fire and forget Qikink sync to avoid blocking the API response
+    qikinkService.syncProduct(product).catch((err) => {
+        console.error('Unhandled error during Qikink product sync:', err);
     });
 
     return res.status(201).json(new ApiResponse(201, product, 'B2B Product created successfully'));
@@ -298,6 +304,11 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
     Object.assign(product, req.body);
     await product.save();
+
+    // Fire and forget Qikink sync to avoid blocking the API response
+    qikinkService.updateProduct(product).catch((err) => {
+        console.error('Unhandled error during Qikink product update:', err);
+    });
 
     return res.status(200).json(new ApiResponse(200, product, 'Product updated successfully'));
 });

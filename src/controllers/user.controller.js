@@ -338,7 +338,7 @@ export const updateMyProfile = asyncHandler(async (req, res) => {
         userToUpdate.pendingUpdates.companyName = companyName.trim();
         hasPendingUpdate = true;
     }
-    
+
     if (gstin !== undefined) {
         const newGstin = gstin.trim().toUpperCase();
         if (newGstin !== (userToUpdate.gstin || '')) {
@@ -384,10 +384,20 @@ export const updateMyProfile = asyncHandler(async (req, res) => {
     if (promotionalEmails !== undefined) userToUpdate.promotionalEmails = promotionalEmails;
 
     await userToUpdate.save({ validateBeforeSave: true });
-    
+
     const user = await User.findById(req.user._id).select('-passwordHash -refreshToken');
 
-    return res.status(200).json(new ApiResponse(200, user, hasPendingUpdate ? 'Profile updated. Sensitive details pending admin review.' : 'Profile updated successfully'));
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                user,
+                hasPendingUpdate
+                    ? 'Profile updated. Sensitive details pending admin review.'
+                    : 'Profile updated successfully'
+            )
+        );
 });
 
 export const requestProfileUpdate = asyncHandler(async (req, res) => {

@@ -345,7 +345,7 @@ export const syncInventoryFromCSV = asyncHandler(async (req, res) => {
         filename: req.file.originalname,
         fileSize: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
         status: errors.length > 0 ? (updated > 0 ? 'PARTIAL_SUCCESS' : 'FAILURE') : 'SUCCESS',
-        details: { updated, notFound, errors: errors.slice(0, 10) }
+        details: { updated, notFound, errors: errors.slice(0, 10) },
     });
 
     return res
