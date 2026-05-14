@@ -198,33 +198,42 @@ export const handleQikinkWebhook = asyncHandler(async (req, res) => {
 
         // 2. Map Qikink fields to Product model
         // Note: Field names are based on common Qikink push patterns
+        const sku = payload.sku || payload.product_id || payload.product?.sku || payload.item?.sku;
+        const title = payload.name || payload.title || payload.product?.title || payload.item?.name || 'New Qikink Product';
+        
+        if (!sku) {
+            console.warn('⚠️ Qikink Webhook: Could not find SKU in payload');
+            return res.status(400).json({ success: false, message: 'SKU not found in payload' });
+        }
+
         const productData = {
-            sku: payload.sku || payload.product_id,
-            title: payload.name || payload.title || 'New Qikink Product',
-            descriptionHTML: payload.description || payload.body_html || '',
+            sku: sku,
+            title: title,
+            descriptionHTML: payload.description || payload.body_html || payload.product?.description || '',
             vendor: payload.vendor || 'Qikink',
             categoryId: category._id,
-            images: (payload.images || []).map((img, index) => ({
+            images: (payload.images || payload.product?.images || []).map((img, index) => ({
                 url: typeof img === 'string' ? img : img.src || img.url,
                 position: index + 1,
-                altText: payload.name || 'Product Image',
+                altText: title || 'Product Image',
             })),
-            dropshipBasePrice: Number(payload.price || payload.cost || 0),
-            suggestedRetailPrice: Number(payload.mrp || payload.price || 0) * 1.5, // Default margin
-            weightGrams: Number(payload.weight || 500),
-            hsnCode: payload.hsn_code || '6109', // Default HSN for apparel
-            gstSlab: 5, // Default GST for apparel
+            dropshipBasePrice: Number(payload.price || payload.cost || payload.product?.price || 0),
+            suggestedRetailPrice: Number(payload.mrp || payload.price || payload.product?.mrp || 0) * 1.5,
+            weightGrams: Number(payload.weight || payload.product?.weight || 500),
+            hsnCode: payload.hsn_code || payload.product?.hsn_code || '6109',
+            gstSlab: 5,
             status: 'active',
             inventory: {
-                stock: payload.stock || 100,
+                stock: payload.stock || payload.product?.stock || 100,
                 alertThreshold: 10,
             },
         };
 
         // If no images found in payload.images, try payload.image
-        if (productData.images.length === 0 && payload.image) {
+        if (productData.images.length === 0 && (payload.image || payload.product?.image)) {
+            const img = payload.image || payload.product?.image;
             productData.images.push({
-                url: typeof payload.image === 'string' ? payload.image : payload.image.src,
+                url: typeof img === 'string' ? img : img.src || img.url,
                 position: 1,
                 altText: productData.title,
             });
@@ -251,5 +260,54 @@ export const handleQikinkWebhook = asyncHandler(async (req, res) => {
             message: 'Internal server error during sync',
             error: error.message,
         });
+    }
+});
+
+export const handleQikinkStatusWebhook = asyncHandler(async (req, res) => {
+    const payload = req.body;
+    console.log('--- QIKINK STATUS WEBHOOK RECEIVED ---');
+    console.log('Payload:', JSON.stringify(payload, null, 2));
+
+    // Qikink status webhooks typically provide the order number and status
+    const orderId = payload.order_number || payload.number;
+    const qikinkStatus = payload.status;
+    const awb = payload.shipping?.awb || payload.awb;
+    const courier = payload.shipping?.courier || payload.courier;
+
+    if (!orderId) {
+        return res.status(400).json({ success: false, message: 'Missing order number' });
+    }
+
+    try {
+        const order = await Order.findOne({ orderId });
+        if (!order) {
+            console.warn(`⚠️ Qikink Status Update: Order ${orderId} not found`);
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        // Map Qikink status to our status
+        // Qikink statuses: Archived, Shipped, etc.
+        let targetStatus = order.status;
+        if (qikinkStatus?.toUpperCase() === 'SHIPPED') targetStatus = 'SHIPPED';
+        if (qikinkStatus?.toUpperCase() === 'DELIVERED') targetStatus = 'DELIVERED';
+        if (qikinkStatus?.toUpperCase() === 'CANCELLED') targetStatus = 'CANCELLED';
+
+        const updateData = { status: targetStatus };
+        if (awb) {
+            updateData.tracking = {
+                ...order.tracking,
+                awbNumber: awb,
+                courierName: courier || 'Qikink Logistics',
+                trackingUrl: payload.shipping?.tracking_link || '',
+            };
+        }
+
+        await Order.findByIdAndUpdate(order._id, updateData);
+        console.log(`✅ Order ${orderId} updated to ${targetStatus} via Qikink Webhook`);
+
+        return res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('❌ Qikink Status Webhook Error:', error);
+        return res.status(500).json({ success: false, error: error.message });
     }
 });
