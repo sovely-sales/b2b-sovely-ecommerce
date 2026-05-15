@@ -1,22 +1,16 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "src/index.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "web-app/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "src/index.js"
+      "destination": "https://sovely-backend.onrender.com/api/$1"
+    },
+    {
+      "source": "/avatars/(.*)",
+      "destination": "https://sovely-backend.onrender.com/avatars/$1"
+    },
+    {
+      "source": "/images/(.*)",
+      "destination": "https://sovely-backend.onrender.com/images/$1"
     },
     {
       "source": "/(.*)",
