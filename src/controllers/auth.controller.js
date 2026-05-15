@@ -7,11 +7,21 @@ import jwt from 'jsonwebtoken';
 import { OtpToken } from '../models/OtpToken.js';
 import crypto from 'crypto';
 
-const cookieOptions = {
+const accessTokenMaxAge = 24 * 60 * 60 * 1000; // 1 Day in milliseconds
+
+const getAccessTokenCookieOptions = () => ({
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-};
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Changed back to 'none' for Render proxy
+    maxAge: accessTokenMaxAge
+});
+
+const getRefreshTokenCookieOptions = () => ({
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Changed back to 'none' for Render proxy
+    maxAge: refreshTokenExpiryMs
+});
 
 const parseExpiryToMs = (value, fallbackMs) => {
     if (!value) return fallbackMs;
@@ -181,8 +191,8 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .cookie('accessToken', accessToken, cookieOptions)
-        .cookie('refreshToken', refreshToken, cookieOptions)
+        .cookie('accessToken', accessToken, getAccessTokenCookieOptions())
+        .cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions())
         .json(
             new ApiResponse(
                 200,
@@ -261,8 +271,8 @@ export const logoutUser = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .clearCookie('accessToken', cookieOptions)
-        .clearCookie('refreshToken', cookieOptions)
+        .clearCookie('accessToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' })
+        .clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' })
         .json(new ApiResponse(200, {}, 'Logged out successfully'));
 });
 
@@ -328,9 +338,9 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
         );
 
         return res
-            .status(200)
-            .cookie('accessToken', accessToken, cookieOptions)
-            .cookie('refreshToken', newRefreshToken, cookieOptions)
+        .status(200)
+            .cookie('accessToken', accessToken, getAccessTokenCookieOptions())
+            .cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions())
             .json(
                 new ApiResponse(
                     200,
@@ -452,8 +462,8 @@ export const revokeMySession = asyncHandler(async (req, res) => {
     if (isCurrent) {
         return res
             .status(200)
-            .clearCookie('accessToken', cookieOptions)
-            .clearCookie('refreshToken', cookieOptions)
+            .clearCookie('accessToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' })
+            .clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' })
             .json(new ApiResponse(200, { signedOut: true }, 'Current session revoked'));
     }
 

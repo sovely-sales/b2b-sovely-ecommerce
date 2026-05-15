@@ -6,6 +6,7 @@ import { WalletTransaction } from '../models/WalletTransaction.js';
 import { Invoice } from '../models/Invoice.js';
 import { Payment } from '../models/Payment.js';
 import { Product } from '../models/Product.js';
+import { Category } from '../models/Category.js';
 import { emailService } from '../services/email.service.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -173,3 +174,82 @@ export const razorpayWebhook = async (req, res) => {
 
     return res.status(200).json({ status: 'ok' });
 };
+
+export const handleQikinkWebhook = asyncHandler(async (req, res) => {
+    const payload = req.body;
+    const headers = req.headers;
+
+    console.log('--- QIKINK WEBHOOK RECEIVED ---');
+    console.log('Headers:', JSON.stringify(headers, null, 2));
+    console.log('Payload:', JSON.stringify(payload, null, 2));
+
+    // Basic validation
+    if (!payload || !payload.sku) {
+        console.warn('⚠️ Qikink Webhook: Missing payload or SKU');
+        return res.status(400).json({ success: false, message: 'Invalid payload' });
+    }
+
+    try {
+        // 1. Ensure "Uncategorized" category exists
+        let category = await Category.findOne({ name: 'Qikink' });
+        if (!category) {
+            category = await Category.create({ name: 'Qikink' });
+        }
+
+        // 2. Map Qikink fields to Product model
+        // Note: Field names are based on common Qikink push patterns
+        const productData = {
+            sku: payload.sku || payload.product_id,
+            title: payload.name || payload.title || 'New Qikink Product',
+            descriptionHTML: payload.description || payload.body_html || '',
+            vendor: payload.vendor || 'Qikink',
+            categoryId: category._id,
+            images: (payload.images || []).map((img, index) => ({
+                url: typeof img === 'string' ? img : img.src || img.url,
+                position: index + 1,
+                altText: payload.name || 'Product Image',
+            })),
+            dropshipBasePrice: Number(payload.price || payload.cost || 0),
+            suggestedRetailPrice: Number(payload.mrp || payload.price || 0) * 1.5, // Default margin
+            weightGrams: Number(payload.weight || 500),
+            hsnCode: payload.hsn_code || '6109', // Default HSN for apparel
+            gstSlab: 5, // Default GST for apparel
+            status: 'active',
+            inventory: {
+                stock: payload.stock || 100,
+                alertThreshold: 10,
+            },
+        };
+
+        // If no images found in payload.images, try payload.image
+        if (productData.images.length === 0 && payload.image) {
+            productData.images.push({
+                url: typeof payload.image === 'string' ? payload.image : payload.image.src,
+                position: 1,
+                altText: productData.title,
+            });
+        }
+
+        // 3. Upsert product by SKU
+        const product = await Product.findOneAndUpdate({ sku: productData.sku }, productData, {
+            new: true,
+            upsert: true,
+            runValidators: true,
+        });
+
+        console.log(`✅ Qikink Product Synced: ${product.title} (${product.sku})`);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Product synced successfully',
+            productId: product._id,
+        });
+    } catch (error) {
+        console.error('❌ Qikink Webhook Error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error during sync',
+            error: error.message,
+        });
+    }
+});
