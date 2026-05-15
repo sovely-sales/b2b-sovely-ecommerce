@@ -135,13 +135,11 @@ export const getDashboardAnalytics = asyncHandler(async (req, res) => {
     const periodRevenue = periodRevenueAgg[0]?.total || 0;
 
     const totalCustomers = await User.countDocuments({
-        role: 'RESELLER',
+        role: { $in: ['RESELLER', 'CUSTOMER'] },
         deletedAt: null,
-        createdAt: { $gte: startDate },
     });
     const processingOrders = await Order.countDocuments({
-        status: 'PROCESSING',
-        createdAt: { $gte: startDate },
+        status: { $in: ['PENDING', 'PROCESSING'] },
     });
     const pendingKycCount = await User.countDocuments({
         role: 'RESELLER',
