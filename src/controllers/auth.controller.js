@@ -238,8 +238,8 @@ export const loginUser = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .cookie('accessToken', accessToken, cookieOptions)
-        .cookie('refreshToken', refreshToken, cookieOptions)
+        .cookie('accessToken', accessToken, getAccessTokenCookieOptions())
+        .cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions())
         .json(
             new ApiResponse(
                 200,
