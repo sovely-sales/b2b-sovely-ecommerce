@@ -186,6 +186,10 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
         throw new ApiError(404, 'User account not found or suspended');
     }
 
+    if (user.expiresAt && user.expiresAt < new Date()) {
+        throw new ApiError(403, 'Your temporary access account has expired. Please contact support.');
+    }
+
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id, req);
     const loggedInUser = await User.findById(user._id).select('-passwordHash -refreshToken');
 
@@ -231,6 +235,10 @@ export const loginUser = asyncHandler(async (req, res) => {
     const isPasswordValid = await user.isPasswordCorrect(password);
     if (!isPasswordValid) {
         throw new ApiError(401, 'Incorrect password. Please try again.');
+    }
+
+    if (user.expiresAt && user.expiresAt < new Date()) {
+        throw new ApiError(403, 'Your temporary access account has expired. Please contact support.');
     }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id, req);
