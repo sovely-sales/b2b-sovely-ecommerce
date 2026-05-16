@@ -14,7 +14,8 @@ const AdminAccessRequests = () => {
     const [approvalModalOpen, setApprovalModalOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [adminPasswordInput, setAdminPasswordInput] = useState('');
-    const [adminValidityInput, setAdminValidityInput] = useState('permanent');
+    const [isPermanent, setIsPermanent] = useState(true);
+    const [expirationDate, setExpirationDate] = useState('');
     
     const [credentialsModalOpen, setCredentialsModalOpen] = useState(false);
     const [newCredentials, setNewCredentials] = useState(null);
@@ -44,18 +45,19 @@ const AdminAccessRequests = () => {
             const req = requests.find(r => r._id === id);
             setSelectedRequest(req);
             setAdminPasswordInput('');
-            setAdminValidityInput('permanent');
+            setIsPermanent(true);
+            setExpirationDate('');
             setApprovalModalOpen(true);
             return;
         }
         await updateStatusApiCall(id, newStatus);
     };
 
-    const updateStatusApiCall = async (id, newStatus, password = null, validity = null) => {
+    const updateStatusApiCall = async (id, newStatus, password = null, validityDate = null) => {
         try {
             const payload = { status: newStatus };
             if (password) payload.password = password;
-            if (validity) payload.validity = validity;
+            if (validityDate) payload.validityDate = validityDate;
 
             const response = await api.put(`/access-requests/${id}/status`, payload);
             if (response.data.success) {
@@ -297,17 +299,29 @@ const AdminAccessRequests = () => {
                                     </div>
                                     <div className="mt-3">
                                         <label className="block text-xs font-bold text-slate-700 mb-1">Account Validity</label>
-                                        <select
-                                            value={adminValidityInput}
-                                            onChange={(e) => setAdminValidityInput(e.target.value)}
-                                            className="w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                                        >
-                                            <option value="permanent">Permanent (No Expiry)</option>
-                                            <option value="3">3 Days</option>
-                                            <option value="5">5 Days</option>
-                                            <option value="7">7 Days</option>
-                                            <option value="30">30 Days</option>
-                                        </select>
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isPermanent}
+                                                    onChange={(e) => {
+                                                        setIsPermanent(e.target.checked);
+                                                        if (e.target.checked) setExpirationDate('');
+                                                    }}
+                                                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                                />
+                                                <span className="text-slate-700 font-medium">Permanent (No Expiry)</span>
+                                            </label>
+                                        </div>
+                                        {!isPermanent && (
+                                            <input
+                                                type="date"
+                                                min={new Date().toISOString().split('T')[0]}
+                                                value={expirationDate}
+                                                onChange={(e) => setExpirationDate(e.target.value)}
+                                                className="w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                            />
+                                        )}
                                     </div>
                                     <div className="flex justify-end gap-3 mt-6">
                                         <button
@@ -317,7 +331,7 @@ const AdminAccessRequests = () => {
                                             Cancel
                                         </button>
                                         <button
-                                            onClick={() => updateStatusApiCall(selectedRequest._id, 'APPROVED', adminPasswordInput, adminValidityInput)}
+                                            onClick={() => updateStatusApiCall(selectedRequest._id, 'APPROVED', adminPasswordInput, isPermanent ? 'permanent' : expirationDate)}
                                             disabled={adminPasswordInput.length < 6}
                                             className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg disabled:opacity-50"
                                         >

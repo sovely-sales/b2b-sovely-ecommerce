@@ -79,7 +79,7 @@ export const updateAccessRequestStatus = async (req, res, next) => {
         let newUser = null;
 
         if (status === 'APPROVED') {
-            const { password, validity } = req.body;
+            const { password, validityDate } = req.body;
             if (!password || password.length < 6) {
                 const error = new Error('A secure password (min 6 chars) is required to approve and create an account.');
                 error.statusCode = 400;
@@ -99,10 +99,12 @@ export const updateAccessRequestStatus = async (req, res, next) => {
 
             // Determine expiration
             let expiresAt = null;
-            if (validity && validity !== 'permanent') {
-                const days = parseInt(validity, 10);
-                if (!isNaN(days) && days > 0) {
-                    expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+            if (validityDate && validityDate !== 'permanent') {
+                const parsedDate = new Date(validityDate);
+                if (!isNaN(parsedDate.getTime())) {
+                    // Set it to end of the selected day
+                    parsedDate.setHours(23, 59, 59, 999);
+                    expiresAt = parsedDate;
                 }
             }
 
