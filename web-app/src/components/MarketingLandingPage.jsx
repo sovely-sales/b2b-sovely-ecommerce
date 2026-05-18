@@ -46,56 +46,22 @@ const MarketingLandingPage = () => {
     return (
         <div className="flex w-full flex-col bg-slate-50 font-sans selection:bg-emerald-500/30">
             {/* HERO SECTION */}
-            <section className="relative min-h-[90vh] flex flex-col justify-center overflow-hidden bg-slate-950 pt-20 pb-32">
-                {/* Cyberpunk Grid Background & Scanlines */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#10b98115_1px,transparent_1px),linear-gradient(to_bottom,#10b98115_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-                <div className="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.25)_50%)] bg-[size:100%_4px] pointer-events-none z-20 mix-blend-overlay"></div>
+            <section className="relative min-h-[90vh] flex flex-col justify-center overflow-hidden bg-slate-50 pt-20 pb-32">
+                {/* Light Grid Background */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
 
-                {/* Cyberpunk Aurora Blobs using Framer Motion */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[600px] opacity-50 pointer-events-none">
+                {/* Soft Aurora Blobs */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] opacity-70 pointer-events-none">
                     <motion.div 
-                        className="absolute top-[0%] left-[10%] w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-emerald-600 rounded-full filter blur-[100px] md:blur-[140px]"
-                        animate={{ x: [0, 60, -40, 0], y: [0, -50, 40, 0], scale: [1, 1.1, 0.9, 1] }}
+                        className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-emerald-100 rounded-full filter blur-[100px]"
+                        animate={{ x: [0, 40, -20, 0], y: [0, -30, 20, 0], scale: [1, 1.05, 0.95, 1] }}
                         transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
                     />
                     <motion.div 
-                        className="absolute top-[10%] right-[10%] w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-emerald-500 rounded-full filter blur-[100px] md:blur-[140px]"
-                        animate={{ x: [0, -50, 50, 0], y: [0, 60, -30, 0], scale: [1, 0.9, 1.1, 1] }}
+                        className="absolute top-[0%] right-[-10%] w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-blue-50 rounded-full filter blur-[100px]"
+                        animate={{ x: [0, -30, 30, 0], y: [0, 40, -20, 0], scale: [1, 0.95, 1.05, 1] }}
                         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 2 }}
                     />
-                    <motion.div 
-                        className="absolute bottom-[-20%] left-[30%] w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-green-500 rounded-full filter blur-[100px] md:blur-[140px]"
-                        animate={{ x: [0, 40, -60, 0], y: [0, 40, -50, 0], scale: [1, 1.2, 0.8, 1] }}
-                        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 4 }}
-                    />
-                </div>
-
-                {/* Floating Particles */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    {[...Array(15)].map((_, i) => (
-                        <motion.div
-                            key={i}
-                            className="absolute bg-emerald-400/30 rounded-full blur-[1px]"
-                            style={{
-                                width: Math.random() * 6 + 2 + 'px',
-                                height: Math.random() * 6 + 2 + 'px',
-                                left: Math.random() * 100 + '%',
-                                top: Math.random() * 100 + '%',
-                            }}
-                            animate={{
-                                y: [0, Math.random() * -100 - 50],
-                                x: [0, Math.random() * 50 - 25],
-                                opacity: [0, 0.8, 0],
-                                scale: [0, 1.5, 0],
-                            }}
-                            transition={{
-                                duration: Math.random() * 5 + 5,
-                                repeat: Infinity,
-                                ease: "linear",
-                                delay: Math.random() * 5,
-                            }}
-                        />
-                    ))}
                 </div>
 
                 <motion.div
@@ -107,101 +73,75 @@ const MarketingLandingPage = () => {
                 >
                     <motion.div
                         variants={fadeUp}
-                        className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-slate-900/50 backdrop-blur-md px-4 py-2 shadow-[0_0_15px_rgba(16,185,129,0.2)] transition-all hover:bg-slate-800"
+                        className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/80 backdrop-blur-md px-5 py-2 shadow-sm"
                     >
-                        <Sparkles size={14} className="text-emerald-400" />
-                        <span className="text-xs font-bold tracking-widest text-emerald-400 uppercase">
-                            The Next-Gen B2B Sourcing Protocol
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
+                        <span className="text-[10px] font-black tracking-widest text-emerald-800 uppercase">
+                            INDIA'S FASTEST GROWING B2B NETWORK
                         </span>
                     </motion.div>
 
                     <motion.h1
                         variants={fadeUp}
-                        className="mx-auto max-w-5xl text-6xl font-black tracking-tighter text-white md:text-8xl leading-[1.1]"
+                        className="mx-auto max-w-5xl text-6xl font-black tracking-tight text-slate-900 md:text-[5.5rem] leading-[1.05]"
                     >
                         Source Smarter. <br className="hidden md:block" />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500">
+                        <span className="text-emerald-600">
                             Scale Faster.
                         </span>
                     </motion.h1>
 
                     <motion.p
                         variants={fadeUp}
-                        className="mx-auto mt-8 max-w-2xl text-lg md:text-xl font-medium text-slate-400 leading-relaxed"
+                        className="mx-auto mt-6 max-w-2xl text-lg md:text-xl font-medium text-slate-600 leading-relaxed"
                     >
                         Direct factory pricing, 100% verified suppliers, and seamless GST invoicing.
                         Streamline your entire supply chain or dropship directly to your customers
                         with guaranteed margins.
                     </motion.p>
 
-                    {/* Cyberpunk Glassmorphic Search Bar */}
-                    <motion.div variants={fadeUp} className="mx-auto mt-12 max-w-2xl relative group">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-green-500 rounded-3xl blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"></div>
+                    {/* Search Bar matching image */}
+                    <motion.div variants={fadeUp} className="mx-auto mt-10 max-w-2xl relative">
                         <form
                             onSubmit={handleSearch}
-                            className="relative flex items-center overflow-hidden rounded-3xl border border-emerald-500/30 bg-slate-900/80 backdrop-blur-xl shadow-[0_0_30px_rgba(16,185,129,0.15)] transition-all focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-emerald-500/50"
+                            className="relative flex items-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 transition-all focus-within:ring-2 focus-within:ring-emerald-500/50 p-1"
                         >
-                            <div className="pl-6 text-slate-400">
-                                <Search size={24} strokeWidth={2.5} />
+                            <div className="pl-5 text-slate-400">
+                                <Search size={22} strokeWidth={2.5} />
                             </div>
                             <input
                                 type="text"
                                 placeholder="Search products, SKUs, or factories..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-transparent px-5 py-6 text-lg font-bold text-white outline-none placeholder:font-medium placeholder:text-slate-500 h-full"
+                                className="w-full bg-transparent px-4 py-4 text-base font-medium text-slate-900 outline-none placeholder:text-slate-400 h-full"
                             />
                             <button
                                 type="submit"
-                                className="mr-3 rounded-2xl bg-emerald-600 px-8 py-4 text-sm font-black text-white transition-all hover:bg-emerald-500 active:scale-95 flex items-center gap-2 group/btn"
+                                className="mr-1 rounded-xl bg-emerald-600 px-8 py-3.5 text-sm font-bold text-white transition-all hover:bg-emerald-700 active:scale-95"
                             >
                                 Search
-                                <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
                             </button>
                         </form>
                     </motion.div>
 
                     <motion.div
                         variants={fadeUp}
-                        className="mt-10 flex flex-col items-center justify-center gap-6 sm:flex-row"
+                        className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row text-sm"
                     >
                         <Link
                             to={ROUTES.CATALOG}
-                            className="flex items-center gap-2 text-sm font-bold text-slate-400 transition-colors hover:text-emerald-400"
+                            className="flex items-center gap-2 font-bold text-emerald-700 hover:text-emerald-800 transition-colors"
                         >
-                            <LayoutGrid size={18} /> Browse All Categories
+                            <LayoutGrid size={16} strokeWidth={2.5} /> Or Browse All Categories
                         </Link>
-                        <span className="hidden h-1.5 w-1.5 rounded-full bg-slate-700 sm:block"></span>
+                        <span className="hidden text-slate-300 sm:block">&middot;</span>
                         <Link
                             to={ROUTES.CONTACT_US}
-                            className="text-sm font-bold text-slate-400 transition-colors hover:text-emerald-400"
+                            className="font-bold text-slate-500 hover:text-slate-700 transition-colors"
                         >
                             Contact us for bulk pricing
                         </Link>
-                    </motion.div>
-
-                    {/* Stats */}
-                    <motion.div
-                        variants={staggerContainer}
-                        className="mx-auto mt-24 grid max-w-4xl grid-cols-2 gap-8 border-t border-slate-200/60 pt-12 md:grid-cols-4"
-                    >
-                        {[
-                            { stat: '500+', label: 'Verified Factories' },
-                            { stat: '10k+', label: 'Active SKUs' },
-                            { stat: '100%', label: 'ITC Claimable' },
-                            { stat: 'Pan-India', label: 'Delivery Network' },
-                        ].map((item, index) => (
-                            <motion.div
-                                key={index}
-                                variants={fadeUp}
-                                className="flex flex-col items-center"
-                            >
-                                <h3 className="text-4xl font-black text-white tracking-tight">{item.stat}</h3>
-                                <p className="mt-2 text-xs font-bold text-emerald-500 uppercase tracking-widest">
-                                    {item.label}
-                                </p>
-                            </motion.div>
-                        ))}
                     </motion.div>
                 </motion.div>
             </section>
