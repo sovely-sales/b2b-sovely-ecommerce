@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Mail, Phone, Building2, TrendingUp, Search, Loader2, Copy, CheckCircle2, Lock, X } from 'lucide-react';
+import {
+    ShieldCheck,
+    Mail,
+    Phone,
+    Building2,
+    TrendingUp,
+    Search,
+    Loader2,
+    Copy,
+    CheckCircle2,
+    Lock,
+    X,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
@@ -16,7 +28,7 @@ const AdminAccessRequests = () => {
     const [adminPasswordInput, setAdminPasswordInput] = useState('');
     const [isPermanent, setIsPermanent] = useState(true);
     const [expirationDate, setExpirationDate] = useState('');
-    
+
     const [credentialsModalOpen, setCredentialsModalOpen] = useState(false);
     const [newCredentials, setNewCredentials] = useState(null);
 
@@ -42,7 +54,7 @@ const AdminAccessRequests = () => {
 
     const handleStatusUpdate = async (id, newStatus) => {
         if (newStatus === 'APPROVED') {
-            const req = requests.find(r => r._id === id);
+            const req = requests.find((r) => r._id === id);
             setSelectedRequest(req);
             setAdminPasswordInput('');
             setIsPermanent(true);
@@ -62,14 +74,12 @@ const AdminAccessRequests = () => {
             const response = await api.put(`/access-requests/${id}/status`, payload);
             if (response.data.success) {
                 toast.success(response.data.message || `Request marked as ${newStatus}`);
-                
+
                 if (newStatus === 'REJECTED') {
                     setRequests((prev) => prev.filter((req) => req._id !== id));
                 } else {
                     setRequests((prev) =>
-                        prev.map((req) =>
-                            req._id === id ? { ...req, status: newStatus } : req
-                        )
+                        prev.map((req) => (req._id === id ? { ...req, status: newStatus } : req))
                     );
                 }
 
@@ -123,10 +133,10 @@ const AdminAccessRequests = () => {
                 </div>
             </div>
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl bg-white p-4 shadow-sm border border-slate-200">
+            <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative w-full sm:w-96">
                     <Search
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                        className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
                         size={18}
                     />
                     <input
@@ -134,7 +144,7 @@ const AdminAccessRequests = () => {
                         placeholder="Search by name, email, phone or company..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/20"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pr-4 pl-10 text-sm transition-all outline-none focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500/20"
                     />
                 </div>
                 <div className="flex gap-2">
@@ -157,7 +167,7 @@ const AdminAccessRequests = () => {
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                        <thead className="border-b border-slate-200 bg-slate-50 text-xs font-bold tracking-wider text-slate-500 uppercase">
                             <tr>
                                 <th className="px-6 py-4">Applicant</th>
                                 <th className="px-6 py-4">Company</th>
@@ -183,7 +193,10 @@ const AdminAccessRequests = () => {
                                 </tr>
                             ) : (
                                 filteredRequests.map((req) => (
-                                    <tr key={req._id} className="transition-colors hover:bg-slate-50">
+                                    <tr
+                                        key={req._id}
+                                        className="transition-colors hover:bg-slate-50"
+                                    >
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 font-bold text-slate-600">
@@ -200,7 +213,9 @@ const AdminAccessRequests = () => {
                                                         <Phone size={12} /> {req.phone}
                                                     </div>
                                                     <div className="mt-1 text-[10px] text-slate-400">
-                                                        {new Date(req.createdAt).toLocaleDateString()}
+                                                        {new Date(
+                                                            req.createdAt
+                                                        ).toLocaleDateString()}
                                                     </div>
                                                 </div>
                                             </div>
@@ -212,22 +227,33 @@ const AdminAccessRequests = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2 text-xs text-slate-700 font-medium whitespace-nowrap">
-                                                <TrendingUp size={14} className="text-emerald-500" />
-                                                {req.volume === 'startup' ? '0 - 50 orders/mo' :
-                                                 req.volume === 'growing' ? '50 - 500 orders/mo' :
-                                                 req.volume === 'scale' ? '500 - 5,000 orders/mo' :
-                                                 req.volume === 'enterprise' ? '5,000+ orders/mo' : req.volume}
+                                            <div className="flex items-center gap-2 text-xs font-medium whitespace-nowrap text-slate-700">
+                                                <TrendingUp
+                                                    size={14}
+                                                    className="text-emerald-500"
+                                                />
+                                                {req.volume === 'startup'
+                                                    ? '0 - 50 orders/mo'
+                                                    : req.volume === 'growing'
+                                                      ? '50 - 500 orders/mo'
+                                                      : req.volume === 'scale'
+                                                        ? '500 - 5,000 orders/mo'
+                                                        : req.volume === 'enterprise'
+                                                          ? '5,000+ orders/mo'
+                                                          : req.volume}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <p className="max-w-xs text-xs text-slate-600 line-clamp-3" title={req.message}>
+                                            <p
+                                                className="line-clamp-3 max-w-xs text-xs text-slate-600"
+                                                title={req.message}
+                                            >
                                                 {req.message}
                                             </p>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span
-                                                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusColor(
+                                                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase ${getStatusColor(
                                                     req.status
                                                 )}`}
                                             >
@@ -258,158 +284,213 @@ const AdminAccessRequests = () => {
                 </div>
             </div>
 
-            {/* Approval Password Modal */}
-            {typeof document !== 'undefined' && createPortal(
-                <AnimatePresence>
-                    {approvalModalOpen && selectedRequest && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden"
-                            >
-                                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">
-                                            <ShieldCheck size={20} />
+            {}
+            {typeof document !== 'undefined' &&
+                createPortal(
+                    <AnimatePresence>
+                        {approvalModalOpen && selectedRequest && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+                                >
+                                    <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 p-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600">
+                                                <ShieldCheck size={20} />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-900">
+                                                Approve & Create Account
+                                            </h3>
                                         </div>
-                                        <h3 className="text-lg font-bold text-slate-900">Approve & Create Account</h3>
-                                    </div>
-                                    <button onClick={() => setApprovalModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                                        <X size={20} />
-                                    </button>
-                                </div>
-                                <div className="p-6 space-y-4">
-                                    <p className="text-sm text-slate-600">
-                                        You are about to approve access for <span className="font-bold text-slate-900">{selectedRequest.name}</span>. Please assign a secure password for their new B2B account.
-                                    </p>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-1">Assign Password</label>
-                                        <div className="relative">
-                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                            <input
-                                                type="text"
-                                                value={adminPasswordInput}
-                                                onChange={(e) => setAdminPasswordInput(e.target.value)}
-                                                placeholder="Enter secure password"
-                                                className="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="mt-3">
-                                        <label className="block text-xs font-bold text-slate-700 mb-1">Account Validity</label>
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={isPermanent}
-                                                    onChange={(e) => {
-                                                        setIsPermanent(e.target.checked);
-                                                        if (e.target.checked) setExpirationDate('');
-                                                    }}
-                                                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                                />
-                                                <span className="text-slate-700 font-medium">Permanent (No Expiry)</span>
-                                            </label>
-                                        </div>
-                                        {!isPermanent && (
-                                            <input
-                                                type="date"
-                                                min={new Date().toISOString().split('T')[0]}
-                                                value={expirationDate}
-                                                onChange={(e) => setExpirationDate(e.target.value)}
-                                                className="w-full rounded-xl border border-slate-200 py-2.5 px-4 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                                            />
-                                        )}
-                                    </div>
-                                    <div className="flex justify-end gap-3 mt-6">
                                         <button
                                             onClick={() => setApprovalModalOpen(false)}
-                                            className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-lg"
+                                            className="text-slate-400 hover:text-slate-600"
                                         >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={() => updateStatusApiCall(selectedRequest._id, 'APPROVED', adminPasswordInput, isPermanent ? 'permanent' : expirationDate)}
-                                            disabled={adminPasswordInput.length < 6}
-                                            className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg disabled:opacity-50"
-                                        >
-                                            Confirm & Create
+                                            <X size={20} />
                                         </button>
                                     </div>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>,
-                document.body
-            )}
+                                    <div className="space-y-4 p-6">
+                                        <p className="text-sm text-slate-600">
+                                            You are about to approve access for{' '}
+                                            <span className="font-bold text-slate-900">
+                                                {selectedRequest.name}
+                                            </span>
+                                            . Please assign a secure password for their new B2B
+                                            account.
+                                        </p>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-bold text-slate-700">
+                                                Assign Password
+                                            </label>
+                                            <div className="relative">
+                                                <Lock
+                                                    className="absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+                                                    size={16}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    value={adminPasswordInput}
+                                                    onChange={(e) =>
+                                                        setAdminPasswordInput(e.target.value)
+                                                    }
+                                                    placeholder="Enter secure password"
+                                                    className="w-full rounded-xl border border-slate-200 py-2.5 pr-4 pl-10 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="mt-3">
+                                            <label className="mb-1 block text-xs font-bold text-slate-700">
+                                                Account Validity
+                                            </label>
+                                            <div className="mb-2 flex items-center gap-3">
+                                                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isPermanent}
+                                                        onChange={(e) => {
+                                                            setIsPermanent(e.target.checked);
+                                                            if (e.target.checked)
+                                                                setExpirationDate('');
+                                                        }}
+                                                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                                    />
+                                                    <span className="font-medium text-slate-700">
+                                                        Permanent (No Expiry)
+                                                    </span>
+                                                </label>
+                                            </div>
+                                            {!isPermanent && (
+                                                <input
+                                                    type="date"
+                                                    min={new Date().toISOString().split('T')[0]}
+                                                    value={expirationDate}
+                                                    onChange={(e) =>
+                                                        setExpirationDate(e.target.value)
+                                                    }
+                                                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                                                />
+                                            )}
+                                        </div>
+                                        <div className="mt-6 flex justify-end gap-3">
+                                            <button
+                                                onClick={() => setApprovalModalOpen(false)}
+                                                className="rounded-lg px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={() =>
+                                                    updateStatusApiCall(
+                                                        selectedRequest._id,
+                                                        'APPROVED',
+                                                        adminPasswordInput,
+                                                        isPermanent ? 'permanent' : expirationDate
+                                                    )
+                                                }
+                                                disabled={adminPasswordInput.length < 6}
+                                                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50"
+                                            >
+                                                Confirm & Create
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>,
+                    document.body
+                )}
 
-            {/* Credentials Share Modal */}
-            {typeof document !== 'undefined' && createPortal(
-                <AnimatePresence>
-                    {credentialsModalOpen && newCredentials && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden"
-                            >
-                                <div className="p-6 border-b border-slate-100 flex items-center gap-3 bg-emerald-50">
-                                    <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">
-                                        <CheckCircle2 size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-bold text-slate-900">Account Created!</h3>
-                                        <p className="text-xs font-medium text-emerald-700">Share these credentials with the user.</p>
-                                    </div>
-                                </div>
-                                <div className="p-6 space-y-4">
-                                    <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Login ID / Email</p>
-                                                <p className="font-mono text-sm font-bold text-slate-900">{newCredentials.email}</p>
-                                            </div>
-                                            <button 
-                                                onClick={() => { navigator.clipboard.writeText(newCredentials.email); toast.success('Email copied!'); }}
-                                                className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                                            >
-                                                <Copy size={16} />
-                                            </button>
+            {}
+            {typeof document !== 'undefined' &&
+                createPortal(
+                    <AnimatePresence>
+                        {credentialsModalOpen && newCredentials && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+                                >
+                                    <div className="flex items-center gap-3 border-b border-slate-100 bg-emerald-50 p-6">
+                                        <div className="rounded-lg bg-emerald-100 p-2 text-emerald-600">
+                                            <CheckCircle2 size={24} />
                                         </div>
-                                        <div className="h-px bg-slate-200 w-full"></div>
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Password</p>
-                                                <p className="font-mono text-sm font-bold text-slate-900">{newCredentials.password}</p>
-                                            </div>
-                                            <button 
-                                                onClick={() => { navigator.clipboard.writeText(newCredentials.password); toast.success('Password copied!'); }}
-                                                className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                                            >
-                                                <Copy size={16} />
-                                            </button>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-slate-900">
+                                                Account Created!
+                                            </h3>
+                                            <p className="text-xs font-medium text-emerald-700">
+                                                Share these credentials with the user.
+                                            </p>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => {
-                                            setCredentialsModalOpen(false);
-                                            setNewCredentials(null);
-                                        }}
-                                        className="w-full mt-4 px-4 py-2.5 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
-                                    >
-                                        Done
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>,
-                document.body
-            )}
+                                    <div className="space-y-4 p-6">
+                                        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="mb-1 text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                                                        Login ID / Email
+                                                    </p>
+                                                    <p className="font-mono text-sm font-bold text-slate-900">
+                                                        {newCredentials.email}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(
+                                                            newCredentials.email
+                                                        );
+                                                        toast.success('Email copied!');
+                                                    }}
+                                                    className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+                                                >
+                                                    <Copy size={16} />
+                                                </button>
+                                            </div>
+                                            <div className="h-px w-full bg-slate-200"></div>
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="mb-1 text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+                                                        Password
+                                                    </p>
+                                                    <p className="font-mono text-sm font-bold text-slate-900">
+                                                        {newCredentials.password}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(
+                                                            newCredentials.password
+                                                        );
+                                                        toast.success('Password copied!');
+                                                    }}
+                                                    className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600"
+                                                >
+                                                    <Copy size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setCredentialsModalOpen(false);
+                                                setNewCredentials(null);
+                                            }}
+                                            className="mt-4 w-full rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200"
+                                        >
+                                            Done
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>,
+                    document.body
+                )}
         </div>
     );
 };

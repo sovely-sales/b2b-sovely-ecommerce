@@ -81,14 +81,15 @@ export const updateAccessRequestStatus = async (req, res, next) => {
         if (status === 'APPROVED') {
             const { password, validityDate } = req.body;
             if (!password || password.length < 6) {
-                const error = new Error('A secure password (min 6 chars) is required to approve and create an account.');
+                const error = new Error(
+                    'A secure password (min 6 chars) is required to approve and create an account.'
+                );
                 error.statusCode = 400;
                 throw error;
             }
 
-            // Check if user already exists
             const existingUser = await User.findOne({
-                $or: [{ email: requestToUpdate.email }, { phone: requestToUpdate.phone }]
+                $or: [{ email: requestToUpdate.email }, { phone: requestToUpdate.phone }],
             });
 
             if (existingUser) {
@@ -97,23 +98,20 @@ export const updateAccessRequestStatus = async (req, res, next) => {
                 throw error;
             }
 
-            // Determine expiration
             let expiresAt = null;
             if (validityDate && validityDate !== 'permanent') {
                 const parsedDate = new Date(validityDate);
                 if (!isNaN(parsedDate.getTime())) {
-                    // Set it to end of the selected day
                     parsedDate.setHours(23, 59, 59, 999);
                     expiresAt = parsedDate;
                 }
             }
 
-            // Create user
             newUser = await User.create({
                 name: requestToUpdate.name,
                 email: requestToUpdate.email,
                 phone: requestToUpdate.phone,
-                passwordHash: password, // The pre-save hook expects passwordHash, wait, earlier I used password: password. Wait, if schema only has passwordHash, using password might have crashed!
+                passwordHash: password,
                 role: 'CUSTOMER',
                 expiresAt: expiresAt,
             });
@@ -124,9 +122,15 @@ export const updateAccessRequestStatus = async (req, res, next) => {
 
         return res.status(200).json({
             success: true,
-            message: status === 'APPROVED' ? 'Access request approved and user account created successfully.' : 'Access request status updated successfully.',
+            message:
+                status === 'APPROVED'
+                    ? 'Access request approved and user account created successfully.'
+                    : 'Access request status updated successfully.',
             data: updatedRequest,
-            credentials: status === 'APPROVED' ? { email: newUser.email, password: req.body.password } : undefined
+            credentials:
+                status === 'APPROVED'
+                    ? { email: newUser.email, password: req.body.password }
+                    : undefined,
         });
     } catch (error) {
         next(error);

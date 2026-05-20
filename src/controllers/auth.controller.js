@@ -7,20 +7,20 @@ import jwt from 'jsonwebtoken';
 import { OtpToken } from '../models/OtpToken.js';
 import crypto from 'crypto';
 
-const accessTokenMaxAge = 24 * 60 * 60 * 1000; // 1 Day in milliseconds
+const accessTokenMaxAge = 24 * 60 * 60 * 1000;
 
 const getAccessTokenCookieOptions = () => ({
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Changed back to 'none' for Render proxy
-    maxAge: accessTokenMaxAge
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: accessTokenMaxAge,
 });
 
 const getRefreshTokenCookieOptions = () => ({
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Changed back to 'none' for Render proxy
-    maxAge: refreshTokenExpiryMs
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: refreshTokenExpiryMs,
 });
 
 const parseExpiryToMs = (value, fallbackMs) => {
@@ -187,7 +187,10 @@ export const loginWithOtp = asyncHandler(async (req, res) => {
     }
 
     if (user.expiresAt && user.expiresAt < new Date()) {
-        throw new ApiError(403, 'Your temporary access account has expired. Please contact support.');
+        throw new ApiError(
+            403,
+            'Your temporary access account has expired. Please contact support.'
+        );
     }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id, req);
@@ -238,7 +241,10 @@ export const loginUser = asyncHandler(async (req, res) => {
     }
 
     if (user.expiresAt && user.expiresAt < new Date()) {
-        throw new ApiError(403, 'Your temporary access account has expired. Please contact support.');
+        throw new ApiError(
+            403,
+            'Your temporary access account has expired. Please contact support.'
+        );
     }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id, req);
@@ -279,8 +285,16 @@ export const logoutUser = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .clearCookie('accessToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' })
-        .clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' })
+        .clearCookie('accessToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        })
+        .clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        })
         .json(new ApiResponse(200, {}, 'Logged out successfully'));
 });
 
@@ -346,7 +360,7 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
         );
 
         return res
-        .status(200)
+            .status(200)
             .cookie('accessToken', accessToken, getAccessTokenCookieOptions())
             .cookie('refreshToken', refreshToken, getRefreshTokenCookieOptions())
             .json(
@@ -470,8 +484,16 @@ export const revokeMySession = asyncHandler(async (req, res) => {
     if (isCurrent) {
         return res
             .status(200)
-            .clearCookie('accessToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' })
-            .clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' })
+            .clearCookie('accessToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            })
+            .clearCookie('refreshToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            })
             .json(new ApiResponse(200, { signedOut: true }, 'Current session revoked'));
     }
 

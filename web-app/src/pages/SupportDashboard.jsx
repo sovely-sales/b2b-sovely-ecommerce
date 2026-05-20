@@ -11,7 +11,7 @@ import {
     Headphones,
     LogOut,
     Package,
-    ArrowRight
+    ArrowRight,
 } from 'lucide-react';
 import { AuthContext } from '../AuthContext';
 import { ROUTES } from '../utils/routes';
@@ -34,7 +34,7 @@ export default function SupportDashboard() {
     const activeTab = 'SUPPORT';
 
     return (
-        <main className="w-full px-4 py-32 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <main className="mx-auto w-full max-w-7xl px-4 py-32 sm:px-6 lg:px-8">
             <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
                 <div>
                     <h1 className="text-4xl font-black tracking-tight text-slate-900">
@@ -55,7 +55,7 @@ export default function SupportDashboard() {
             </div>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
-                {/* Sidebar */}
+                {}
                 <div className="lg:col-span-3">
                     <div className="sticky top-24 space-y-3">
                         <div className="mb-8 flex items-center gap-4 rounded-3xl bg-slate-900 p-6 text-white shadow-xl">
@@ -89,18 +89,22 @@ export default function SupportDashboard() {
                                 return (
                                     <button
                                         key={tab.id}
-                                        onClick={() => navigate(tab.path, { state: { tab: tab.id } })}
+                                        onClick={() =>
+                                            navigate(tab.path, { state: { tab: tab.id } })
+                                        }
                                         className={`flex w-full items-center gap-4 rounded-2xl px-5 py-4 text-left text-sm font-black transition-all ${isActive ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-200' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
                                     >
                                         <Icon
                                             size={20}
-                                            className={isActive ? 'text-indigo-600' : 'text-slate-400'}
+                                            className={
+                                                isActive ? 'text-indigo-600' : 'text-slate-400'
+                                            }
                                         />
                                         {tab.label}
                                     </button>
                                 );
                             })}
-                            
+
                             <Link
                                 to="/orders?tab=HISTORY"
                                 className="group flex w-full items-center justify-between rounded-2xl px-5 py-4 text-left text-sm font-black text-slate-500 transition-all hover:bg-indigo-50 hover:text-indigo-900"
@@ -121,7 +125,7 @@ export default function SupportDashboard() {
                     </div>
                 </div>
 
-                {/* Main Content */}
+                {}
                 <div className="lg:col-span-9">
                     <AnimatePresence mode="wait">
                         <motion.div

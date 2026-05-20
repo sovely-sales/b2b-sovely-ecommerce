@@ -14,7 +14,7 @@ const syncHistorySchema = new Schema(
         },
         purpose: {
             type: String,
-            required: true, // e.g. "Inventory Sync", "Product Catalog Import", "Order Export"
+            required: true,
         },
         filename: {
             type: String,
@@ -28,7 +28,7 @@ const syncHistorySchema = new Schema(
             default: 'SUCCESS',
         },
         details: {
-            type: Schema.Types.Mixed, // { inserted: 10, updated: 5, skipped: 2, errors: [] }
+            type: Schema.Types.Mixed,
         },
     },
     { timestamps: true }

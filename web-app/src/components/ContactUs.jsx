@@ -49,7 +49,14 @@ export default function ContactUs() {
             const response = await api.post('/access-requests', formData);
             if (response.data.success) {
                 setIsSuccess(true);
-                setFormData({ name: '', email: '', phone: '', company: '', volume: '', message: '' });
+                setFormData({
+                    name: '',
+                    email: '',
+                    phone: '',
+                    company: '',
+                    volume: '',
+                    message: '',
+                });
                 setTimeout(() => setIsSuccess(false), 5000);
             }
         } catch (error) {
@@ -81,7 +88,7 @@ export default function ContactUs() {
 
             <div className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
                 <div className="-mt-12 grid grid-cols-1 gap-8 lg:grid-cols-5 lg:gap-12">
-                    { }
+                    {}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -150,7 +157,7 @@ export default function ContactUs() {
                         </div>
                     </motion.div>
 
-                    { }
+                    {}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -251,12 +258,8 @@ export default function ContactUs() {
                                     <option value="startup">
                                         Just starting out (0 - 50 orders/mo)
                                     </option>
-                                    <option value="growing">
-                                        Growing (50 - 500 orders/mo)
-                                    </option>
-                                    <option value="scale">
-                                        Scaling (500 - 5,000 orders/mo)
-                                    </option>
+                                    <option value="growing">Growing (50 - 500 orders/mo)</option>
+                                    <option value="scale">Scaling (500 - 5,000 orders/mo)</option>
                                     <option value="enterprise">
                                         Enterprise (5,000+ orders/mo)
                                     </option>

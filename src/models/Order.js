@@ -66,6 +66,7 @@ const orderSchema = new mongoose.Schema(
         orderId: { type: String, required: true, unique: true },
         platformOrderNo: { type: String, default: null },
         wukusyOrderNo: { type: String, default: null },
+        qikinkOrderId: { type: String, default: null },
         resellerId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -143,5 +144,6 @@ const orderSchema = new mongoose.Schema(
 
 orderSchema.index({ resellerId: 1, status: 1 });
 orderSchema.index({ 'endCustomerDetails.phone': 1 });
+orderSchema.index({ qikinkOrderId: 1 });
 
 export const Order = mongoose.model('Order', orderSchema);

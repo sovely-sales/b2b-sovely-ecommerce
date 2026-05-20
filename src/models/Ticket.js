@@ -28,7 +28,7 @@ const ticketSchema = new Schema(
             required: true,
         },
         attachment: {
-            type: String, // Cloudinary URL
+            type: String,
             default: '',
         },
         status: {

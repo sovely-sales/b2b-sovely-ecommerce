@@ -177,27 +177,14 @@ export const razorpayWebhook = async (req, res) => {
 
 export const handleQikinkWebhook = asyncHandler(async (req, res) => {
     const payload = req.body;
-    const headers = req.headers;
+    console.log('--- QIKINK WEBHOOK RECEIVED ---', JSON.stringify(payload, null, 2));
 
-    console.log('--- QIKINK WEBHOOK RECEIVED ---');
-    console.log('Headers:', JSON.stringify(headers, null, 2));
-    console.log('Payload:', JSON.stringify(payload, null, 2));
-
-    // Basic validation
-    if (!payload || !payload.sku) {
-        console.warn('⚠️ Qikink Webhook: Missing payload or SKU');
-        return res.status(400).json({ success: false, message: 'Invalid payload' });
-    }
-
-    try {
-        // 1. Ensure "Uncategorized" category exists
+    if (payload.sku && !payload.order_id && !payload.custom_id) {
         let category = await Category.findOne({ name: 'Qikink' });
         if (!category) {
             category = await Category.create({ name: 'Qikink' });
         }
 
-        // 2. Map Qikink fields to Product model
-        // Note: Field names are based on common Qikink push patterns
         const productData = {
             sku: payload.sku || payload.product_id,
             title: payload.name || payload.title || 'New Qikink Product',
@@ -210,27 +197,14 @@ export const handleQikinkWebhook = asyncHandler(async (req, res) => {
                 altText: payload.name || 'Product Image',
             })),
             dropshipBasePrice: Number(payload.price || payload.cost || 0),
-            suggestedRetailPrice: Number(payload.mrp || payload.price || 0) * 1.5, // Default margin
+            suggestedRetailPrice: Number(payload.mrp || payload.price || 0) * 1.5,
             weightGrams: Number(payload.weight || 500),
-            hsnCode: payload.hsn_code || '6109', // Default HSN for apparel
-            gstSlab: 5, // Default GST for apparel
+            hsnCode: payload.hsn_code || '6109',
+            gstSlab: 5,
             status: 'active',
-            inventory: {
-                stock: payload.stock || 100,
-                alertThreshold: 10,
-            },
+            inventory: { stock: payload.stock || 100, alertThreshold: 10 },
         };
 
-        // If no images found in payload.images, try payload.image
-        if (productData.images.length === 0 && payload.image) {
-            productData.images.push({
-                url: typeof payload.image === 'string' ? payload.image : payload.image.src,
-                position: 1,
-                altText: productData.title,
-            });
-        }
-
-        // 3. Upsert product by SKU
         const product = await Product.findOneAndUpdate({ sku: productData.sku }, productData, {
             new: true,
             upsert: true,
@@ -238,18 +212,64 @@ export const handleQikinkWebhook = asyncHandler(async (req, res) => {
         });
 
         console.log(`✅ Qikink Product Synced: ${product.title} (${product.sku})`);
-
-        return res.status(200).json({
-            success: true,
-            message: 'Product synced successfully',
-            productId: product._id,
-        });
-    } catch (error) {
-        console.error('❌ Qikink Webhook Error:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Internal server error during sync',
-            error: error.message,
-        });
+        return res.status(200).json({ success: true, message: 'Product synced successfully' });
     }
+
+    if (payload.order_id || payload.custom_id) {
+        const order = await Order.findOne({
+            $or: [
+                { qikinkOrderId: String(payload.order_id) },
+                { orderId: String(payload.custom_id) },
+            ],
+        });
+
+        if (!order) {
+            console.warn(
+                `⚠️ Qikink Webhook: Order not found locally (Qikink ID: ${payload.order_id})`
+            );
+            return res.status(404).json({ success: false, message: 'Order not found locally' });
+        }
+
+        let isModified = false;
+
+        if (payload.awb_number || payload.courier_name) {
+            order.tracking = {
+                ...order.tracking,
+                awbNumber: payload.awb_number || order.tracking?.awbNumber,
+                courierName: payload.courier_name || order.tracking?.courierName,
+                trackingUrl: payload.tracking_url || order.tracking?.trackingUrl,
+            };
+            isModified = true;
+        }
+
+        const statusStr = (payload.status || '').toLowerCase();
+        if (statusStr === 'shipped' || statusStr === 'dispatched') {
+            if (order.status !== 'SHIPPED') {
+                order.status = 'SHIPPED';
+                order.statusHistory.push({
+                    status: 'SHIPPED',
+                    comment: `Dispatched by Qikink via ${payload.courier_name || 'Courier'}. AWB: ${payload.awb_number || 'N/A'}`,
+                });
+                isModified = true;
+            }
+        } else if (statusStr === 'cancelled' && order.status !== 'CANCELLED') {
+            order.status = 'CANCELLED';
+            order.statusHistory.push({
+                status: 'CANCELLED',
+                comment: 'Order cancelled at Qikink facility.',
+            });
+            isModified = true;
+        }
+
+        if (isModified) {
+            await order.save();
+            console.log(
+                `✅ Order ${order.orderId} updated via Qikink webhook (Status: ${order.status})`
+            );
+        }
+
+        return res.status(200).json({ success: true, message: 'Order status updated' });
+    }
+
+    return res.status(400).json({ success: false, message: 'Unrecognized webhook event type' });
 });

@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Clock, 
-    ArrowUpRight, 
-    ArrowDownLeft, 
-    User, 
-    Shield, 
-    ChevronLeft, 
+import {
+    Clock,
+    ArrowUpRight,
+    ArrowDownLeft,
+    User,
+    Shield,
+    ChevronLeft,
     ChevronRight,
     Search,
     Calendar,
-    IndianRupee
+    IndianRupee,
 } from 'lucide-react';
 import api from '../../utils/api.js';
 
@@ -28,7 +28,7 @@ const AdminWalletLog = () => {
         setLoading(true);
         try {
             const res = await api.get('/users/admin/wallet-adjustments', {
-                params: { page, limit: 10 }
+                params: { page, limit: 10 },
             });
             setLogs(res.data.data.logs);
             setTotalPages(res.data.data.pagination.totalPages);
@@ -40,11 +40,13 @@ const AdminWalletLog = () => {
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="animate-in fade-in space-y-6 duration-500">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
                     <h2 className="text-2xl font-black text-slate-900">Financial Ledger Logs</h2>
-                    <p className="text-sm text-slate-500 font-medium">Detailed audit of all manual wallet adjustments and balance corrections</p>
+                    <p className="text-sm font-medium text-slate-500">
+                        Detailed audit of all manual wallet adjustments and balance corrections
+                    </p>
                 </div>
             </div>
 
@@ -58,11 +60,21 @@ const AdminWalletLog = () => {
                     <table className="w-full border-collapse text-left">
                         <thead>
                             <tr className="border-b border-slate-200 bg-slate-50/50">
-                                <th className="p-4 text-xs font-bold tracking-wider text-slate-400 uppercase">Timestamp</th>
-                                <th className="p-4 text-xs font-bold tracking-wider text-slate-400 uppercase">Target Reseller</th>
-                                <th className="p-4 text-xs font-bold tracking-wider text-slate-400 uppercase">Performed By</th>
-                                <th className="p-4 text-xs font-bold tracking-wider text-slate-400 uppercase">Adjustment</th>
-                                <th className="p-4 text-xs font-bold tracking-wider text-slate-400 uppercase">Reference ID</th>
+                                <th className="p-4 text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                    Timestamp
+                                </th>
+                                <th className="p-4 text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                    Target Reseller
+                                </th>
+                                <th className="p-4 text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                    Performed By
+                                </th>
+                                <th className="p-4 text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                    Adjustment
+                                </th>
+                                <th className="p-4 text-xs font-bold tracking-wider text-slate-400 uppercase">
+                                    Reference ID
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -71,53 +83,82 @@ const AdminWalletLog = () => {
                                     <td colSpan="5" className="p-20 text-center">
                                         <div className="flex flex-col items-center justify-center text-slate-400">
                                             <Shield size={48} className="mb-4 opacity-10" />
-                                            <p className="font-bold text-slate-600">No adjustment records found.</p>
+                                            <p className="font-bold text-slate-600">
+                                                No adjustment records found.
+                                            </p>
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
                                 logs.map((log) => (
-                                    <tr key={log._id} className="hover:bg-slate-50/50 transition-colors">
+                                    <tr
+                                        key={log._id}
+                                        className="transition-colors hover:bg-slate-50/50"
+                                    >
                                         <td className="p-4 whitespace-nowrap">
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-bold text-slate-900">
-                                                    {new Date(log.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    {new Date(log.createdAt).toLocaleDateString(
+                                                        'en-IN',
+                                                        {
+                                                            day: '2-digit',
+                                                            month: 'short',
+                                                            year: 'numeric',
+                                                        }
+                                                    )}
                                                 </span>
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                                                    {new Date(log.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                                <span className="text-[10px] font-bold tracking-tight text-slate-400 uppercase">
+                                                    {new Date(log.createdAt).toLocaleTimeString(
+                                                        'en-IN',
+                                                        { hour: '2-digit', minute: '2-digit' }
+                                                    )}
                                                 </span>
                                             </div>
                                         </td>
                                         <td className="p-4 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
                                                     <User size={14} />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-black text-slate-900">{log.resellerId?.name || 'Unknown'}</span>
-                                                    <span className="text-[10px] font-bold text-slate-500 uppercase">{log.resellerId?.companyName || 'Individual'}</span>
+                                                    <span className="text-sm font-black text-slate-900">
+                                                        {log.resellerId?.name || 'Unknown'}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase">
+                                                        {log.resellerId?.companyName ||
+                                                            'Individual'}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="p-4 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
-                                                <div className="h-6 w-6 rounded-full bg-slate-900 flex items-center justify-center text-white">
+                                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-white">
                                                     <Shield size={10} />
                                                 </div>
-                                                <span className="text-sm font-bold text-slate-700">{log.performedBy?.name || 'Admin'}</span>
+                                                <span className="text-sm font-bold text-slate-700">
+                                                    {log.performedBy?.name || 'Admin'}
+                                                </span>
                                             </div>
                                         </td>
                                         <td className="p-4 whitespace-nowrap">
-                                            <div className={`flex items-center gap-1.5 font-black ${log.type === 'CREDIT' ? 'text-emerald-600' : 'text-red-600'}`}>
-                                                {log.type === 'CREDIT' ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}
+                                            <div
+                                                className={`flex items-center gap-1.5 font-black ${log.type === 'CREDIT' ? 'text-emerald-600' : 'text-red-600'}`}
+                                            >
+                                                {log.type === 'CREDIT' ? (
+                                                    <ArrowUpRight size={14} />
+                                                ) : (
+                                                    <ArrowDownLeft size={14} />
+                                                )}
                                                 <span>₹{log.amount.toLocaleString('en-IN')}</span>
                                             </div>
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                                                Closing: ₹{log.closingBalance?.toLocaleString('en-IN')}
+                                            <div className="text-[10px] font-bold tracking-tighter text-slate-400 uppercase">
+                                                Closing: ₹
+                                                {log.closingBalance?.toLocaleString('en-IN')}
                                             </div>
                                         </td>
                                         <td className="p-4 whitespace-nowrap">
-                                            <code className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md uppercase">
+                                            <code className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 uppercase">
                                                 {log.referenceId}
                                             </code>
                                         </td>
@@ -138,7 +179,8 @@ const AdminWalletLog = () => {
                     <ChevronLeft size={16} /> Previous
                 </button>
                 <span className="text-sm font-bold text-slate-500">
-                    Page <span className="text-slate-900">{page}</span> of <span className="text-slate-900">{totalPages || 1}</span>
+                    Page <span className="text-slate-900">{page}</span> of{' '}
+                    <span className="text-slate-900">{totalPages || 1}</span>
                 </span>
                 <button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}

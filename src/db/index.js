@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { DB_NAME } from '../constants.js';
 
-// KEEP the Vercel connection caching
 let cached = global.mongoose;
 
 if (!cached) {
@@ -29,8 +28,7 @@ const connectDB = async () => {
 
     try {
         cached.conn = await cached.promise;
-        
-        // ADD your new UAT connection event listeners here
+
         mongoose.connection.on('error', (err) => {
             console.error('MongoDB connection error after initial connection:', err);
         });
@@ -43,7 +41,7 @@ const connectDB = async () => {
     } catch (error) {
         console.error('MongoDB connection FAILED', error);
         cached.promise = null;
-        throw error; // Or process.exit(1) like you had in UAT
+        throw error;
     }
 };
 

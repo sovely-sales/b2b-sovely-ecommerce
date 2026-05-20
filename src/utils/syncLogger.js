@@ -1,8 +1,5 @@
 import { SyncHistory } from '../models/SyncHistory.js';
 
-/**
- * Logs a sync/import/export operation to the database.
- */
 export const logSync = async ({
     adminId,
     type,
@@ -10,7 +7,7 @@ export const logSync = async ({
     filename,
     fileSize,
     status = 'SUCCESS',
-    details = {}
+    details = {},
 }) => {
     try {
         await SyncHistory.create({
@@ -20,7 +17,7 @@ export const logSync = async ({
             filename,
             fileSize,
             status,
-            details
+            details,
         });
     } catch (error) {
         console.error('Failed to log sync history:', error);

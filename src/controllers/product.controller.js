@@ -71,7 +71,6 @@ export const createProduct = asyncHandler(async (req, res) => {
         tags,
     });
 
-    // Fire and forget Qikink sync to avoid blocking the API response
     qikinkService.syncProduct(product).catch((err) => {
         console.error('Unhandled error during Qikink product sync:', err);
     });
@@ -305,7 +304,6 @@ export const updateProduct = asyncHandler(async (req, res) => {
     Object.assign(product, req.body);
     await product.save();
 
-    // Fire and forget Qikink sync to avoid blocking the API response
     qikinkService.updateProduct(product).catch((err) => {
         console.error('Unhandled error during Qikink product update:', err);
     });

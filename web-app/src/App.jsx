@@ -115,10 +115,10 @@ function App() {
                             {}
                             <Route path={ROUTES.MY_ACCOUNT} element={<AccountHub />} />
 
-                            {/* Wallet */}
+                            {}
                             <Route path={ROUTES.WALLET} element={<Wallet />} />
 
-                            {/* Support */}
+                            {}
                             <Route path="/support" element={<SupportDashboard />} />
 
                             {}

@@ -152,15 +152,14 @@ function parseCsvToOrders(csvText) {
         const rawStatus = findCol(row, ['Status', 'Order Status']).toLowerCase();
         const courier = findCol(row, ['Courier', 'Courier Name', 'Delivery Partner']);
         const tracking = findCol(row, ['Tracking', 'AWB', 'AWB Number', 'Tracking Number']);
-        
-        // Match Sovely ID using various possible column names
+
         const sovelyOrderId = findCol(row, [
             'Sovely Order ID',
             'Platform Order No',
             'Platform order number',
             'Platform Order Number',
             'Platform ID',
-            'Marketplace ID'
+            'Marketplace ID',
         ]);
 
         return {
@@ -493,7 +492,9 @@ const AdminOrders = () => {
             setSelectedOrder(null);
             toast.success(`Order ${orderId} deleted permanently`, { id: deleteToast });
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Failed to delete order', { id: deleteToast });
+            toast.error(err.response?.data?.message || 'Failed to delete order', {
+                id: deleteToast,
+            });
         }
     };
 
@@ -903,7 +904,9 @@ const AdminOrders = () => {
                                                     <button
                                                         onClick={() => {
                                                             const availableStatuses =
-                                                                getManualOverrideStatuses(order.status);
+                                                                getManualOverrideStatuses(
+                                                                    order.status
+                                                                );
 
                                                             setSelectedOrder(order);
                                                             setViewMode(isCompleted);
@@ -917,7 +920,8 @@ const AdminOrders = () => {
                                                                     ? order.status
                                                                     : '',
                                                                 courierName:
-                                                                    order.tracking?.courierName || '',
+                                                                    order.tracking?.courierName ||
+                                                                    '',
                                                                 awbNumber:
                                                                     order.tracking?.awbNumber || '',
                                                                 platformOrderNo:
@@ -1445,7 +1449,10 @@ const AdminOrders = () => {
                                     )}
                                     <button
                                         onClick={() =>
-                                            handleDeleteOrder(selectedOrder._id, selectedOrder.orderId)
+                                            handleDeleteOrder(
+                                                selectedOrder._id,
+                                                selectedOrder.orderId
+                                            )
                                         }
                                         className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs font-extrabold text-red-600 transition-colors hover:bg-red-100"
                                         title="Permanently Delete Order"

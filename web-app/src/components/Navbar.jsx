@@ -567,77 +567,100 @@ function Navbar() {
             </header>
             <div className="h-14 w-full shrink-0" />
 
-            {/* Welcome Notifications Modal */}
-            {typeof document !== 'undefined' && createPortal(
-                <AnimatePresence>
-                    {showWelcomeNotifModal && (
-                        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                className="w-full max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden"
-                            >
-                                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-indigo-600">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-white/20 rounded-full text-white">
-                                            <Bell size={20} className="animate-bounce" />
+            {}
+            {typeof document !== 'undefined' &&
+                createPortal(
+                    <AnimatePresence>
+                        {showWelcomeNotifModal && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                    className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
+                                >
+                                    <div className="flex items-center justify-between border-b border-slate-100 bg-indigo-600 p-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="rounded-full bg-white/20 p-2 text-white">
+                                                <Bell size={20} className="animate-bounce" />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-white">
+                                                You have updates!
+                                            </h3>
                                         </div>
-                                        <h3 className="text-lg font-bold text-white">You have updates!</h3>
+                                        <button
+                                            onClick={() => setShowWelcomeNotifModal(false)}
+                                            className="text-white/70 hover:text-white"
+                                        >
+                                            <X size={20} />
+                                        </button>
                                     </div>
-                                    <button onClick={() => setShowWelcomeNotifModal(false)} className="text-white/70 hover:text-white">
-                                        <X size={20} />
-                                    </button>
-                                </div>
-                                <div className="p-6">
-                                    <p className="text-slate-600 text-sm font-medium mb-4">
-                                        You have <span className="font-bold text-indigo-600">{unreadCount} unread notifications</span> since your last visit.
-                                    </p>
-                                    
-                                    <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
-                                        {notifications.filter(n => !n.isRead).map(notif => {
-                                            const styles = getNotificationStyles(notif.type);
-                                            const Icon = styles.icon;
-                                            return (
-                                                <div key={notif._id} className="flex gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${styles.bg} ${styles.color}`}>
-                                                        <Icon size={18} strokeWidth={2.5} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-bold text-slate-900">{notif.title}</p>
-                                                        <p className="text-xs text-slate-600 mt-0.5">{notif.message}</p>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                    <div className="p-6">
+                                        <p className="mb-4 text-sm font-medium text-slate-600">
+                                            You have{' '}
+                                            <span className="font-bold text-indigo-600">
+                                                {unreadCount} unread notifications
+                                            </span>{' '}
+                                            since your last visit.
+                                        </p>
 
-                                    <div className="mt-6 flex gap-3">
-                                        <button 
-                                            onClick={() => {
-                                                markAsReadMutation.mutate();
-                                                setShowWelcomeNotifModal(false);
-                                            }}
-                                            className="flex-1 px-4 py-2.5 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
-                                        >
-                                            Mark as Read
-                                        </button>
-                                        <button 
-                                            onClick={() => {
-                                                setShowWelcomeNotifModal(false);
-                                            }}
-                                            className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-colors"
-                                        >
-                                            Dismiss
-                                        </button>
+                                        <div className="custom-scrollbar max-h-[300px] space-y-3 overflow-y-auto pr-2">
+                                            {notifications
+                                                .filter((n) => !n.isRead)
+                                                .map((notif) => {
+                                                    const styles = getNotificationStyles(
+                                                        notif.type
+                                                    );
+                                                    const Icon = styles.icon;
+                                                    return (
+                                                        <div
+                                                            key={notif._id}
+                                                            className="flex gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3"
+                                                        >
+                                                            <div
+                                                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${styles.bg} ${styles.color}`}
+                                                            >
+                                                                <Icon size={18} strokeWidth={2.5} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-slate-900">
+                                                                    {notif.title}
+                                                                </p>
+                                                                <p className="mt-0.5 text-xs text-slate-600">
+                                                                    {notif.message}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+
+                                        <div className="mt-6 flex gap-3">
+                                            <button
+                                                onClick={() => {
+                                                    markAsReadMutation.mutate();
+                                                    setShowWelcomeNotifModal(false);
+                                                }}
+                                                className="flex-1 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-200"
+                                            >
+                                                Mark as Read
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setShowWelcomeNotifModal(false);
+                                                }}
+                                                className="flex-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-indigo-500"
+                                            >
+                                                Dismiss
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>,
-                document.body
-            )}
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>,
+                    document.body
+                )}
         </>
     );
 }

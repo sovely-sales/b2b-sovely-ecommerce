@@ -14,6 +14,7 @@ import { logisticsService } from '../services/logistics.service.js';
 import { emailService } from '../services/email.service.js';
 import { Invoice } from '../models/Invoice.js';
 import { Notification } from '../models/Notification.js';
+import { qikinkOrderQueue } from '../services/queue.service.js';
 import crypto from 'crypto';
 import fs from 'fs';
 import Papa from 'papaparse';
@@ -567,6 +568,24 @@ export const createOrder = asyncHandler(async (req, res) => {
 
         await session.commitTransaction();
         session.endSession();
+
+        const dropshipOrders = createdOrders.filter(
+            (o) => o.endCustomerDetails && o.endCustomerDetails.phone
+        );
+
+        for (const dsOrder of dropshipOrders) {
+            await qikinkOrderQueue.add(
+                'sync-order',
+                { orderId: dsOrder._id },
+                {
+                    attempts: 5,
+                    backoff: {
+                        type: 'exponential',
+                        delay: 5000,
+                    },
+                }
+            );
+        }
 
         const wholesaleOrders = createdOrders.filter((o) => o.orderId.startsWith('OD-WH'));
         if (wholesaleOrders.length > 0) {
@@ -1268,6 +1287,17 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
         await session.commitTransaction();
         session.endSession();
 
+        for (const orderDoc of createdOrders) {
+            await qikinkOrderQueue.add(
+                'sync-order',
+                { orderId: orderDoc._id },
+                {
+                    attempts: 5,
+                    backoff: { type: 'exponential', delay: 5000 },
+                }
+            );
+        }
+
         return res
             .status(201)
             .json(
@@ -1813,7 +1843,7 @@ export const importWukusyStatusesCsv = async (req, res) => {
             csvText = req.file.buffer.toString('utf-8');
         } else if (req.file.path) {
             csvText = fs.readFileSync(req.file.path, 'utf-8');
-            // Clean up the temp file
+
             try {
                 fs.unlinkSync(req.file.path);
             } catch (err) {
@@ -1904,7 +1934,7 @@ export const importWukusyStatusesCsv = async (req, res) => {
             'rto delivered': 'RTO_DELIVERED',
             label_printed: 'SHIPPED',
             label_prin: 'SHIPPED',
-            paid: 'SHIPPED', // In Wukusy, 'paid' often means shipped/ready
+            paid: 'SHIPPED',
         };
 
         let updated = 0;
@@ -1959,7 +1989,6 @@ export const importWukusyStatusesCsv = async (req, res) => {
             }
 
             if (!order && platformOrderNo) {
-                // Search both fields with this value as well
                 order = await Order.findOne({
                     $or: [
                         { platformOrderNo: platformOrderNo },
@@ -1976,7 +2005,6 @@ export const importWukusyStatusesCsv = async (req, res) => {
             }
 
             if (!order && sovelyOrderId) {
-                // Last ditch effort: try Sovely ID case-insensitive
                 order = await Order.findOne({
                     orderId: { $regex: new RegExp(`^${sovelyOrderId}$`, 'i') },
                     status: { $in: ['PENDING', 'PROCESSING', 'SHIPPED'] },
@@ -2001,7 +2029,6 @@ export const importWukusyStatusesCsv = async (req, res) => {
 
             let isModified = false;
 
-            // Update the platform reference if provided
             if (platformOrderNo && order.platformOrderNo !== platformOrderNo) {
                 order.platformOrderNo = platformOrderNo;
                 isModified = true;
@@ -2019,7 +2046,7 @@ export const importWukusyStatusesCsv = async (req, res) => {
                     order.tracking.trackingNumber = tracking;
                     isModified = true;
                 }
-                // Store Wukusy Order Number for audit
+
                 if (wukusyOrderNo) {
                     order.wukusyOrderNo = wukusyOrderNo;
                     isModified = true;
@@ -2027,7 +2054,6 @@ export const importWukusyStatusesCsv = async (req, res) => {
             }
 
             if (mappedStatus && order.status !== mappedStatus) {
-                // --- FINANCIAL SETTLEMENT PATCH ---
                 const finalStatuses = ['CANCELLED', 'RTO_DELIVERED'];
                 if (finalStatuses.includes(mappedStatus) && !finalStatuses.includes(order.status)) {
                     try {

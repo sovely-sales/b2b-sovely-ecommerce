@@ -43,7 +43,12 @@ router.post('/login-otp', loginWithOtp);
 router.get('/admin/all', verifyJWT, authorizeRoles('ADMIN'), getAllUsers);
 router.put('/admin/:id/toggle-status', verifyJWT, authorizeRoles('ADMIN'), toggleUserStatus);
 router.put('/admin/:id/role', verifyJWT, authorizeRoles('ADMIN'), updateUserRole);
-router.get('/admin/wallet-adjustments', verifyJWT, authorizeRoles('ADMIN'), getAdminAdjustmentHistory);
+router.get(
+    '/admin/wallet-adjustments',
+    verifyJWT,
+    authorizeRoles('ADMIN'),
+    getAdminAdjustmentHistory
+);
 router.put('/admin/:id/update', verifyJWT, authorizeRoles('ADMIN'), updateUserByAdmin);
 router.delete('/admin/:id', verifyJWT, authorizeRoles('ADMIN'), deleteUser);
 router.post('/admin/create', verifyJWT, authorizeRoles('ADMIN'), createUser);

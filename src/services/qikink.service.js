@@ -5,62 +5,19 @@ class QikinkService {
         this.baseUrl = process.env.QIKINK_BASE_URL || 'https://api.qikink.com';
         this.clientId = process.env.QIKINK_CLIENT_ID;
         this.clientSecret = process.env.QIKINK_CLIENT_SECRET;
-        this.accessToken = null;
-        this.tokenExpiry = null;
     }
 
-    async getAccessToken() {
-        if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
-            return this.accessToken;
-        }
-
+    async request(endpoint, options = {}, retries = 3) {
         if (!this.clientId || !this.clientSecret) {
             console.error(
                 'Qikink credentials (QIKINK_CLIENT_ID, QIKINK_CLIENT_SECRET) are missing.'
             );
-            return null;
-        }
-
-        try {
-            const response = await fetch(`${this.baseUrl}/api/token`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    client_id: this.clientId,
-                    client_secret: this.clientSecret,
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('Failed to authenticate with Qikink:', errorData);
-                return null;
-            }
-
-            const data = await response.json();
-            this.accessToken = data.access_token;
-            // Assuming token expires in 1 hour (3600 seconds), refreshing 5 minutes before expiry
-            const expiresIn = data.expires_in || 3600;
-            this.tokenExpiry = Date.now() + (expiresIn - 300) * 1000;
-
-            return this.accessToken;
-        } catch (error) {
-            console.error('Error fetching Qikink token:', error);
-            return null;
-        }
-    }
-
-    async request(endpoint, options = {}, retries = 3) {
-        const token = await this.getAccessToken();
-        if (!token) {
-            console.error('Cannot make Qikink request without a valid token.');
-            return null;
+            throw new Error('Missing Qikink API credentials');
         }
 
         const headers = {
-            Authorization: `Bearer ${token}`,
+            ClientId: this.clientId,
+            Accesstoken: this.clientSecret,
             'Content-Type': 'application/json',
             ...(options.headers || {}),
         };
@@ -74,14 +31,15 @@ class QikinkService {
             try {
                 const response = await fetch(`${this.baseUrl}${endpoint}`, config);
 
-                if (response.status === 401) {
-                    // Token might have expired unexpectedly, clear token and retry
-                    this.accessToken = null;
-                    if (attempt < retries) continue;
-                }
-
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
+
+                    if (response.status === 429 || errorData.error?.includes('Rate limit')) {
+                        throw new Error(
+                            `Qikink Rate Limit Exceeded: ${errorData.error || '30 req/min limit'}`
+                        );
+                    }
+
                     throw new Error(
                         `Qikink API Error ${response.status}: ${JSON.stringify(errorData)}`
                     );
@@ -96,10 +54,58 @@ class QikinkService {
                 if (attempt === retries) {
                     throw error;
                 }
-                // Exponential backoff
+
                 await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
             }
         }
+    }
+
+    async placeOrder(orderDoc) {
+        const fullName = orderDoc.endCustomerDetails?.name || 'Customer';
+        const nameParts = fullName.trim().split(/\s+/);
+        const firstName = nameParts[0] || 'Customer';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        const address = orderDoc.endCustomerDetails?.address || {};
+
+        // Calculate total retail order value charged to customer
+        const totalOrderValue = orderDoc.totalPlatformCost + orderDoc.resellerProfitMargin;
+
+        const payload = {
+            order_number: orderDoc.orderId,
+            qikink_shipping: '1', // 1 means Qikink handles shipment delivery
+            gateway: orderDoc.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
+            total_order_value: String(totalOrderValue),
+            line_items: orderDoc.items.map((item) => ({
+                search_from_my_products: 1,
+                sku: item.sku,
+                quantity: String(item.qty),
+                price: String(item.resellerSellingPrice || item.platformBasePrice),
+            })),
+            shipping_address: {
+                first_name: firstName,
+                last_name: lastName || undefined,
+                address1: address.street || '',
+                address2: '',
+                phone: orderDoc.endCustomerDetails?.phone || '',
+                email: 'customer@sovely.com',
+                city: address.city || '',
+                zip: Number(address.zip) || 0, // Must explicitly be numeric per docs
+                province: address.state || '',
+                country_code: 'IN',
+            },
+        };
+
+        const response = await this.request('/api/order/create', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+        });
+
+        if (!response || !response.order_id) {
+            throw new Error(`Invalid response structure from Qikink: ${JSON.stringify(response)}`);
+        }
+
+        return String(response.order_id);
     }
 
     async syncProduct(product) {
@@ -126,7 +132,7 @@ class QikinkService {
             return result;
         } catch (error) {
             console.error(`Failed to sync product ${product.sku} to Qikink:`, error.message);
-            return null;
+            throw error;
         }
     }
 
@@ -145,9 +151,6 @@ class QikinkService {
             };
 
             console.log(`Updating product ${product.sku} in Qikink...`);
-            // Assuming Qikink supports updating via SKU or requires ID mapping.
-            // Sending it to PUT /api/products/{sku} based on general REST patterns
-            // If they require a specific Qikink ID, we'd need to store it upon creation.
             const result = await this.request(`/api/products/${product.sku}`, {
                 method: 'PUT',
                 body: JSON.stringify(payload),
@@ -157,7 +160,7 @@ class QikinkService {
             return result;
         } catch (error) {
             console.error(`Failed to update product ${product.sku} in Qikink:`, error.message);
-            return null;
+            throw error;
         }
     }
 }

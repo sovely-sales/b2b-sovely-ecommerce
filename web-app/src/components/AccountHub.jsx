@@ -444,7 +444,7 @@ export default function AccountHub() {
                             {activeTab === 'ADDRESS_BOOK' && <AddressBookTab />}
                             {activeTab === 'SUPPORT' && <SupportTab />}
 
-                            {/* --- Profile Tab --- */}
+                            {}
                             {activeTab === 'PROFILE' && (
                                 <div className="space-y-8">
                                     {}
