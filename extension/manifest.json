@@ -8,7 +8,6 @@
                 "*://*/dropshiper/allOrders*"
             ],
             "js": [
-                "parser.js",
                 "exporter.js",
                 "content.js"
             ]
