@@ -239,11 +239,21 @@ export const getProducts = asyncHandler(async (req, res) => {
     else if (sort === 'price-desc') sortParams = { dropshipBasePrice: -1 };
     else if (sort === 'margin') sortParams = { estimatedMarginPercent: -1 };
 
-    const products = await Product.find(query, projection)
-        .sort(sortParams)
-        .skip(skip)
-        .limit(Number(limit))
-        .populate('categoryId', 'name slug');
+    const pipeline = [
+        { $match: query },
+        {
+            $addFields: {
+                isOutOfStock: { $cond: [{ $lte: ['$inventory.stock', 0] }, 1, 0] }
+            }
+        },
+        { $sort: { isOutOfStock: 1, ...sortParams } },
+        { $project: { __v: 0 } },
+        { $skip: skip },
+        { $limit: Number(limit) }
+    ];
+
+    let products = await Product.aggregate(pipeline);
+    products = await Product.populate(products, { path: 'categoryId', select: 'name slug' });
 
     const total = await Product.countDocuments(query);
 
