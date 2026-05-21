@@ -72,6 +72,7 @@ export default function DropshipProducts({
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const [viewMode, setViewMode] = useState('grid');
+    const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
     const loadMoreRef = useRef(null);
 
@@ -314,7 +315,7 @@ export default function DropshipProducts({
         <section className="relative z-10 w-full px-4 font-sans sm:px-6 lg:px-8">
             {}
             <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/50 p-4 shadow-sm xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:gap-4">
+                <div className={`flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:gap-4 ${isFiltersOpen ? 'flex' : 'hidden xl:flex'}`}>
                     <div className="relative">
                         <select
                             value={filters.category}
@@ -429,8 +430,14 @@ export default function DropshipProducts({
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-4 border-t border-slate-200 pt-4 xl:border-t-0 xl:pt-0">
-                    <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 pt-4 xl:border-t-0 xl:pt-0 xl:w-auto w-full">
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <button 
+                            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                            className="flex xl:hidden items-center gap-2 text-sm font-bold text-slate-700 bg-white border border-slate-200 px-3 py-2 rounded-xl shadow-sm hover:bg-slate-50"
+                        >
+                            <AlignJustify size={14} /> Filters
+                        </button>
                         {hasActiveFilters && (
                             <button
                                 onClick={resetAll}
@@ -497,7 +504,7 @@ export default function DropshipProducts({
                         className={
                             viewMode === 'table'
                                 ? 'flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white'
-                                : 'grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+                                : 'grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
                         }
                     >
                         {[...Array(10)].map((_, i) => (
@@ -531,7 +538,7 @@ export default function DropshipProducts({
                             className={
                                 viewMode === 'table'
                                     ? 'flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm'
-                                    : 'grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+                                    : 'grid grid-cols-1 min-[480px]:grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
                             }
                         >
                             {viewMode === 'table' && (
