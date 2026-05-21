@@ -307,9 +307,9 @@ const ProductPage = () => {
                                     );
                                     setAddToCartSuccess(false);
                                 }}
-                                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all ${orderType === 'DROPSHIP' ? 'bg-slate-100 text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs sm:text-sm font-bold transition-all ${orderType === 'DROPSHIP' ? 'bg-slate-100 text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                <TrendingUp size={16} /> Dropship Order
+                                <TrendingUp size={16} className="hidden sm:block" /> Dropship Order
                             </button>
                             <button
                                 onClick={() => {
@@ -317,9 +317,9 @@ const ProductPage = () => {
                                     setQuantity(1);
                                     setAddToCartSuccess(false);
                                 }}
-                                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold transition-all ${orderType === 'WHOLESALE' ? 'bg-slate-100 text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs sm:text-sm font-bold transition-all ${orderType === 'WHOLESALE' ? 'bg-slate-100 text-indigo-600 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                <Package size={16} /> Direct Wholesale
+                                <Package size={16} className="hidden sm:block" /> Direct Wholesale
                             </button>
                         </div>
 
@@ -582,6 +582,29 @@ const ProductPage = () => {
                     />
                 )}
             </AnimatePresence>
+
+            {/* Sticky Mobile Actions */}
+            <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden">
+                <div className="flex items-center gap-4">
+                    <div className="flex flex-col">
+                        <span className="text-xs font-bold text-slate-500 uppercase">Total</span>
+                        <span className="text-lg font-black text-slate-900">
+                            ₹{orderType === 'WHOLESALE' ? (currentUnitCost * quantity).toLocaleString('en-IN') : totalDropshipCost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </span>
+                    </div>
+                    <button
+                        onClick={handleAddToCartClick}
+                        disabled={isCartLoading || product.inventory?.stock <= 0 || quantity < 1}
+                        className={`flex-1 rounded-2xl py-3 text-sm font-black text-white shadow-md transition-all ${
+                            addToCartSuccess
+                                ? 'bg-emerald-500 shadow-emerald-500/30'
+                                : 'bg-indigo-600 shadow-indigo-600/20 hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none'
+                        }`}
+                    >
+                        {addToCartSuccess ? 'Added to Cart' : orderType === 'DROPSHIP' ? 'Confirm Dropship' : 'Add to Cart'}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };

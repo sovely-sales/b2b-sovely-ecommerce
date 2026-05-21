@@ -502,80 +502,82 @@ export default function WalletTab() {
                                 </p>
                             </div>
                         ) : (
-                            <table className="w-full border-separate border-spacing-y-2 px-4 text-left text-sm">
-                                <tbody>
-                                    {ledgerTransactions.map((txn, idx) => {
-                                        const isCredit = txn.type === 'CREDIT';
-                                        const style = getTransactionStyling(
-                                            txn.purpose,
-                                            txn.type,
-                                            txn.status
-                                        );
-                                        const Icon = style.icon;
+                            <div className="w-full overflow-x-auto">
+                                <table className="w-full min-w-[600px] border-separate border-spacing-y-2 px-4 text-left text-sm">
+                                    <tbody>
+                                        {ledgerTransactions.map((txn, idx) => {
+                                            const isCredit = txn.type === 'CREDIT';
+                                            const style = getTransactionStyling(
+                                                txn.purpose,
+                                                txn.type,
+                                                txn.status
+                                            );
+                                            const Icon = style.icon;
 
-                                        return (
-                                            <tr key={idx} className="group transition-colors">
-                                                <td className="w-12 py-2">
-                                                    <div
-                                                        className={`flex h-10 w-10 items-center justify-center rounded-xl border ${style.bg} ${style.color} ${style.border}`}
-                                                    >
-                                                        <Icon size={16} />
-                                                    </div>
-                                                </td>
-                                                <td className="py-2 pr-4">
-                                                    <p className="font-bold text-slate-900">
-                                                        {txn.purpose.replace(/_/g, ' ')}
-                                                    </p>
-                                                    <p className="mt-0.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                                                        {new Date(txn.createdAt).toLocaleDateString(
-                                                            'en-IN',
-                                                            {
-                                                                month: 'short',
-                                                                day: 'numeric',
-                                                                hour: '2-digit',
-                                                                minute: '2-digit',
-                                                            }
-                                                        )}
-                                                    </p>
-                                                </td>
-                                                <td className="hidden py-2 sm:table-cell">
-                                                    <p className="font-mono text-[10px] font-bold text-slate-400">
-                                                        {}
-                                                        Ref:{' '}
-                                                        {txn.referenceId.length > 15
-                                                            ? `${txn.referenceId.slice(0, 8)}...${txn.referenceId.slice(-4)}`
-                                                            : txn.referenceId}
-                                                    </p>
-                                                </td>
-                                                <td className="py-2 text-right">
-                                                    <div className="flex flex-col items-end">
-                                                        <p
-                                                            className={`text-base font-black ${txn.status === 'FAILED' ? 'text-red-500 line-through opacity-60' : isCredit ? 'text-emerald-600' : 'text-slate-900'}`}
+                                            return (
+                                                <tr key={idx} className="group transition-colors">
+                                                    <td className="w-12 py-2">
+                                                        <div
+                                                            className={`flex h-10 w-10 items-center justify-center rounded-xl border ${style.bg} ${style.color} ${style.border}`}
                                                         >
-                                                            {isCredit ? '+' : '-'}₹
-                                                            {txn.amount.toLocaleString('en-IN', {
-                                                                minimumFractionDigits: 2,
-                                                            })}
+                                                            <Icon size={16} />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-2 pr-4">
+                                                        <p className="font-bold text-slate-900 whitespace-nowrap">
+                                                            {txn.purpose.replace(/_/g, ' ')}
                                                         </p>
-                                                        {txn.status === 'FAILED' ? (
-                                                            <span className="text-[9px] font-black tracking-tighter text-red-600 uppercase">
-                                                                Payment Failed
-                                                            </span>
-                                                        ) : (
-                                                            <p className="mt-0.5 text-[10px] font-bold text-slate-400">
-                                                                Bal: ₹
-                                                                {txn.closingBalance?.toLocaleString(
-                                                                    'en-IN'
-                                                                )}
+                                                        <p className="mt-0.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase whitespace-nowrap">
+                                                            {new Date(txn.createdAt).toLocaleDateString(
+                                                                'en-IN',
+                                                                {
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit',
+                                                                }
+                                                            )}
+                                                        </p>
+                                                    </td>
+                                                    <td className="hidden py-2 sm:table-cell">
+                                                        <p className="font-mono text-[10px] font-bold text-slate-400">
+                                                            {}
+                                                            Ref:{' '}
+                                                            {txn.referenceId.length > 15
+                                                                ? `${txn.referenceId.slice(0, 8)}...${txn.referenceId.slice(-4)}`
+                                                                : txn.referenceId}
+                                                        </p>
+                                                    </td>
+                                                    <td className="py-2 text-right">
+                                                        <div className="flex flex-col items-end">
+                                                            <p
+                                                                className={`text-base font-black whitespace-nowrap ${txn.status === 'FAILED' ? 'text-red-500 line-through opacity-60' : isCredit ? 'text-emerald-600' : 'text-slate-900'}`}
+                                                            >
+                                                                {isCredit ? '+' : '-'}₹
+                                                                {txn.amount.toLocaleString('en-IN', {
+                                                                    minimumFractionDigits: 2,
+                                                                })}
                                                             </p>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                                                            {txn.status === 'FAILED' ? (
+                                                                <span className="text-[9px] font-black tracking-tighter text-red-600 uppercase whitespace-nowrap">
+                                                                    Payment Failed
+                                                                </span>
+                                                            ) : (
+                                                                <p className="mt-0.5 text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                                                                    Bal: ₹
+                                                                    {txn.closingBalance?.toLocaleString(
+                                                                        'en-IN'
+                                                                    )}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
 
                         {pagination.page < pagination.pages && (

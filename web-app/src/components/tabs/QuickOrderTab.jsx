@@ -319,8 +319,8 @@ export default function QuickOrderTab({ setActiveTab }) {
                             )}
                         </div>
 
-                        <div className="custom-scrollbar max-h-[400px] flex-1 overflow-y-auto p-0">
-                            <table className="relative w-full text-left text-sm">
+                        <div className="custom-scrollbar max-h-[400px] flex-1 overflow-y-auto overflow-x-auto p-0">
+                            <table className="relative w-full min-w-[500px] text-left text-sm">
                                 <thead className="sticky top-0 z-10 bg-white text-[10px] font-bold tracking-wider text-slate-400 uppercase shadow-sm">
                                     <tr>
                                         <th className="p-4">Customer & Dest.</th>

@@ -23,6 +23,7 @@ import {
     Clock,
     Wallet,
     Headphones,
+    Menu,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -64,7 +65,7 @@ const getNotificationStyles = (type) => {
     }
 };
 
-function Navbar() {
+function Navbar({ onToggleSidebar }) {
     const { user, loading, isAdmin } = useContext(AuthContext);
     const queryClient = useQueryClient();
 
@@ -77,6 +78,7 @@ function Navbar() {
     const [searchInput, setSearchInput] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [addedSku, setAddedSku] = useState(null);
 
     const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -227,6 +229,13 @@ function Navbar() {
                     className={`mx-auto flex h-14 items-center justify-between gap-4 transition-all duration-300 ease-in-out ${isScrolled ? 'max-w-5xl rounded-full border border-slate-200/60 bg-white/85 px-6 shadow-lg backdrop-blur-md' : 'max-w-6xl rounded-b-2xl border-b border-slate-200 bg-white px-4 shadow-sm sm:px-6 lg:px-8'}`}
                 >
                     <div className="flex shrink-0 items-center gap-2">
+                        <button
+                            onClick={onToggleSidebar}
+                            className="mr-1 block rounded-md p-1 text-slate-600 transition-colors hover:bg-slate-100 lg:hidden"
+                            aria-label="Toggle Menu"
+                        >
+                            <Menu size={24} />
+                        </button>
                         <Link
                             to={ROUTES.HOME}
                             className={`flex items-center gap-2 overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out ${isScrolled ? 'pointer-events-none w-0 opacity-0' : 'w-28 opacity-100'}`}
@@ -250,7 +259,7 @@ function Navbar() {
 
                     <div
                         ref={searchRef}
-                        className={`relative hidden w-full flex-1 transition-all duration-300 lg:block ${isScrolled ? 'max-w-md' : 'max-w-xl'}`}
+                        className={`absolute left-0 top-full w-full bg-white p-4 shadow-lg lg:static lg:block lg:w-full lg:flex-1 lg:bg-transparent lg:p-0 lg:shadow-none transition-all duration-300 z-40 ${isScrolled ? 'lg:max-w-md' : 'lg:max-w-xl'} ${isMobileSearchOpen ? 'block' : 'hidden'}`}
                     >
                         <div
                             className={`flex w-full items-center overflow-hidden rounded-full border transition-all ${isSearchOpen ? 'border-indigo-600 bg-white shadow-sm ring-1 ring-indigo-600' : 'border-slate-300 bg-slate-50 hover:border-slate-400'}`}
@@ -373,11 +382,17 @@ function Navbar() {
                     </div>
 
                     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+                        <button
+                            onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+                            className={`flex items-center justify-center rounded-full p-2 transition-colors lg:hidden ${isScrolled ? 'text-slate-800' : 'text-slate-600'} ${isMobileSearchOpen ? 'bg-indigo-50 text-indigo-600' : 'hover:bg-slate-100'}`}
+                        >
+                            <Search size={20} strokeWidth={2.5} />
+                        </button>
                         {user && user.accountType === 'B2B' && (
                             <Link
                                 to={ROUTES.MY_ACCOUNT}
                                 state={{ tab: 'WALLET' }}
-                                className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                                className={`hidden lg:flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
                             >
                                 <Wallet size={20} strokeWidth={2.5} />
                                 <span className="hidden text-sm sm:block">
@@ -525,7 +540,7 @@ function Navbar() {
 
                                 <Link
                                     to={`${ROUTES.ORDERS}?tab=HISTORY`}
-                                    className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                                    className={`hidden lg:flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
                                 >
                                     <LayoutGrid size={20} strokeWidth={2.5} />
                                     <span className="hidden text-sm sm:block">Operations</span>
@@ -534,7 +549,7 @@ function Navbar() {
                                 <Link
                                     to={ROUTES.MY_ACCOUNT}
                                     state={{ tab: 'SUPPORT' }}
-                                    className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                                    className={`hidden lg:flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
                                 >
                                     <Headphones size={20} strokeWidth={2.5} />
                                     <span className="hidden text-sm sm:block">Support</span>
@@ -549,7 +564,7 @@ function Navbar() {
                         ) : user ? (
                             <Link
                                 to={ROUTES.MY_ACCOUNT}
-                                className={`flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                                className={`hidden lg:flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
                             >
                                 <User size={20} strokeWidth={2.5} />
                                 <span className="hidden text-sm sm:block">Account</span>
