@@ -63,14 +63,13 @@ const AssignCustomerModal = ({ isOpen, onClose, onAssign, currentCustomer }) => 
 
         if (pin.length === 6) {
             try {
-                const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
-                const data = await response.json();
-                if (data && data[0].Status === 'Success') {
-                    const postOffice = data[0].PostOffice[0];
+                const response = await api.get(`/users/pincode/${pin}`);
+                const data = response.data?.data;
+                if (data) {
                     setFormData((prev) => ({
                         ...prev,
-                        city: postOffice.District,
-                        state: postOffice.State,
+                        city: data.District,
+                        state: data.State,
                     }));
                 }
             } catch (err) {

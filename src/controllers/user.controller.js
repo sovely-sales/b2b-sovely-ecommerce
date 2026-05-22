@@ -8,6 +8,7 @@ import { WalletTransaction } from '../models/WalletTransaction.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import https from 'https';
 
 const cookieOptions = {
     httpOnly: true,
@@ -791,4 +792,28 @@ export const getAdminAdjustmentHistory = asyncHandler(async (req, res) => {
             'Adjustment history fetched successfully'
         )
     );
+});
+
+export const getPincodeDetails = asyncHandler(async (req, res) => {
+    const { pin } = req.params;
+    if (!pin || pin.length !== 6) throw new ApiError(400, 'Invalid pincode');
+
+    const agent = new https.Agent({ rejectUnauthorized: false });
+    return new Promise((resolve, reject) => {
+        https.get(`https://api.postalpincode.in/pincode/${pin}`, { agent }, (response) => {
+            let data = '';
+            response.on('data', (chunk) => data += chunk);
+            response.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed && parsed[0]?.Status === 'Success') {
+                        return resolve(res.status(200).json(new ApiResponse(200, parsed[0].PostOffice[0], 'Pincode fetched')));
+                    }
+                    return resolve(res.status(404).json(new ApiResponse(404, null, 'Pincode not found')));
+                } catch (e) {
+                    return reject(new ApiError(500, 'Failed to parse pincode data'));
+                }
+            });
+        }).on('error', () => reject(new ApiError(500, 'Failed to fetch pincode details')));
+    });
 });

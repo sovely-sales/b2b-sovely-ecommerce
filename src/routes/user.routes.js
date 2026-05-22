@@ -24,9 +24,11 @@ import { validate } from '../middlewares/validate.middleware.js';
 import { userValidation } from '../validations/user.validation.js';
 import { deleteSavedCustomer } from '../controllers/user.controller.js';
 import { addBranch, updateBranch, deleteBranch } from '../controllers/user.controller.js';
-import { createUser } from '../controllers/user.controller.js';
+import { createUser, getPincodeDetails } from '../controllers/user.controller.js';
 
 const router = Router();
+
+router.get('/pincode/:pin', getPincodeDetails);
 
 router.post('/send-otp', (req, res, next) => {
     req.body.isLogin = false;
