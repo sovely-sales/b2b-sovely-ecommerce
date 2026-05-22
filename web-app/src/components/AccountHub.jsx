@@ -319,7 +319,7 @@ export default function AccountHub() {
                 {}
                 <div className="lg:col-span-3">
                     <div className="sticky top-24 space-y-3 lg:space-y-3">
-                        <div className="mb-4 lg:mb-8 flex items-center gap-4 rounded-3xl bg-slate-900 p-4 lg:p-6 text-white shadow-xl">
+                        <div className="mb-4 flex items-center gap-4 rounded-3xl bg-slate-900 p-4 text-white shadow-xl lg:mb-8 lg:p-6">
                             {}
                             <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-indigo-600 text-xl font-black shadow-inner">
                                 {user?.avatar ? (
@@ -344,7 +344,7 @@ export default function AccountHub() {
                             </div>
                         </div>
 
-                        <div className="flex overflow-x-auto lg:flex-col gap-2 pb-2 lg:pb-0 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
+                        <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 lg:mx-0 lg:flex-col lg:px-0 lg:pb-0">
                             {TABS.map((tab) => {
                                 const Icon = tab.icon;
                                 const isActive = activeTab === tab.id;
@@ -352,11 +352,11 @@ export default function AccountHub() {
                                     <React.Fragment key={tab.id}>
                                         <button
                                             onClick={() => setActiveTab(tab.id)}
-                                            className={`flex shrink-0 items-center gap-2 lg:gap-4 rounded-xl lg:rounded-2xl px-4 py-2.5 lg:px-5 lg:py-4 text-left text-sm font-black transition-all ${isActive ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-200' : 'bg-white lg:bg-transparent border border-slate-200 lg:border-none shadow-sm lg:shadow-none text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                                            className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-left text-sm font-black transition-all lg:gap-4 lg:rounded-2xl lg:px-5 lg:py-4 ${isActive ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-200' : 'border border-slate-200 bg-white text-slate-500 shadow-sm hover:bg-slate-50 hover:text-slate-900 lg:border-none lg:bg-transparent lg:shadow-none'}`}
                                         >
                                             <Icon
                                                 size={18}
-                                                className={`lg:w-5 lg:h-5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}
+                                                className={`lg:h-5 lg:w-5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`}
                                             />
                                             {tab.label}
                                         </button>
@@ -364,7 +364,7 @@ export default function AccountHub() {
                                         {tab.id === 'OVERVIEW' && (
                                             <Link
                                                 to="/orders?tab=HISTORY"
-                                                className="hidden lg:flex group w-full items-center justify-between rounded-2xl px-5 py-4 text-left text-sm font-black text-slate-500 transition-all hover:bg-indigo-50 hover:text-indigo-900"
+                                                className="group hidden w-full items-center justify-between rounded-2xl px-5 py-4 text-left text-sm font-black text-slate-500 transition-all hover:bg-indigo-50 hover:text-indigo-900 lg:flex"
                                             >
                                                 <div className="flex items-center gap-4">
                                                     <Package

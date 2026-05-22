@@ -36,6 +36,21 @@ export default function AddressBookTab() {
         fetchCustomers();
     }, []);
 
+    useEffect(() => {
+        if (formData.zip.length === 6) {
+            api.get(`/users/pincode/${formData.zip}`)
+                .then((res) => {
+                    const data = res.data.data;
+                    setFormData((prev) => ({
+                        ...prev,
+                        city: data.District || prev.city,
+                        state: data.State || prev.state,
+                    }));
+                })
+                .catch((err) => console.error('Failed to fetch pincode details', err));
+        }
+    }, [formData.zip]);
+
     const handleDelete = async (phone) => {
         if (!window.confirm('Remove this customer from your address book?')) return;
         try {

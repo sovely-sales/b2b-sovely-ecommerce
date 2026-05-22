@@ -315,7 +315,9 @@ export default function DropshipProducts({
         <section className="relative z-10 w-full px-4 font-sans sm:px-6 lg:px-8">
             {}
             <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/50 p-4 shadow-sm xl:flex-row xl:items-center xl:justify-between">
-                <div className={`flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:gap-4 ${isFiltersOpen ? 'flex' : 'hidden xl:flex'}`}>
+                <div
+                    className={`flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:gap-4 ${isFiltersOpen ? 'flex' : 'hidden xl:flex'}`}
+                >
                     <div className="relative">
                         <select
                             value={filters.category}
@@ -430,11 +432,11 @@ export default function DropshipProducts({
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 pt-4 xl:border-t-0 xl:pt-0 xl:w-auto w-full">
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <button 
+                <div className="flex w-full flex-wrap items-center justify-between gap-4 border-t border-slate-200 pt-4 xl:w-auto xl:border-t-0 xl:pt-0">
+                    <div className="flex flex-wrap items-center gap-4">
+                        <button
                             onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                            className="flex xl:hidden items-center gap-2 text-sm font-bold text-slate-700 bg-white border border-slate-200 px-3 py-2 rounded-xl shadow-sm hover:bg-slate-50"
+                            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50 xl:hidden"
                         >
                             <AlignJustify size={14} /> Filters
                         </button>
@@ -538,7 +540,7 @@ export default function DropshipProducts({
                             className={
                                 viewMode === 'table'
                                     ? 'flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm'
-                                    : 'grid grid-cols-1 min-[480px]:grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+                                    : 'grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
                             }
                         >
                             {viewMode === 'table' && (

@@ -73,7 +73,6 @@ export const resolveTicket = asyncHandler(async (req, res) => {
     if (req.file) {
         ticket.adminAttachment = `${req.protocol}://${req.get('host')}/temp/${req.file.filename}`;
     }
-
     await ticket.save();
 
     return res.status(200).json(new ApiResponse(200, ticket, 'Ticket updated successfully'));

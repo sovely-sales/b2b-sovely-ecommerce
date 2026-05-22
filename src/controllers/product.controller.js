@@ -249,13 +249,13 @@ export const getProducts = asyncHandler(async (req, res) => {
         { $match: query },
         {
             $addFields: {
-                isOutOfStock: { $cond: [{ $lte: ['$inventory.stock', 0] }, 1, 0] }
-            }
+                isOutOfStock: { $cond: [{ $lte: ['$inventory.stock', 0] }, 1, 0] },
+            },
         },
         { $sort: { isOutOfStock: 1, ...sortParams } },
         { $project: { __v: 0 } },
         { $skip: skip },
-        { $limit: Number(limit) }
+        { $limit: Number(limit) },
     ];
 
     let products = await Product.aggregate(pipeline);

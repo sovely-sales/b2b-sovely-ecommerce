@@ -4,6 +4,7 @@ import { AuthContext } from '../AuthContext';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { ShieldCheck, AlertCircle, UploadCloud, Building, MapPin, Landmark } from 'lucide-react';
+import { useEffect } from 'react';
 
 const KycSubmit = () => {
     const { user } = useContext(AuthContext);
@@ -26,7 +27,22 @@ const KycSubmit = () => {
 
     const [isLoading, setIsLoading] = useState(false);
 
-    // If they are already approved, we shouldn't let them edit this freely
+    useEffect(() => {
+        // Only fetch if exactly 6 digits and the form isn't locked
+        if (zip.length === 6 && !isApproved) {
+            api.get(`/users/pincode/${zip}`)
+                .then((res) => {
+                    const data = res.data.data;
+
+                    if (data.District) setCity(data.District);
+                    if (data.State) setState(data.State);
+                })
+                .catch((err) => {
+                    console.error('Failed to fetch pincode details', err);
+                });
+        }
+    }, [zip, isApproved]);
+
     const isApproved = user?.kycStatus === 'APPROVED';
 
     const handleSubmit = async (e) => {

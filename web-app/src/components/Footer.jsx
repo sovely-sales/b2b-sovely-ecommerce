@@ -12,7 +12,7 @@ function Footer() {
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 {}
                 <div className="mb-16 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-6 lg:gap-8">
-                    {/* Brand & Social (2 columns) */}
+                    {}
                     <div className="space-y-6 lg:col-span-2">
                         <Link to={ROUTES.HOME} className="group flex w-fit items-center gap-3">
                             <div className="rounded-lg bg-white p-1.5 shadow-lg shadow-white/10 transition-transform group-hover:scale-105">
@@ -32,7 +32,7 @@ function Footer() {
                             pan-India.
                         </p>
 
-                        {/* Social Links */}
+                        {}
                         <div className="flex items-center gap-3 pt-2">
                             {[
                                 { Icon: Facebook, label: 'Facebook', href: '#' },
@@ -47,8 +47,14 @@ function Footer() {
                                 <a
                                     key={idx}
                                     href={social.href || '#'}
-                                    target={social.href && social.href !== '#' ? '_blank' : undefined}
-                                    rel={social.href && social.href !== '#' ? 'noopener noreferrer' : undefined}
+                                    target={
+                                        social.href && social.href !== '#' ? '_blank' : undefined
+                                    }
+                                    rel={
+                                        social.href && social.href !== '#'
+                                            ? 'noopener noreferrer'
+                                            : undefined
+                                    }
                                     className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-800 bg-slate-900 text-slate-400 transition-all hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-400"
                                     aria-label={social.label}
                                 >
@@ -58,7 +64,7 @@ function Footer() {
                         </div>
                     </div>
 
-                    {/* QUICK LINKS */}
+                    {}
                     <div className="space-y-6">
                         <h4 className="text-xs font-black tracking-widest text-emerald-500 uppercase">
                             Quick Links
@@ -86,7 +92,7 @@ function Footer() {
                         </ul>
                     </div>
 
-                    {/* POLICIES */}
+                    {}
                     <div className="space-y-6">
                         <h4 className="text-xs font-black tracking-widest text-emerald-500 uppercase">
                             Policies
@@ -115,7 +121,7 @@ function Footer() {
                         </ul>
                     </div>
 
-                    {/* OTHER LINKS */}
+                    {}
                     <div className="space-y-6">
                         <h4 className="text-xs font-black tracking-widest text-emerald-500 uppercase">
                             Other Links
@@ -143,7 +149,7 @@ function Footer() {
                         </ul>
                     </div>
 
-                    {/* DROP SHIPPING WITH SOVELY */}
+                    {}
                     <div className="space-y-6">
                         <h4 className="text-xs font-black tracking-widest text-emerald-500 uppercase">
                             Drop Shipping With Sovely

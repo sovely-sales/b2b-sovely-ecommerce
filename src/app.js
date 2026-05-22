@@ -20,6 +20,8 @@ import webhookRouter from './routes/webhook.routes.js';
 import accessRequestRouter from './routes/accessRequest.routes.js';
 import ticketRouter from './routes/ticket.routes.js';
 import syncHistoryRouter from './routes/syncHistory.routes.js';
+import './services/queue.service.js';
+import './services/cron.service.js';
 
 const app = express();
 app.set('trust proxy', 1);

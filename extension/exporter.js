@@ -78,12 +78,12 @@ async function fetchShipments(orderSet) {
         doc.querySelectorAll("table tbody tr").forEach(row => {
             const td = row.querySelectorAll("td");
 
-            // 2. FIXED: Use textContent instead of innerText for DOMParser compatibility
+            
             const orderId = td[0]?.textContent.trim();
 
             if (!orderId || !remaining.has(orderId)) return;
 
-            // 3. FIXED: Extract using innerHTML to catch the <br> tag properly
+            
             const shipmentHtml = td[7]?.innerHTML || "";
             
             // Split the content by the <br> or <br/> tag

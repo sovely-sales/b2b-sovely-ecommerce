@@ -524,19 +524,18 @@ export default function WalletTab() {
                                                         </div>
                                                     </td>
                                                     <td className="py-2 pr-4">
-                                                        <p className="font-bold text-slate-900 whitespace-nowrap">
+                                                        <p className="font-bold whitespace-nowrap text-slate-900">
                                                             {txn.purpose.replace(/_/g, ' ')}
                                                         </p>
-                                                        <p className="mt-0.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase whitespace-nowrap">
-                                                            {new Date(txn.createdAt).toLocaleDateString(
-                                                                'en-IN',
-                                                                {
-                                                                    month: 'short',
-                                                                    day: 'numeric',
-                                                                    hour: '2-digit',
-                                                                    minute: '2-digit',
-                                                                }
-                                                            )}
+                                                        <p className="mt-0.5 text-[10px] font-bold tracking-wider whitespace-nowrap text-slate-400 uppercase">
+                                                            {new Date(
+                                                                txn.createdAt
+                                                            ).toLocaleDateString('en-IN', {
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                                hour: '2-digit',
+                                                                minute: '2-digit',
+                                                            })}
                                                         </p>
                                                     </td>
                                                     <td className="hidden py-2 sm:table-cell">
@@ -554,16 +553,19 @@ export default function WalletTab() {
                                                                 className={`text-base font-black whitespace-nowrap ${txn.status === 'FAILED' ? 'text-red-500 line-through opacity-60' : isCredit ? 'text-emerald-600' : 'text-slate-900'}`}
                                                             >
                                                                 {isCredit ? '+' : '-'}₹
-                                                                {txn.amount.toLocaleString('en-IN', {
-                                                                    minimumFractionDigits: 2,
-                                                                })}
+                                                                {txn.amount.toLocaleString(
+                                                                    'en-IN',
+                                                                    {
+                                                                        minimumFractionDigits: 2,
+                                                                    }
+                                                                )}
                                                             </p>
                                                             {txn.status === 'FAILED' ? (
-                                                                <span className="text-[9px] font-black tracking-tighter text-red-600 uppercase whitespace-nowrap">
+                                                                <span className="text-[9px] font-black tracking-tighter whitespace-nowrap text-red-600 uppercase">
                                                                     Payment Failed
                                                                 </span>
                                                             ) : (
-                                                                <p className="mt-0.5 text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                                                                <p className="mt-0.5 text-[10px] font-bold whitespace-nowrap text-slate-400">
                                                                     Bal: ₹
                                                                     {txn.closingBalance?.toLocaleString(
                                                                         'en-IN'

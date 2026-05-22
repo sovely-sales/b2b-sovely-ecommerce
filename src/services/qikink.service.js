@@ -73,7 +73,7 @@ class QikinkService {
 
         const payload = {
             order_number: orderDoc.orderId,
-            qikink_shipping: '1', // 1 means Qikink handles shipment delivery
+            qikink_shipping: '1',
             gateway: orderDoc.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
             total_order_value: String(totalOrderValue),
             line_items: orderDoc.items.map((item) => ({

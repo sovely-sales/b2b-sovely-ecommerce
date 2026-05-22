@@ -10,11 +10,11 @@ function PublicNavbar() {
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-slate-200/50 bg-white/90 shadow-sm backdrop-blur-xl">
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                {/* Logo and Main Nav */}
+                {}
                 <div className="flex items-center gap-4 md:gap-8">
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        className="md:hidden p-1 text-slate-600 hover:text-indigo-600 transition-colors"
+                        className="p-1 text-slate-600 transition-colors hover:text-indigo-600 md:hidden"
                         aria-label="Toggle Menu"
                     >
                         {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -46,11 +46,11 @@ function PublicNavbar() {
                     </div>
                 </div>
 
-                {/* Right Actions */}
+                {}
                 <div className="flex items-center gap-2 sm:gap-4">
                     <Link
                         to={ROUTES.LOGIN}
-                        className="hidden sm:block text-sm font-bold text-slate-600 transition-colors hover:text-slate-900"
+                        className="hidden text-sm font-bold text-slate-600 transition-colors hover:text-slate-900 sm:block"
                     >
                         Log in
                     </Link>
@@ -63,14 +63,14 @@ function PublicNavbar() {
                 </div>
             </div>
 
-            {/* Mobile Menu */}
+            {}
             <AnimatePresence>
                 {isMobileMenuOpen && (
                     <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="md:hidden border-t border-slate-200/50 bg-white px-4 py-4 shadow-lg overflow-hidden"
+                        className="overflow-hidden border-t border-slate-200/50 bg-white px-4 py-4 shadow-lg md:hidden"
                     >
                         <div className="flex flex-col gap-4">
                             <Link

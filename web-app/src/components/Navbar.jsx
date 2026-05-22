@@ -259,7 +259,7 @@ function Navbar({ onToggleSidebar }) {
 
                     <div
                         ref={searchRef}
-                        className={`absolute left-0 top-full w-full bg-white p-4 shadow-lg lg:static lg:block lg:w-full lg:flex-1 lg:bg-transparent lg:p-0 lg:shadow-none transition-all duration-300 z-40 ${isScrolled ? 'lg:max-w-md' : 'lg:max-w-xl'} ${isMobileSearchOpen ? 'block' : 'hidden'}`}
+                        className={`absolute top-full left-0 z-40 w-full bg-white p-4 shadow-lg transition-all duration-300 lg:static lg:block lg:w-full lg:flex-1 lg:bg-transparent lg:p-0 lg:shadow-none ${isScrolled ? 'lg:max-w-md' : 'lg:max-w-xl'} ${isMobileSearchOpen ? 'block' : 'hidden'}`}
                     >
                         <div
                             className={`flex w-full items-center overflow-hidden rounded-full border transition-all ${isSearchOpen ? 'border-indigo-600 bg-white shadow-sm ring-1 ring-indigo-600' : 'border-slate-300 bg-slate-50 hover:border-slate-400'}`}
@@ -392,7 +392,7 @@ function Navbar({ onToggleSidebar }) {
                             <Link
                                 to={ROUTES.MY_ACCOUNT}
                                 state={{ tab: 'WALLET' }}
-                                className={`hidden lg:flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                                className={`hidden items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 lg:flex ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
                             >
                                 <Wallet size={20} strokeWidth={2.5} />
                                 <span className="hidden text-sm sm:block">
@@ -540,7 +540,7 @@ function Navbar({ onToggleSidebar }) {
 
                                 <Link
                                     to={`${ROUTES.ORDERS}?tab=HISTORY`}
-                                    className={`hidden lg:flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                                    className={`hidden items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 lg:flex ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
                                 >
                                     <LayoutGrid size={20} strokeWidth={2.5} />
                                     <span className="hidden text-sm sm:block">Operations</span>
@@ -549,7 +549,7 @@ function Navbar({ onToggleSidebar }) {
                                 <Link
                                     to={ROUTES.MY_ACCOUNT}
                                     state={{ tab: 'SUPPORT' }}
-                                    className={`hidden lg:flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                                    className={`hidden items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 lg:flex ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
                                 >
                                     <Headphones size={20} strokeWidth={2.5} />
                                     <span className="hidden text-sm sm:block">Support</span>
@@ -564,7 +564,7 @@ function Navbar({ onToggleSidebar }) {
                         ) : user ? (
                             <Link
                                 to={ROUTES.MY_ACCOUNT}
-                                className={`hidden lg:flex items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                                className={`hidden items-center gap-2 rounded-full px-3 py-2 font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 lg:flex ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
                             >
                                 <User size={20} strokeWidth={2.5} />
                                 <span className="hidden text-sm sm:block">Account</span>
