@@ -71,7 +71,7 @@ export const resolveTicket = asyncHandler(async (req, res) => {
     }
 
     if (req.file) {
-        ticket.adminAttachment = `${req.protocol}:
+        ticket.adminAttachment = `${req.protocol}://${req.get('host')}/temp/${req.file.filename}`;
     }
 
     await ticket.save();

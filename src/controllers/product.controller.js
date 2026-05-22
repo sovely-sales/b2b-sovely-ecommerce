@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Product } from '../models/Product.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
@@ -136,7 +137,13 @@ export const getProducts = asyncHandler(async (req, res) => {
         ];
     }
 
-    if (category) query.categoryId = category;
+    if (category) {
+        if (mongoose.Types.ObjectId.isValid(category)) {
+            query.categoryId = new mongoose.Types.ObjectId(category);
+        } else {
+            query.categoryId = category;
+        }
+    }
 
     if (minMargin) query.estimatedMarginPercent = { $gte: Number(minMargin) };
     if (req.query.margin) {
