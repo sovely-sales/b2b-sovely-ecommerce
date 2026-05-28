@@ -218,14 +218,11 @@ const recalculateCart = async (cart) => {
         );
 
         if (item.orderType === 'DROPSHIP') {
-            const baseMinimumSellingPrice =
-                item.platformUnitCost + item.taxAmountPerUnit + item.shippingCost / item.qty;
+            // Total cost for this line item (Product base + taxes + proportional shipping)
+            const totalItemCost = item.totalItemPlatformCost + item.shippingCost;
 
-            const expectedProfitPrepaid = item.resellerSellingPrice - baseMinimumSellingPrice;
-
-            item.expectedProfit = Number((expectedProfitPrepaid * item.qty).toFixed(2));
-
-            item.expectedProfitIfCOD = Number((expectedProfitPrepaid * item.qty - 41.3).toFixed(2));
+            item.expectedProfit = Number((item.resellerSellingPrice - totalItemCost).toFixed(2));
+            item.expectedProfitIfCOD = Number((item.expectedProfit - 41.3).toFixed(2));
         }
 
         subTotal += item.platformUnitCost * item.qty;
@@ -321,7 +318,9 @@ export const addToCart = asyncHandler(async (req, res) => {
 
         if (orderType === 'DROPSHIP') {
             const isSameCustomer = item.endCustomerDetails?.phone === customerDetails.phone;
-            const isSamePrice = item.resellerSellingPrice === targetSellingPrice;
+            // Compare the unit price to see if they are the exact same markup configuration
+            const isSamePrice =
+                item.resellerSellingPrice / item.qty === targetSellingPrice / parsedQty;
             return isSameCustomer && isSamePrice;
         }
         return false;
@@ -329,6 +328,9 @@ export const addToCart = asyncHandler(async (req, res) => {
 
     if (existingItemIndex > -1) {
         cart.items[existingItemIndex].qty += parsedQty;
+        if (orderType === 'DROPSHIP') {
+            cart.items[existingItemIndex].resellerSellingPrice += targetSellingPrice;
+        }
     } else {
         cart.items.push({
             productId,

@@ -413,7 +413,7 @@ export const createOrder = asyncHandler(async (req, res) => {
             generatedOrderIds.push(dsOrderId);
 
             const totalCustomerPayment = dsItems.reduce(
-                (acc, item) => acc + item.resellerSellingPrice * item.qty,
+                (acc, item) => acc + item.resellerSellingPrice,
                 0
             );
 
@@ -1153,7 +1153,7 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
 
             grandTotalWalletDeduction += totalPlatformCost;
 
-            const totalCustomerPayment = inputOrder.resellerSellingPrice * inputOrder.qty;
+            const totalCustomerPayment = inputOrder.resellerSellingPrice;
             let amountToCollect = 0;
             let payoutOnDelivery = 0;
             let resellerProfitMargin = totalCustomerPayment - totalPlatformCost;

@@ -113,12 +113,10 @@ export default function ActiveCartTab({ setActiveTab }) {
         );
         const customerPaymentTotal = roundMoney(
             (group.items || []).reduce(
-                (sum, item) =>
-                    sum + (Number(item.resellerSellingPrice) || 0) * (Number(item.qty) || 0),
+                (sum, item) => sum + (Number(item.resellerSellingPrice) || 0),
                 0
             )
         );
-
         return {
             totalCost,
             customerPaymentTotal,
@@ -200,7 +198,7 @@ export default function ActiveCartTab({ setActiveTab }) {
 
     const hasUnassignedDropship = groupedCart.some((g) => g.isWarning);
     const codGroupCount = groupedCart.filter(
-        (g) => g.icon === 'dropship' && (paymentMethods[g.key] ?? 'COD') === 'COD'
+        (g) => g.icon === 'dropship' && (paymentMethods[g.key] ?? 'PREPAID_WALLET') === 'COD'
     ).length;
 
     const totalCodFee = codGroupCount * 41.3;
@@ -229,13 +227,13 @@ export default function ActiveCartTab({ setActiveTab }) {
 
         const negativeMarginGroup = groupedCart.find((group) => {
             if (group.icon !== 'dropship') return false;
-            const paymentMethod = paymentMethods[group.key] ?? 'COD';
+            const paymentMethod = paymentMethods[group.key] ?? 'PREPAID_WALLET';
             const { netMargin } = getDropshipGroupEconomics(group, paymentMethod);
             return netMargin < 0;
         });
 
         if (negativeMarginGroup) {
-            const paymentMethod = paymentMethods[negativeMarginGroup.key] ?? 'COD';
+            const paymentMethod = paymentMethods[negativeMarginGroup.key] ?? 'PREPAID_WALLET';
             const { totalCost, customerPaymentTotal, netMargin } = getDropshipGroupEconomics(
                 negativeMarginGroup,
                 paymentMethod
@@ -303,7 +301,7 @@ export default function ActiveCartTab({ setActiveTab }) {
         <div className="flex flex-col items-start gap-6 xl:flex-row">
             <div className="w-full space-y-6 xl:w-[70%]">
                 {groupedCart.map((group) => {
-                    const currentPaymentMethod = paymentMethods[group.key] ?? 'COD';
+                    const currentPaymentMethod = paymentMethods[group.key] ?? 'PREPAID_WALLET';
                     const groupEconomics =
                         group.icon === 'dropship'
                             ? getDropshipGroupEconomics(group, currentPaymentMethod)
@@ -415,8 +413,9 @@ export default function ActiveCartTab({ setActiveTab }) {
                                         ).toFixed(2)
                                     );
 
-                                    const displayedProfit = item.expectedProfit;
-
+                                    const itemTotalCost = unitPlatformCost * item.qty;
+                                    const displayedProfit =
+                                        item.resellerSellingPrice - itemTotalCost;
                                     return (
                                         <div
                                             key={itemId}

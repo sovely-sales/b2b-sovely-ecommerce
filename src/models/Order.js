@@ -117,7 +117,7 @@ const orderSchema = new mongoose.Schema(
         paymentMethod: {
             type: String,
             enum: ['COD', 'PREPAID_WALLET', 'PREPAID_GATEWAY'],
-            default: 'COD',
+            default: 'PREPAID_WALLET',
         },
 
         subTotal: { type: Number, required: true, default: 0 },

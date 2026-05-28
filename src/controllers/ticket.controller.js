@@ -27,7 +27,9 @@ export const createTicket = asyncHandler(async (req, res) => {
         status: 'OPEN',
     });
 
-    return res.status(201).json(new ApiResponse(201, ticket, 'Support ticket created successfully'));
+    return res
+        .status(201)
+        .json(new ApiResponse(201, ticket, 'Support ticket created successfully'));
 });
 
 export const getMyTickets = asyncHandler(async (req, res) => {
