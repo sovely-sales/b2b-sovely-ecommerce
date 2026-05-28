@@ -82,7 +82,7 @@ export default function ProductCard({ product }) {
                         <span className="font-medium">{product.vendor}</span>
                     )}
                     <span
-                        className="max-w-[120px] truncate rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-500"
+                        className="max-w-[100px] truncate rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-500 sm:max-w-[120px]"
                         title={product.skuId}
                     >
                         SKU: {product.skuId}
@@ -107,7 +107,7 @@ export default function ProductCard({ product }) {
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <div className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-2 transition-shadow focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
+                        <div className="flex h-10 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-2 transition-shadow focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 sm:h-9">
                             <button
                                 onClick={(e) => {
                                     e.preventDefault();
@@ -138,7 +138,7 @@ export default function ProductCard({ product }) {
                         <button
                             onClick={handleAdd}
                             disabled={isOutOfStock}
-                            className={`flex h-9 w-full items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition-all ${
+                            className={`flex h-10 w-full items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition-all sm:h-9 ${
                                 isOutOfStock
                                     ? 'bg-slate-100 text-slate-400'
                                     : isAdded

@@ -290,14 +290,15 @@ export default function AccountHub() {
         'w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-900 shadow-sm outline-none transition-shadow placeholder:text-slate-400 hover:border-slate-300 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-60 disabled:bg-slate-100 disabled:cursor-not-allowed';
     const labelClasses =
         'mb-1.5 block text-[11px] font-black tracking-widest text-slate-500 uppercase';
-    const cardClasses = 'rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm';
+    const cardClasses =
+        'rounded-2xl sm:rounded-[2rem] border border-slate-200 bg-white p-5 sm:p-6 lg:p-8 shadow-sm';
 
     return (
         <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
             {}
-            <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+            <div className="mb-6 flex flex-col justify-between gap-4 md:mb-10 md:flex-row md:items-end">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tight text-slate-900">
+                    <h1 className="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
                         Command Center
                     </h1>
                     <p className="mt-2 text-base font-medium text-slate-500">
@@ -305,10 +306,10 @@ export default function AccountHub() {
                         profile.
                     </p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex w-full items-center gap-4 md:w-auto">
                     <button
                         onClick={() => logout()}
-                        className="flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-600 transition-all hover:border-red-600 hover:bg-red-50 hover:text-red-600"
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-600 transition-all hover:border-red-600 hover:bg-red-50 hover:text-red-600 md:w-auto"
                     >
                         <LogOut size={16} /> Sign Out
                     </button>
@@ -875,7 +876,7 @@ export default function AccountHub() {
                                             <button
                                                 type="submit"
                                                 disabled={isLoading}
-                                                className="rounded-2xl bg-indigo-600 px-10 py-4 text-base font-black text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-md disabled:transform-none disabled:opacity-50"
+                                                className="w-full rounded-2xl bg-indigo-600 px-10 py-4 text-base font-black text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-md disabled:transform-none disabled:opacity-50 sm:w-auto"
                                             >
                                                 {isLoading
                                                     ? 'Saving Changes...'
@@ -1158,7 +1159,7 @@ export default function AccountHub() {
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             className="relative w-full max-w-xl overflow-hidden rounded-[2rem] bg-white shadow-2xl"
                         >
-                            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-8 py-6">
+                            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-5 py-5 sm:px-8 sm:py-6">
                                 <h3 className="flex items-center gap-3 font-black tracking-widest text-slate-900 uppercase">
                                     <Building2 size={20} className="text-indigo-600" />
                                     {editingBranchId
@@ -1172,7 +1173,7 @@ export default function AccountHub() {
                                     <X size={16} />
                                 </button>
                             </div>
-                            <form onSubmit={handleSaveBranch} className="p-8">
+                            <form onSubmit={handleSaveBranch} className="p-5 sm:p-8">
                                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                                     <div className="md:col-span-2">
                                         <label className={labelClasses}>Branch Name</label>

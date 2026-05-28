@@ -422,7 +422,7 @@ function Navbar({ onToggleSidebar }) {
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                             transition={{ duration: 0.15 }}
-                                            className="absolute right-0 mt-3 w-80 origin-top-right overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:w-96"
+                                            className="absolute right-0 mt-3 w-[calc(100vw-2rem)] max-w-sm origin-top-right overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:-right-2 sm:w-96"
                                         >
                                             <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-3">
                                                 <h3 className="font-extrabold text-slate-900">

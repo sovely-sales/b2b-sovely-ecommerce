@@ -443,14 +443,14 @@ const Orders = () => {
                             className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pr-4 pl-11 text-sm font-bold text-slate-900 transition-all outline-none focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-50"
                         />
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="no-scrollbar flex w-full items-center gap-3 overflow-x-auto pb-2 lg:w-auto lg:overflow-visible lg:pb-0">
                         <select
                             value={filter}
                             onChange={(e) => {
                                 setFilter(e.target.value);
                                 setPage(1);
                             }}
-                            className="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-extrabold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                            className="shrink-0 cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-extrabold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
                         >
                             <option value="ALL">All Statuses</option>
                             <option value="PENDING_PROCESSING">Pending / Processing</option>
@@ -468,12 +468,12 @@ const Orders = () => {
                                 setSortOrder(e.target.value);
                                 setPage(1);
                             }}
-                            className="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-extrabold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
+                            className="shrink-0 cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-extrabold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50"
                         >
                             <option value="latest">Newest First</option>
                             <option value="oldest">Oldest First</option>
                         </select>
-                        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+                        <div className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
                             <div className="flex items-center rounded-lg bg-slate-50 px-3 py-1.5 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
                                 <Calendar size={14} className="mr-2 text-slate-400" />
                                 <input
@@ -883,50 +883,58 @@ const Orders = () => {
                                                         {ord.items.map((item, idx) => (
                                                             <div
                                                                 key={idx}
-                                                                className="flex items-start gap-4 bg-white p-5 transition-colors hover:bg-slate-50"
+                                                                className="flex flex-col gap-4 bg-white p-5 transition-colors hover:bg-slate-50 sm:flex-row sm:items-start"
                                                             >
-                                                                <div className="h-16 w-16 shrink-0 rounded-xl border border-slate-200 bg-slate-100">
-                                                                    {getOrderItemImage(item) && (
-                                                                        <img
-                                                                            src={getOrderItemImage(
-                                                                                item
-                                                                            )}
-                                                                            alt=""
-                                                                            className="h-full w-full rounded-xl object-cover"
-                                                                        />
-                                                                    )}
-                                                                </div>
-                                                                <div className="min-w-0 flex-1">
-                                                                    <p className="line-clamp-2 text-sm leading-tight font-bold text-slate-900">
-                                                                        {item.title}
-                                                                    </p>
-                                                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold text-slate-500 uppercase">
-                                                                        <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">
-                                                                            SKU: {item.sku}
-                                                                        </span>
-                                                                        <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">
-                                                                            HSN: {item.hsnCode}
-                                                                        </span>
-                                                                        <span>Qty: {item.qty}</span>
+                                                                <div className="flex w-full flex-1 items-start gap-4">
+                                                                    <div className="h-16 w-16 shrink-0 rounded-xl border border-slate-200 bg-slate-100">
+                                                                        {getOrderItemImage(
+                                                                            item
+                                                                        ) && (
+                                                                            <img
+                                                                                src={getOrderItemImage(
+                                                                                    item
+                                                                                )}
+                                                                                alt=""
+                                                                                className="h-full w-full rounded-xl object-cover"
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <p className="line-clamp-2 text-sm leading-tight font-bold text-slate-900">
+                                                                            {item.title}
+                                                                        </p>
+                                                                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] font-bold text-slate-500 uppercase">
+                                                                            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">
+                                                                                SKU: {item.sku}
+                                                                            </span>
+                                                                            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">
+                                                                                HSN: {item.hsnCode}
+                                                                            </span>
+                                                                            <span>
+                                                                                Qty: {item.qty}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                                <div className="shrink-0 text-right">
+                                                                <div className="flex w-full shrink-0 items-center justify-between border-t border-slate-100 pt-3 sm:w-auto sm:flex-col sm:items-end sm:border-0 sm:pt-0 sm:text-right">
                                                                     <p className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
                                                                         Base Rate
                                                                     </p>
-                                                                    <p className="text-sm font-black text-slate-900">
-                                                                        ₹
-                                                                        {item.platformBasePrice?.toLocaleString(
-                                                                            'en-IN'
-                                                                        )}
-                                                                    </p>
-                                                                    <p className="mt-0.5 text-[10px] font-bold text-slate-500">
-                                                                        + ₹
-                                                                        {item.taxAmountPerUnit?.toLocaleString(
-                                                                            'en-IN'
-                                                                        )}{' '}
-                                                                        ({item.gstSlab}% GST)
-                                                                    </p>
+                                                                    <div>
+                                                                        <p className="text-sm font-black text-slate-900">
+                                                                            ₹
+                                                                            {item.platformBasePrice?.toLocaleString(
+                                                                                'en-IN'
+                                                                            )}
+                                                                        </p>
+                                                                        <p className="mt-0.5 text-left text-[10px] font-bold text-slate-500 sm:text-right">
+                                                                            + ₹
+                                                                            {item.taxAmountPerUnit?.toLocaleString(
+                                                                                'en-IN'
+                                                                            )}{' '}
+                                                                            ({item.gstSlab}% GST)
+                                                                        </p>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         ))}
@@ -1161,11 +1169,11 @@ const Orders = () => {
                                                                     Tracking ID / AWB
                                                                 </p>
                                                                 {ord.tracking?.awbNumber ? (
-                                                                    <div className="flex items-center justify-between gap-3">
+                                                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                                                         <span className="font-mono text-sm font-black break-all text-slate-900">
                                                                             {ord.tracking.awbNumber}
                                                                         </span>
-                                                                        <div className="flex shrink-0 gap-2">
+                                                                        <div className="flex shrink-0 flex-wrap gap-2">
                                                                             <button
                                                                                 onClick={() => {
                                                                                     navigator.clipboard.writeText(

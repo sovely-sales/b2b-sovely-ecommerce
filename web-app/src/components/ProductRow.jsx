@@ -56,7 +56,7 @@ export default function ProductRow({ title, filterQuery, viewAllLink }) {
                         {products.map((product) => (
                             <div
                                 key={product.id || product._id}
-                                className="w-[260px] shrink-0 snap-start sm:w-[280px]"
+                                className="w-[240px] shrink-0 snap-start sm:w-[260px] lg:w-[280px]"
                             >
                                 <ProductCard product={product} />
                             </div>

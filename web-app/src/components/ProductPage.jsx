@@ -179,7 +179,7 @@ const ProductPage = () => {
                 <div className="lg:col-span-5">
                     <motion.div
                         variants={fadeUp}
-                        className="relative aspect-square w-full overflow-hidden rounded-3xl border border-slate-200 bg-slate-50"
+                        className="relative mx-auto aspect-square w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-slate-50"
                     >
                         <img
                             src={
@@ -245,28 +245,28 @@ const ProductPage = () => {
 
                         <div className="flex flex-wrap gap-2">
                             {product.vendor && product.vendor.toLowerCase() !== 'your brand' && (
-                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm">
-                                    <Tag size={16} className="text-slate-400" />
+                                <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs shadow-sm sm:gap-2 sm:px-4 sm:py-2 sm:text-sm">
+                                    <Tag size={14} className="text-slate-400 sm:h-4 sm:w-4" />
                                     <span className="font-semibold text-slate-500">Brand:</span>
                                     <span className="font-black text-slate-900">
                                         {product.vendor}
                                     </span>
                                 </div>
                             )}
-                            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm">
-                                <Fingerprint size={16} className="text-slate-400" />
+                            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs shadow-sm sm:gap-2 sm:px-4 sm:py-2 sm:text-sm">
+                                <Fingerprint size={14} className="text-slate-400 sm:h-4 sm:w-4" />
                                 <span className="font-semibold text-slate-500">SKU:</span>
                                 <span className="font-black text-slate-900">{product.sku}</span>
                             </div>
-                            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm">
-                                <Scale size={16} className="text-slate-400" />
+                            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs shadow-sm sm:gap-2 sm:px-4 sm:py-2 sm:text-sm">
+                                <Scale size={14} className="text-slate-400 sm:h-4 sm:w-4" />
                                 <span className="font-semibold text-slate-500">Weight:</span>
                                 <span className="font-black text-slate-900">
                                     {(product.weightGrams / 1000).toFixed(2)} kg
                                 </span>
                             </div>
-                            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm">
-                                <Maximize size={16} className="text-slate-400" />
+                            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs shadow-sm sm:gap-2 sm:px-4 sm:py-2 sm:text-sm">
+                                <Maximize size={14} className="text-slate-400 sm:h-4 sm:w-4" />
                                 <span className="font-semibold text-slate-500">Dim:</span>
                                 <span className="font-black text-slate-900">
                                     {product.dimensions
@@ -274,8 +274,8 @@ const ProductPage = () => {
                                         : 'N/A'}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm">
-                                <ReceiptText size={16} className="text-slate-400" />
+                            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs shadow-sm sm:gap-2 sm:px-4 sm:py-2 sm:text-sm">
+                                <ReceiptText size={14} className="text-slate-400 sm:h-4 sm:w-4" />
                                 <span className="font-semibold text-slate-500">HSN:</span>
                                 <span className="font-black text-slate-900">
                                     {product.hsnCode || 'N/A'}
@@ -584,7 +584,7 @@ const ProductPage = () => {
             </AnimatePresence>
 
             {}
-            <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-slate-200 bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden">
+            <div className="fixed right-0 bottom-0 left-0 z-40 border-t border-slate-200 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden">
                 <div className="flex items-center gap-4">
                     <div className="flex flex-col">
                         <span className="text-xs font-bold text-slate-500 uppercase">Total</span>

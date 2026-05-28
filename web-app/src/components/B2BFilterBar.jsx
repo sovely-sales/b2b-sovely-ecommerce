@@ -37,8 +37,8 @@ function B2BFilterBar({ filters, onFilterChange, className = '' }) {
                 </div>
             </div>
 
-            <div className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white p-1 shadow-sm">
-                <div className="pr-1 pl-2 text-slate-400">
+            <div className="no-scrollbar flex items-center gap-1 overflow-x-auto rounded-lg border border-slate-300 bg-white p-1 whitespace-nowrap shadow-sm">
+                <div className="shrink-0 pr-1 pl-2 text-slate-400">
                     <TrendingUp size={16} />
                 </div>
                 {marginTiers.map((tier) => (

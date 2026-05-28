@@ -12,7 +12,7 @@ const MainLayout = () => {
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             <Navbar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
             {}
-            <main className="relative z-0 min-h-[100dvh] w-full flex-grow">
+            <main className="relative z-0 flex w-full flex-1 flex-col">
                 <Outlet />
             </main>
             <Footer />
