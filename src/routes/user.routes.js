@@ -9,6 +9,7 @@ import {
     requestProfileUpdate,
     updateUserRole,
     updateUserByAdmin,
+    adminResetPassword,
     deleteUser,
     updateAvatar,
     getSavedCustomers,
@@ -52,6 +53,7 @@ router.get(
     getAdminAdjustmentHistory
 );
 router.put('/admin/:id/update', verifyJWT, authorizeRoles('ADMIN'), updateUserByAdmin);
+router.put('/admin/:id/reset-password', verifyJWT, authorizeRoles('ADMIN'), adminResetPassword);
 router.delete('/admin/:id', verifyJWT, authorizeRoles('ADMIN'), deleteUser);
 router.post('/admin/create', verifyJWT, authorizeRoles('ADMIN'), createUser);
 

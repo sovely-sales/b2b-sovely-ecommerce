@@ -513,6 +513,32 @@ export const updateUserByAdmin = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, updatedUser, 'User profile updated successfully by admin'));
 });
 
+export const adminResetPassword = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.trim().length < 6) {
+        throw new ApiError(400, 'A valid password of at least 6 characters is required.');
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+        throw new ApiError(404, 'User not found in the system.');
+    }
+
+    user.passwordHash = newPassword;
+    user.refreshToken = null;
+    await user.save({ validateBeforeSave: false });
+
+    // Invalidate all active sessions for security
+    await UserSession.updateMany(
+        { userId: user._id, isRevoked: false },
+        { isRevoked: true, revokedAt: new Date() }
+    );
+
+    return res.status(200).json(new ApiResponse(200, null, 'User password has been successfully reset. All active sessions revoked.'));
+});
+
 export const updatePassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body;
     if (!oldPassword || !newPassword) throw new ApiError(400, 'Both passwords are required');

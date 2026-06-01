@@ -8,6 +8,7 @@ import {
     ShieldCheck,
     Clock,
     Edit2,
+    Key,
     ChevronLeft,
     ChevronRight,
     FileSearch,
@@ -51,6 +52,9 @@ const AdminUsers = () => {
         walletAdjustment: 0,
         role: 'CUSTOMER',
     });
+
+    const [resetPasswordUserId, setResetPasswordUserId] = useState(null);
+    const [newPasswordInput, setNewPasswordInput] = useState('');
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [newUserForm, setNewUserForm] = useState({
@@ -242,6 +246,35 @@ const AdminUsers = () => {
             });
         } catch (err) {
             alert(err.response?.data?.message || 'Failed to create user.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleResetPasswordSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (!newPasswordInput || newPasswordInput.trim().length < 6) {
+            alert('Password must be at least 6 characters long.');
+            return;
+        }
+
+        if (
+            !window.confirm(
+                `CAUTION: Are you absolutely sure you want to OVERWRITE this user's password? They will be logged out of all active sessions immediately.`
+            )
+        ) {
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            await api.put(`/users/admin/${resetPasswordUserId}/reset-password`, { newPassword: newPasswordInput });
+            setResetPasswordUserId(null);
+            setNewPasswordInput('');
+            alert('Password has been successfully reset.');
+        } catch (err) {
+            alert(err.response?.data?.message || 'Failed to reset password.');
         } finally {
             setIsSaving(false);
         }
@@ -461,6 +494,17 @@ const AdminUsers = () => {
                                                 </td>
                                                 <td className="p-4 text-right whitespace-nowrap">
                                                     <div className="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                                        <button
+                                                            onClick={() => {
+                                                                setResetPasswordUserId(u._id);
+                                                                setNewPasswordInput('');
+                                                            }}
+                                                            title="Reset User Password"
+                                                            className="rounded-lg bg-amber-50 p-1.5 text-amber-600 transition-colors hover:bg-amber-100 hover:text-amber-800"
+                                                        >
+                                                            <Key size={16} />
+                                                        </button>
+
                                                         <button
                                                             onClick={() => handleEditClick(u)}
                                                             title="Edit User Profile"
@@ -1190,6 +1234,66 @@ const AdminUsers = () => {
                                     className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-slate-800 disabled:opacity-50"
                                 >
                                     {isSaving ? 'Saving Changes...' : 'Update Profile & Wallet'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {resetPasswordUserId && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+                        <div className="flex w-full max-w-md flex-col rounded-[2rem] bg-white shadow-2xl">
+                            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 p-6">
+                                <h2 className="flex items-center gap-2 text-xl font-extrabold text-slate-900">
+                                    <Key size={24} className="text-amber-500" /> Reset Password
+                                </h2>
+                                <button
+                                    onClick={() => {
+                                        setResetPasswordUserId(null);
+                                        setNewPasswordInput('');
+                                    }}
+                                    className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <div className="mb-6 rounded-xl border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-800">
+                                    <strong>Caution:</strong> This will instantly overwrite the user's password and log them out of all active sessions. Provide them the new password via secure channels.
+                                </div>
+                                <form id="resetPasswordForm" onSubmit={handleResetPasswordSubmit}>
+                                    <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                        New Password *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        autoComplete="off"
+                                        value={newPasswordInput}
+                                        onChange={(e) => setNewPasswordInput(e.target.value)}
+                                        placeholder="Enter new password (min 6 chars)"
+                                        className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                                    />
+                                </form>
+                            </div>
+                            <div className="flex shrink-0 justify-end gap-3 rounded-b-[2rem] border-t border-slate-100 bg-slate-50 p-6">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setResetPasswordUserId(null);
+                                        setNewPasswordInput('');
+                                    }}
+                                    className="rounded-xl border border-slate-200 px-6 py-2.5 text-sm font-bold text-slate-600 transition-colors hover:bg-white"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    form="resetPasswordForm"
+                                    disabled={isSaving || newPasswordInput.length < 6}
+                                    className="rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-bold text-white shadow-md transition-colors hover:bg-amber-600 disabled:opacity-50"
+                                >
+                                    {isSaving ? 'Resetting...' : 'Overwrite Password'}
                                 </button>
                             </div>
                         </div>
