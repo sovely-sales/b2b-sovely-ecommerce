@@ -7,6 +7,8 @@ import {
     Filter,
     ChevronLeft,
     ChevronRight,
+    ChevronDown,
+    ChevronUp,
     X,
     Package,
     Truck,
@@ -190,6 +192,7 @@ const AdminOrders = () => {
 
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [expandedOrderId, setExpandedOrderId] = useState(null);
 
     const [page, setPage] = useState(() => {
         const p = Number(searchParams.get('page'));
@@ -804,9 +807,9 @@ const AdminOrders = () => {
                                     const isCompleted = FINAL_VIEW_ONLY_STATUSES.has(order.status);
 
                                     return (
+                                        <React.Fragment key={order._id}>
                                         <tr
-                                            key={order._id}
-                                            className="transition-colors hover:bg-slate-50"
+                                            className={`transition-colors hover:bg-slate-50 ${expandedOrderId === order._id ? 'bg-slate-50' : ''}`}
                                         >
                                             <td className="px-4 py-3">
                                                 <div className="font-mono text-xs font-black text-slate-900">
@@ -902,6 +905,16 @@ const AdminOrders = () => {
                                             <td className="px-4 py-3 text-center">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setExpandedOrderId(expandedOrderId === order._id ? null : order._id);
+                                                        }}
+                                                        className={`rounded p-1.5 transition-colors ${expandedOrderId === order._id ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                                                        title="View Products"
+                                                    >
+                                                        {expandedOrderId === order._id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                                    </button>
+                                                    <button
                                                         onClick={() => {
                                                             const availableStatuses =
                                                                 getManualOverrideStatuses(
@@ -954,6 +967,60 @@ const AdminOrders = () => {
                                                 </div>
                                             </td>
                                         </tr>
+                                        <AnimatePresence>
+                                        {expandedOrderId === order._id && (
+                                            <tr className="bg-slate-50">
+                                                <td colSpan="6" className="p-0 border-b border-slate-200">
+                                                    <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        transition={{ duration: 0.2 }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        <div className="p-4 md:p-6 bg-slate-50/50 shadow-inner">
+                                                            <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-800 mb-4">
+                                                                <Package size={14} className="text-indigo-600" />
+                                                                Order Items ({order.items?.length || 0})
+                                                            </h4>
+                                                            <div className="grid gap-3 lg:grid-cols-2">
+                                                                {order.items?.map((item, idx) => (
+                                                                    <div key={idx} className="flex gap-4 p-3 bg-white rounded-xl border border-slate-200 shadow-sm transition-shadow hover:shadow-md">
+                                                                        <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden">
+                                                                            {item.image ? (
+                                                                                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                                                            ) : (
+                                                                                <div className="w-full h-full flex justify-center items-center text-slate-300">
+                                                                                    <Package size={24} />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <h5 className="text-xs font-bold text-slate-900 line-clamp-1" title={item.title}>
+                                                                                {item.title}
+                                                                            </h5>
+                                                                            <p className="text-[10px] font-bold text-slate-400 font-mono mt-0.5">
+                                                                                SKU: {item.sku}
+                                                                            </p>
+                                                                            <div className="mt-2 flex items-center justify-between">
+                                                                                <span className="text-[10px] font-black text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+                                                                                    Qty: {item.qty}
+                                                                                </span>
+                                                                                <span className="text-xs font-black text-slate-900">
+                                                                                    ₹{item.resellerSellingPrice?.toLocaleString('en-IN')}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                        </AnimatePresence>
+                                        </React.Fragment>
                                     );
                                 })
                             )}
