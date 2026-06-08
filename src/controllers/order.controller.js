@@ -1924,17 +1924,52 @@ export const importWukusyStatusesCsv = async (req, res) => {
         }
 
         const WUKUSY_STATUS_MAP = {
+            // Shipped / In-Transit
             shipped: 'SHIPPED',
-            confirmed: 'PROCESSING',
-            'cancelled-new': 'CANCELLED',
-            cancelled: 'CANCELLED',
-            pending: 'PENDING',
-            delivered: 'DELIVERED',
-            rto: 'RTO',
-            'rto delivered': 'RTO_DELIVERED',
+            in_transit: 'SHIPPED',
+            'in transit': 'SHIPPED',
+            intransit: 'SHIPPED',
+            'in-transit': 'SHIPPED',
+            out_for_delivery: 'SHIPPED',
+            'out for delivery': 'SHIPPED',
             label_printed: 'SHIPPED',
             label_prin: 'SHIPPED',
             paid: 'SHIPPED',
+            dispatched: 'SHIPPED',
+            // Processing / Pickup
+            confirmed: 'PROCESSING',
+            pickup_pending: 'PROCESSING',
+            'pickup pending': 'PROCESSING',
+            pickup_complete: 'PROCESSING',
+            'pickup complete': 'PROCESSING',
+            pickup_scheduled: 'PROCESSING',
+            'pickup scheduled': 'PROCESSING',
+            pickup_failed: 'PROCESSING',
+            'pickup failed': 'PROCESSING',
+            out_for_pickup: 'PROCESSING',
+            // Delivered
+            delivered: 'DELIVERED',
+            // NDR
+            ndr: 'NDR',
+            undelivered: 'NDR',
+            attempted: 'NDR',
+            'delivery failed': 'NDR',
+            delivery_failed: 'NDR',
+            // RTO
+            rto: 'RTO',
+            rto_initiated: 'RTO',
+            'rto initiated': 'RTO',
+            'rto in transit': 'RTO',
+            rto_in_transit: 'RTO',
+            'rto delivered': 'RTO_DELIVERED',
+            rto_delivered: 'RTO_DELIVERED',
+            // Cancelled
+            'cancelled-new': 'CANCELLED',
+            'cancelled-confirmed': 'CANCELLED',
+            'cancelled confirmed': 'CANCELLED',
+            cancelled: 'CANCELLED',
+            // Pending
+            pending: 'PENDING',
         };
 
         let updated = 0;
