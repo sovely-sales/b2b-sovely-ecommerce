@@ -230,6 +230,7 @@ const AdminOrders = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expandedOrderId, setExpandedOrderId] = useState(null);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     const [page, setPage] = useState(() => {
         const p = Number(searchParams.get('page'));
@@ -337,7 +338,7 @@ const AdminOrders = () => {
             }
         };
         fetchOrders();
-    }, [page, debouncedSearch, filterOption, startDate, endDate]);
+    }, [page, debouncedSearch, filterOption, startDate, endDate, refreshKey]);
 
     // ==========================================
     // ACTIONS
@@ -509,6 +510,7 @@ const AdminOrders = () => {
             setSyncResult(res.data.result || { updated: parsedOrders.length, skipped: 0 });
             setParsedOrders([]);
             setPage(1);
+            setRefreshKey((k) => k + 1); // Force re-fetch even if already on page 1
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to sync CSV', { id: uploadToast });
         } finally {
