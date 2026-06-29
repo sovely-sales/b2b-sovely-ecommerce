@@ -4,6 +4,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { qikinkService } from '../services/qikink.service.js';
+import { SystemConfig } from '../models/SystemConfig.js';
 
 export const createProduct = asyncHandler(async (req, res) => {
     let {
@@ -263,6 +264,16 @@ export const getProducts = asyncHandler(async (req, res) => {
 
     const total = await Product.countDocuments(query);
 
+    const modifierConfig = await SystemConfig.findOne({ key: 'global_price_modifier' });
+    const modifier = modifierConfig ? Number(modifierConfig.value) : 1;
+
+    if (modifier !== 1) {
+        products.forEach((p) => {
+            p.dropshipBasePrice = Math.round(p.dropshipBasePrice * modifier);
+            p.suggestedRetailPrice = Math.round(p.suggestedRetailPrice * modifier);
+        });
+    }
+
     return res.status(200).json(
         new ApiResponse(
             200,
@@ -326,6 +337,76 @@ export const updateProduct = asyncHandler(async (req, res) => {
     });
 
     return res.status(200).json(new ApiResponse(200, product, 'Product updated successfully'));
+});
+
+export const bulkAdjustPrices = asyncHandler(async (req, res) => {
+    const { percentage } = req.body;
+
+    const multiplier = 1 + percentage / 100;
+
+    const result = await Product.updateMany(
+        { deletedAt: null },
+        [
+            {
+                $set: {
+                    dropshipBasePrice: {
+                        $round: [{ $multiply: ['$dropshipBasePrice', multiplier] }, 0],
+                    },
+                    suggestedRetailPrice: {
+                        $round: [{ $multiply: ['$suggestedRetailPrice', multiplier] }, 0],
+                    },
+                },
+            },
+
+            {
+                $set: {
+                    estimatedMarginPercent: {
+                        $cond: {
+                            if: {
+                                $and: [
+                                    { $gt: ['$suggestedRetailPrice', '$dropshipBasePrice'] },
+                                    { $gt: ['$dropshipBasePrice', 0] },
+                                ],
+                            },
+                            then: {
+                                $round: [
+                                    {
+                                        $multiply: [
+                                            {
+                                                $divide: [
+                                                    {
+                                                        $subtract: [
+                                                            '$suggestedRetailPrice',
+                                                            '$dropshipBasePrice',
+                                                        ],
+                                                    },
+                                                    '$suggestedRetailPrice',
+                                                ],
+                                            },
+                                            100,
+                                        ],
+                                    },
+                                    0,
+                                ],
+                            },
+                            else: 0,
+                        },
+                    },
+                },
+            },
+        ],
+        { updatePipeline: true }
+    );
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { modifiedCount: result.modifiedCount },
+                `Successfully adjusted prices for ${result.modifiedCount} active products by ${percentage >= 0 ? '+' : ''}${percentage}%.`
+            )
+        );
 });
 
 export const deleteProduct = asyncHandler(async (req, res) => {
@@ -444,4 +525,28 @@ export const validateBulkOrder = asyncHandler(async (req, res) => {
                 `Validated ${products.length} out of ${skus.length} requested SKUs.`
             )
         );
+});
+
+export const getGlobalPriceModifier = asyncHandler(async (req, res) => {
+    const config = await SystemConfig.findOne({ key: 'global_price_modifier' });
+    // Default to 1 (100% / No modifier) if it doesn't exist yet
+    const modifier = config ? config.value : 1;
+
+    return res.status(200).json(new ApiResponse(200, { modifier }, 'Modifier fetched'));
+});
+
+export const updateGlobalPriceModifier = asyncHandler(async (req, res) => {
+    const { modifier } = req.body; // e.g., 1.25 for 125%
+
+    if (modifier < 0.1 || modifier > 5) {
+        throw new ApiError(400, 'Modifier must be between 0.1x (10%) and 5x (500%)');
+    }
+
+    await SystemConfig.findOneAndUpdate(
+        { key: 'global_price_modifier' },
+        { value: modifier, description: 'Temporary global price multiplier' },
+        { upsert: true, new: true }
+    );
+
+    return res.status(200).json(new ApiResponse(200, { modifier }, 'Temporary modifier active'));
 });

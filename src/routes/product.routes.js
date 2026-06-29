@@ -8,6 +8,9 @@ import {
     deleteProduct,
     getAllAdminProducts,
     validateBulkOrder,
+    bulkAdjustPrices,
+    getGlobalPriceModifier,
+    updateGlobalPriceModifier,
 } from '../controllers/product.controller.js';
 import {
     importProductsFromCSV,
@@ -74,6 +77,22 @@ router.post(
     },
     validate(productValidation.createProduct),
     createProduct
+);
+
+router.get('/admin/global-modifier', verifyJWT, authorizeRoles('ADMIN'), getGlobalPriceModifier);
+router.post(
+    '/admin/global-modifier',
+    verifyJWT,
+    authorizeRoles('ADMIN'),
+    updateGlobalPriceModifier
+);
+
+router.post(
+    '/admin/bulk-adjust-price',
+    verifyJWT,
+    authorizeRoles('ADMIN'),
+    validate(productValidation.bulkAdjustPrice),
+    bulkAdjustPrices
 );
 
 router.get('/:id', getProductById);

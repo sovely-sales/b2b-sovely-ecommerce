@@ -253,7 +253,7 @@ const AdminUsers = () => {
 
     const handleResetPasswordSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!newPasswordInput || newPasswordInput.trim().length < 6) {
             alert('Password must be at least 6 characters long.');
             return;
@@ -269,7 +269,9 @@ const AdminUsers = () => {
 
         setIsSaving(true);
         try {
-            await api.put(`/users/admin/${resetPasswordUserId}/reset-password`, { newPassword: newPasswordInput });
+            await api.put(`/users/admin/${resetPasswordUserId}/reset-password`, {
+                newPassword: newPasswordInput,
+            });
             setResetPasswordUserId(null);
             setNewPasswordInput('');
             alert('Password has been successfully reset.');
@@ -1259,7 +1261,9 @@ const AdminUsers = () => {
                             </div>
                             <div className="p-6">
                                 <div className="mb-6 rounded-xl border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-800">
-                                    <strong>Caution:</strong> This will instantly overwrite the user's password and log them out of all active sessions. Provide them the new password via secure channels.
+                                    <strong>Caution:</strong> This will instantly overwrite the
+                                    user's password and log them out of all active sessions. Provide
+                                    them the new password via secure channels.
                                 </div>
                                 <form id="resetPasswordForm" onSubmit={handleResetPasswordSubmit}>
                                     <label className="mb-1 block text-xs font-bold tracking-wider text-slate-500 uppercase">

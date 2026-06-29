@@ -57,7 +57,6 @@ const getManualOverrideStatuses = (currentStatus) =>
     currentStatus === 'SHIPPED' ? ['RTO', 'DELIVERED'] : DEFAULT_MANUAL_OVERRIDE_STATUSES;
 
 const WUKUSY_STATUS_MAP = {
-    // Shipped / In-Transit
     shipped: 'SHIPPED',
     in_transit: 'SHIPPED',
     'in transit': 'SHIPPED',
@@ -69,7 +68,7 @@ const WUKUSY_STATUS_MAP = {
     paid: 'SHIPPED',
     dispatched: 'SHIPPED',
     'in-transit': 'SHIPPED',
-    // Processing / Pickup
+
     confirmed: 'PROCESSING',
     pickup_pending: 'PROCESSING',
     'pickup pending': 'PROCESSING',
@@ -80,15 +79,15 @@ const WUKUSY_STATUS_MAP = {
     pickup_failed: 'PROCESSING',
     'pickup failed': 'PROCESSING',
     out_for_pickup: 'PROCESSING',
-    // Delivered
+
     delivered: 'DELIVERED',
-    // NDR
+
     ndr: 'NDR',
     undelivered: 'NDR',
     attempted: 'NDR',
     'delivery failed': 'NDR',
     delivery_failed: 'NDR',
-    // RTO
+
     rto: 'RTO',
     rto_initiated: 'RTO',
     'rto initiated': 'RTO',
@@ -96,12 +95,12 @@ const WUKUSY_STATUS_MAP = {
     rto_in_transit: 'RTO',
     'rto delivered': 'RTO_DELIVERED',
     rto_delivered: 'RTO_DELIVERED',
-    // Cancelled
+
     'cancelled-new': 'CANCELLED',
     'cancelled-confirmed': 'CANCELLED',
     'cancelled confirmed': 'CANCELLED',
     cancelled: 'CANCELLED',
-    // Pending
+
     pending: 'PENDING',
 };
 
@@ -847,218 +846,272 @@ const AdminOrders = () => {
 
                                     return (
                                         <React.Fragment key={order._id}>
-                                        <tr
-                                            className={`transition-colors hover:bg-slate-50 ${expandedOrderId === order._id ? 'bg-slate-50' : ''}`}
-                                        >
-                                            <td className="px-4 py-3">
-                                                <div className="font-mono text-xs font-black text-slate-900">
-                                                    {order.orderId}
-                                                </div>
-
-                                                {/* Newly Added Platform Order No */}
-                                                {order.platformOrderNo && (
-                                                    <div
-                                                        className="mt-0.5 line-clamp-1 font-mono text-[10px] font-bold text-indigo-600"
-                                                        title={order.platformOrderNo}
-                                                    >
-                                                        <span className="text-slate-400">
-                                                            Platform ID:
-                                                        </span>{' '}
-                                                        {order.platformOrderNo}
+                                            <tr
+                                                className={`transition-colors hover:bg-slate-50 ${expandedOrderId === order._id ? 'bg-slate-50' : ''}`}
+                                            >
+                                                <td className="px-4 py-3">
+                                                    <div className="font-mono text-xs font-black text-slate-900">
+                                                        {order.orderId}
                                                     </div>
-                                                )}
 
-                                                <div className="mt-1 text-[10px] font-bold text-slate-400">
-                                                    {new Date(order.createdAt).toLocaleDateString(
-                                                        'en-IN',
-                                                        {
+                                                    {/* Newly Added Platform Order No */}
+                                                    {order.platformOrderNo && (
+                                                        <div
+                                                            className="mt-0.5 line-clamp-1 font-mono text-[10px] font-bold text-indigo-600"
+                                                            title={order.platformOrderNo}
+                                                        >
+                                                            <span className="text-slate-400">
+                                                                Platform ID:
+                                                            </span>{' '}
+                                                            {order.platformOrderNo}
+                                                        </div>
+                                                    )}
+
+                                                    <div className="mt-1 text-[10px] font-bold text-slate-400">
+                                                        {new Date(
+                                                            order.createdAt
+                                                        ).toLocaleDateString('en-IN', {
                                                             day: '2-digit',
                                                             month: 'short',
                                                             year: 'numeric',
                                                             hour: '2-digit',
                                                             minute: '2-digit',
-                                                        }
-                                                    )}
-                                                </div>
-                                            </td>
-
-                                            <td className="px-4 py-3">
-                                                <div className="line-clamp-1 text-xs font-extrabold text-slate-900">
-                                                    {order.resellerId?.companyName ||
-                                                        'Unknown Company'}
-                                                </div>
-                                                <div className="line-clamp-1 text-[10px] font-bold text-slate-500">
-                                                    {order.resellerId?.name || 'N/A'}
-                                                </div>
-                                            </td>
-
-                                            <td className="px-4 py-3">
-                                                {isDropship ? (
-                                                    <div>
-                                                        <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-black tracking-widest text-amber-800 uppercase">
-                                                            <Package size={10} /> Dropship
-                                                        </span>
-                                                        <div
-                                                            className="mt-1 max-w-[120px] truncate text-[10px] font-bold text-slate-600"
-                                                            title={order.endCustomerDetails.name}
-                                                        >
-                                                            To: {order.endCustomerDetails.name}
-                                                        </div>
+                                                        })}
                                                     </div>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 rounded bg-indigo-100 px-1.5 py-0.5 text-[9px] font-black tracking-widest text-indigo-800 uppercase">
-                                                        <ShoppingCart size={10} /> Wholesale
-                                                    </span>
-                                                )}
-                                            </td>
+                                                </td>
 
-                                            <td className="px-4 py-3 text-right">
-                                                <div className="text-xs font-black text-slate-900">
-                                                    ₹
-                                                    {order.totalPlatformCost.toLocaleString(
-                                                        'en-IN'
+                                                <td className="px-4 py-3">
+                                                    <div className="line-clamp-1 text-xs font-extrabold text-slate-900">
+                                                        {order.resellerId?.companyName ||
+                                                            'Unknown Company'}
+                                                    </div>
+                                                    <div className="line-clamp-1 text-[10px] font-bold text-slate-500">
+                                                        {order.resellerId?.name || 'N/A'}
+                                                    </div>
+                                                </td>
+
+                                                <td className="px-4 py-3">
+                                                    {isDropship ? (
+                                                        <div>
+                                                            <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-black tracking-widest text-amber-800 uppercase">
+                                                                <Package size={10} /> Dropship
+                                                            </span>
+                                                            <div
+                                                                className="mt-1 max-w-[120px] truncate text-[10px] font-bold text-slate-600"
+                                                                title={
+                                                                    order.endCustomerDetails.name
+                                                                }
+                                                            >
+                                                                To: {order.endCustomerDetails.name}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 rounded bg-indigo-100 px-1.5 py-0.5 text-[9px] font-black tracking-widest text-indigo-800 uppercase">
+                                                            <ShoppingCart size={10} /> Wholesale
+                                                        </span>
                                                     )}
-                                                </div>
-                                                {isDropship && order.paymentMethod === 'COD' ? (
-                                                    <div className="text-[9px] font-extrabold text-amber-600">
-                                                        COD: ₹
-                                                        {order.amountToCollect.toLocaleString(
+                                                </td>
+
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="text-xs font-black text-slate-900">
+                                                        ₹
+                                                        {order.totalPlatformCost.toLocaleString(
                                                             'en-IN'
                                                         )}
                                                     </div>
-                                                ) : (
-                                                    <div className="text-[9px] font-extrabold text-slate-400 uppercase">
-                                                        Prepaid
-                                                    </div>
-                                                )}
-                                            </td>
-
-                                            <td className="px-4 py-3">
-                                                <span
-                                                    className={`inline-flex items-center rounded border px-2 py-0.5 text-[9px] font-extrabold tracking-widest uppercase ${getStatusStyle(order.status)}`}
-                                                >
-                                                    {order.status.replace(/_/g, ' ')}
-                                                </span>
-                                            </td>
-
-                                            <td className="px-4 py-3 text-center">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setExpandedOrderId(expandedOrderId === order._id ? null : order._id);
-                                                        }}
-                                                        className={`rounded p-1.5 transition-colors ${expandedOrderId === order._id ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
-                                                        title="View Products"
-                                                    >
-                                                        {expandedOrderId === order._id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            const availableStatuses =
-                                                                getManualOverrideStatuses(
-                                                                    order.status
-                                                                );
-
-                                                            setSelectedOrder(order);
-                                                            setViewMode(isCompleted);
-                                                            setEwayBillNumber(
-                                                                order.ewayBillNumber || ''
-                                                            );
-                                                            setEditForm({
-                                                                status: availableStatuses.includes(
-                                                                    order.status
-                                                                )
-                                                                    ? order.status
-                                                                    : '',
-                                                                courierName:
-                                                                    order.tracking?.courierName ||
-                                                                    '',
-                                                                awbNumber:
-                                                                    order.tracking?.awbNumber || '',
-                                                                platformOrderNo:
-                                                                    order.platformOrderNo || '',
-                                                                ndrReason:
-                                                                    order.ndrDetails?.reason || '',
-                                                            });
-                                                        }}
-                                                        className={`rounded px-3 py-1.5 text-[10px] font-extrabold transition-colors ${
-                                                            isCompleted
-                                                                ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                                                : 'bg-slate-900 text-white hover:bg-slate-800'
-                                                        }`}
-                                                    >
-                                                        {isCompleted ? 'VIEW' : 'PROCESS'}
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleDeleteOrder(
-                                                                order._id,
-                                                                order.orderId
-                                                            );
-                                                        }}
-                                                        className="rounded bg-red-50 p-1.5 text-red-600 transition-colors hover:bg-red-100"
-                                                        title="Delete Order"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <AnimatePresence>
-                                        {expandedOrderId === order._id && (
-                                            <tr className="bg-slate-50">
-                                                <td colSpan="6" className="p-0 border-b border-slate-200">
-                                                    <motion.div
-                                                        initial={{ height: 0, opacity: 0 }}
-                                                        animate={{ height: 'auto', opacity: 1 }}
-                                                        exit={{ height: 0, opacity: 0 }}
-                                                        transition={{ duration: 0.2 }}
-                                                        className="overflow-hidden"
-                                                    >
-                                                        <div className="p-4 md:p-6 bg-slate-50/50 shadow-inner">
-                                                            <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-800 mb-4">
-                                                                <Package size={14} className="text-indigo-600" />
-                                                                Order Items ({order.items?.length || 0})
-                                                            </h4>
-                                                            <div className="grid gap-3 lg:grid-cols-2">
-                                                                {order.items?.map((item, idx) => (
-                                                                    <div key={idx} className="flex gap-4 p-3 bg-white rounded-xl border border-slate-200 shadow-sm transition-shadow hover:shadow-md">
-                                                                        <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden">
-                                                                            {item.image ? (
-                                                                                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-                                                                            ) : (
-                                                                                <div className="w-full h-full flex justify-center items-center text-slate-300">
-                                                                                    <Package size={24} />
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                        <div className="flex-1 min-w-0">
-                                                                            <h5 className="text-xs font-bold text-slate-900 line-clamp-1" title={item.title}>
-                                                                                {item.title}
-                                                                            </h5>
-                                                                            <p className="text-[10px] font-bold text-slate-400 font-mono mt-0.5">
-                                                                                SKU: {item.sku}
-                                                                            </p>
-                                                                            <div className="mt-2 flex items-center justify-between">
-                                                                                <span className="text-[10px] font-black text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
-                                                                                    Qty: {item.qty}
-                                                                                </span>
-                                                                                <span className="text-xs font-black text-slate-900">
-                                                                                    ₹{item.resellerSellingPrice?.toLocaleString('en-IN')}
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
+                                                    {isDropship && order.paymentMethod === 'COD' ? (
+                                                        <div className="text-[9px] font-extrabold text-amber-600">
+                                                            COD: ₹
+                                                            {order.amountToCollect.toLocaleString(
+                                                                'en-IN'
+                                                            )}
                                                         </div>
-                                                    </motion.div>
+                                                    ) : (
+                                                        <div className="text-[9px] font-extrabold text-slate-400 uppercase">
+                                                            Prepaid
+                                                        </div>
+                                                    )}
+                                                </td>
+
+                                                <td className="px-4 py-3">
+                                                    <span
+                                                        className={`inline-flex items-center rounded border px-2 py-0.5 text-[9px] font-extrabold tracking-widest uppercase ${getStatusStyle(order.status)}`}
+                                                    >
+                                                        {order.status.replace(/_/g, ' ')}
+                                                    </span>
+                                                </td>
+
+                                                <td className="px-4 py-3 text-center">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setExpandedOrderId(
+                                                                    expandedOrderId === order._id
+                                                                        ? null
+                                                                        : order._id
+                                                                );
+                                                            }}
+                                                            className={`rounded p-1.5 transition-colors ${expandedOrderId === order._id ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                                                            title="View Products"
+                                                        >
+                                                            {expandedOrderId === order._id ? (
+                                                                <ChevronUp size={16} />
+                                                            ) : (
+                                                                <ChevronDown size={16} />
+                                                            )}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                const availableStatuses =
+                                                                    getManualOverrideStatuses(
+                                                                        order.status
+                                                                    );
+
+                                                                setSelectedOrder(order);
+                                                                setViewMode(isCompleted);
+                                                                setEwayBillNumber(
+                                                                    order.ewayBillNumber || ''
+                                                                );
+                                                                setEditForm({
+                                                                    status: availableStatuses.includes(
+                                                                        order.status
+                                                                    )
+                                                                        ? order.status
+                                                                        : '',
+                                                                    courierName:
+                                                                        order.tracking
+                                                                            ?.courierName || '',
+                                                                    awbNumber:
+                                                                        order.tracking?.awbNumber ||
+                                                                        '',
+                                                                    platformOrderNo:
+                                                                        order.platformOrderNo || '',
+                                                                    ndrReason:
+                                                                        order.ndrDetails?.reason ||
+                                                                        '',
+                                                                });
+                                                            }}
+                                                            className={`rounded px-3 py-1.5 text-[10px] font-extrabold transition-colors ${
+                                                                isCompleted
+                                                                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                                    : 'bg-slate-900 text-white hover:bg-slate-800'
+                                                            }`}
+                                                        >
+                                                            {isCompleted ? 'VIEW' : 'PROCESS'}
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteOrder(
+                                                                    order._id,
+                                                                    order.orderId
+                                                                );
+                                                            }}
+                                                            className="rounded bg-red-50 p-1.5 text-red-600 transition-colors hover:bg-red-100"
+                                                            title="Delete Order"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
-                                        )}
-                                        </AnimatePresence>
+                                            <AnimatePresence>
+                                                {expandedOrderId === order._id && (
+                                                    <tr className="bg-slate-50">
+                                                        <td
+                                                            colSpan="6"
+                                                            className="border-b border-slate-200 p-0"
+                                                        >
+                                                            <motion.div
+                                                                initial={{ height: 0, opacity: 0 }}
+                                                                animate={{
+                                                                    height: 'auto',
+                                                                    opacity: 1,
+                                                                }}
+                                                                exit={{ height: 0, opacity: 0 }}
+                                                                transition={{ duration: 0.2 }}
+                                                                className="overflow-hidden"
+                                                            >
+                                                                <div className="bg-slate-50/50 p-4 shadow-inner md:p-6">
+                                                                    <h4 className="mb-4 flex items-center gap-2 text-xs font-black tracking-wider text-slate-800 uppercase">
+                                                                        <Package
+                                                                            size={14}
+                                                                            className="text-indigo-600"
+                                                                        />
+                                                                        Order Items (
+                                                                        {order.items?.length || 0})
+                                                                    </h4>
+                                                                    <div className="grid gap-3 lg:grid-cols-2">
+                                                                        {order.items?.map(
+                                                                            (item, idx) => (
+                                                                                <div
+                                                                                    key={idx}
+                                                                                    className="flex gap-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+                                                                                >
+                                                                                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                                                                                        {item.image ? (
+                                                                                            <img
+                                                                                                src={
+                                                                                                    item.image
+                                                                                                }
+                                                                                                alt={
+                                                                                                    item.title
+                                                                                                }
+                                                                                                className="h-full w-full object-cover"
+                                                                                            />
+                                                                                        ) : (
+                                                                                            <div className="flex h-full w-full items-center justify-center text-slate-300">
+                                                                                                <Package
+                                                                                                    size={
+                                                                                                        24
+                                                                                                    }
+                                                                                                />
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <div className="min-w-0 flex-1">
+                                                                                        <h5
+                                                                                            className="line-clamp-1 text-xs font-bold text-slate-900"
+                                                                                            title={
+                                                                                                item.title
+                                                                                            }
+                                                                                        >
+                                                                                            {
+                                                                                                item.title
+                                                                                            }
+                                                                                        </h5>
+                                                                                        <p className="mt-0.5 font-mono text-[10px] font-bold text-slate-400">
+                                                                                            SKU:{' '}
+                                                                                            {
+                                                                                                item.sku
+                                                                                            }
+                                                                                        </p>
+                                                                                        <div className="mt-2 flex items-center justify-between">
+                                                                                            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-black text-slate-700">
+                                                                                                Qty:{' '}
+                                                                                                {
+                                                                                                    item.qty
+                                                                                                }
+                                                                                            </span>
+                                                                                            <span className="text-xs font-black text-slate-900">
+                                                                                                ₹
+                                                                                                {item.resellerSellingPrice?.toLocaleString(
+                                                                                                    'en-IN'
+                                                                                                )}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </AnimatePresence>
                                         </React.Fragment>
                                     );
                                 })

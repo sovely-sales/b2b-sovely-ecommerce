@@ -1924,7 +1924,6 @@ export const importWukusyStatusesCsv = async (req, res) => {
         }
 
         const WUKUSY_STATUS_MAP = {
-            // Shipped / In-Transit
             shipped: 'SHIPPED',
             in_transit: 'SHIPPED',
             'in transit': 'SHIPPED',
@@ -1936,7 +1935,7 @@ export const importWukusyStatusesCsv = async (req, res) => {
             label_prin: 'SHIPPED',
             paid: 'SHIPPED',
             dispatched: 'SHIPPED',
-            // Processing / Pickup
+
             confirmed: 'PROCESSING',
             pickup_pending: 'PROCESSING',
             'pickup pending': 'PROCESSING',
@@ -1947,15 +1946,15 @@ export const importWukusyStatusesCsv = async (req, res) => {
             pickup_failed: 'PROCESSING',
             'pickup failed': 'PROCESSING',
             out_for_pickup: 'PROCESSING',
-            // Delivered
+
             delivered: 'DELIVERED',
-            // NDR
+
             ndr: 'NDR',
             undelivered: 'NDR',
             attempted: 'NDR',
             'delivery failed': 'NDR',
             delivery_failed: 'NDR',
-            // RTO
+
             rto: 'RTO',
             rto_initiated: 'RTO',
             'rto initiated': 'RTO',
@@ -1963,12 +1962,12 @@ export const importWukusyStatusesCsv = async (req, res) => {
             rto_in_transit: 'RTO',
             'rto delivered': 'RTO_DELIVERED',
             rto_delivered: 'RTO_DELIVERED',
-            // Cancelled
+
             'cancelled-new': 'CANCELLED',
             'cancelled-confirmed': 'CANCELLED',
             'cancelled confirmed': 'CANCELLED',
             cancelled: 'CANCELLED',
-            // Pending
+
             pending: 'PENDING',
         };
 

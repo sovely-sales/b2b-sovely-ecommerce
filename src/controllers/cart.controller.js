@@ -4,6 +4,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { User } from '../models/User.js';
+import { SystemConfig } from '../models/SystemConfig.js';
 
 const MAX_DROPSHIP_SELLING_PRICE = 999999;
 
@@ -116,6 +117,8 @@ const calculateSlabCharge = (totalWt) => {
 };
 
 const recalculateCart = async (cart) => {
+    const modifierConfig = await SystemConfig.findOne({ key: 'global_price_modifier' });
+    const modifier = modifierConfig ? Number(modifierConfig.value) : 1;
     let subTotal = 0;
     let totalTax = 0;
     let totalExpectedProfit = 0;
@@ -138,6 +141,17 @@ const recalculateCart = async (cart) => {
         if (!product || product.status !== 'active') {
             item.toBeRemoved = true;
             continue;
+        }
+
+        if (modifier !== 1) {
+            product.dropshipBasePrice = Math.round(product.dropshipBasePrice * modifier);
+            product.suggestedRetailPrice = Math.round(product.suggestedRetailPrice * modifier);
+
+            if (product.tieredPricing && product.tieredPricing.length > 0) {
+                product.tieredPricing.forEach((tier) => {
+                    tier.pricePerUnit = Math.round(tier.pricePerUnit * modifier);
+                });
+            }
         }
 
         let unitCost = product.dropshipBasePrice;
@@ -218,7 +232,6 @@ const recalculateCart = async (cart) => {
         );
 
         if (item.orderType === 'DROPSHIP') {
-            // Total cost for this line item (Product base + taxes + proportional shipping)
             const totalItemCost = item.totalItemPlatformCost + item.shippingCost;
 
             item.expectedProfit = Number((item.resellerSellingPrice - totalItemCost).toFixed(2));
@@ -318,7 +331,7 @@ export const addToCart = asyncHandler(async (req, res) => {
 
         if (orderType === 'DROPSHIP') {
             const isSameCustomer = item.endCustomerDetails?.phone === customerDetails.phone;
-            // Compare the unit price to see if they are the exact same markup configuration
+
             const isSamePrice =
                 item.resellerSellingPrice / item.qty === targetSellingPrice / parsedQty;
             return isSameCustomer && isSamePrice;

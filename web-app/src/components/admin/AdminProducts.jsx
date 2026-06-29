@@ -20,6 +20,9 @@ const AdminProducts = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
+    const [tempModifier, setTempModifier] = useState(100);
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [bulkAdjustValue, setBulkAdjustValue] = useState(0);
 
     useEffect(() => {
         const handleGlobalKeyDown = (e) => {
@@ -40,6 +43,19 @@ const AdminProducts = () => {
         };
         window.addEventListener('keydown', handleGlobalKeyDown);
         return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, []);
+
+    useEffect(() => {
+        const fetchGlobalModifier = async () => {
+            try {
+                const res = await api.get('/products/admin/global-modifier');
+                const activeModifier = res.data?.data?.modifier || 1;
+                setTempModifier(activeModifier * 100);
+            } catch (err) {
+                console.error("Failed to fetch global modifier", err);
+            }
+        };
+        fetchGlobalModifier();
     }, []);
 
     useEffect(() => {
@@ -111,6 +127,39 @@ const AdminProducts = () => {
         setIsModalOpen(true);
     };
 
+    const handleTempModifierSave = async (newValue) => {
+        try {
+            const multiplier = newValue / 100;
+            await api.post('/products/admin/global-modifier', { modifier: multiplier });
+            alert(`Temporary global pricing set to ${newValue}%`);
+            fetchProducts();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update temporary pricing.');
+        }
+    };
+
+    const handlePermanentBulkAdjust = async () => {
+        if (
+            !window.confirm(
+                `WARNING: This will permanently modify all base prices in the database by ${bulkAdjustValue > 0 ? '+' : ''}${bulkAdjustValue}%. Are you sure?`
+            )
+        ) {
+            return;
+        }
+
+        try {
+            await api.post('/products/admin/bulk-adjust-price', { percentage: bulkAdjustValue });
+            alert('Database successfully updated.');
+            setIsBulkModalOpen(false);
+            setBulkAdjustValue(0);
+            fetchProducts();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to bulk adjust database.');
+        }
+    };
+
     return (
         <>
             {}
@@ -173,6 +222,38 @@ const AdminProducts = () => {
                     className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-slate-800"
                 >
                     <Plus size={18} /> New Product
+                </button>
+            </div>
+
+            {}
+            <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+                {}
+                <div className="flex w-full max-w-md flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                    <label className="text-xs font-bold tracking-wider text-amber-700 uppercase">
+                        Temporary Global Price Modifier
+                    </label>
+                    <div className="flex items-center gap-3">
+                        <input
+                            type="range"
+                            min="50"
+                            max="200"
+                            value={tempModifier}
+                            onChange={(e) => setTempModifier(Number(e.target.value))}
+                            onMouseUp={(e) => handleTempModifierSave(Number(e.target.value))}
+                            className="w-full accent-amber-600"
+                        />
+                        <span className="w-14 text-right font-black text-slate-900">
+                            {tempModifier}%
+                        </span>
+                    </div>
+                </div>
+
+                {}
+                <button
+                    onClick={() => setIsBulkModalOpen(true)}
+                    className="flex h-fit items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-bold whitespace-nowrap text-red-700 shadow-sm transition-colors hover:bg-red-100"
+                >
+                    Permanent Bulk Adjust
                 </button>
             </div>
 
@@ -374,6 +455,49 @@ const AdminProducts = () => {
                 onSuccess={() => fetchProducts()}
                 initialData={editingProduct}
             />
+
+            {}
+            {isBulkModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+                        <h2 className="mb-4 text-xl font-black text-slate-900">
+                            Permanent Bulk Adjust
+                        </h2>
+                        <p className="mb-6 text-sm font-medium text-slate-500">
+                            This will overwrite the base prices of every product in the database.
+                            This action cannot be undone.
+                        </p>
+
+                        <div className="mb-6">
+                            <label className="mb-2 block text-sm font-bold text-slate-700">
+                                Adjustment Percentage (%)
+                            </label>
+                            <input
+                                type="number"
+                                value={bulkAdjustValue}
+                                onChange={(e) => setBulkAdjustValue(Number(e.target.value))}
+                                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-lg font-bold text-slate-900 focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+                                placeholder="e.g., 10 for +10%, -20 for -20%"
+                            />
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsBulkModalOpen(false)}
+                                className="rounded-xl px-4 py-2.5 font-bold text-slate-500 hover:bg-slate-100"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handlePermanentBulkAdjust}
+                                className="rounded-xl bg-red-600 px-6 py-2.5 font-bold text-white shadow-sm hover:bg-red-700"
+                            >
+                                Apply to Database
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 };

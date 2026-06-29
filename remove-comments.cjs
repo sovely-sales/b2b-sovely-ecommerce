@@ -35,9 +35,24 @@ function cleanFile(filePath) {
     if (TARGET_EXTENSIONS.includes(ext)) {
         try {
             const originalCode = fs.readFileSync(filePath, 'utf8');
-            
-            // Strip comments safely using AST logic
-            const cleanCode = strip(originalCode);
+            let cleanCode;
+
+            if (ext === '.css') {
+                // FIX 1: CSS ONLY uses block comments (/* */). 
+                // Passing CSS into a JS comment stripper risks breaking URLs.
+                cleanCode = originalCode.replace(/\/\*[\s\S]*?\*\//g, '');
+            } else {
+                // FIX 2: JS/JSX URL Masking
+                // Temporarily hide known URL protocols from the parser so it 
+                // doesn't mistake them for inline line comments in JSX text.
+                const maskedCode = originalCode.replace(/(https?|ftp|wss?|file):\/\//ig, '$1:__URL_SLASHES__');
+                
+                // Strip the comments using the masked code
+                const strippedMasked = strip(maskedCode);
+                
+                // Restore the slashes back to normal URLs
+                cleanCode = strippedMasked.replace(/(https?|ftp|wss?|file):__URL_SLASHES__/ig, '$1://');
+            }
             
             // Only write back if something actually changed
             if (originalCode !== cleanCode) {
@@ -51,6 +66,5 @@ function cleanFile(filePath) {
 }
 
 console.log('🚀 Starting robust comment removal...');
-// Start from current directory (or change to './src' to be extra safe)
 walkDir(__dirname, cleanFile);
 console.log('🎉 Comment purge complete!');

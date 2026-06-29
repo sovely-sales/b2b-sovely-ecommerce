@@ -530,13 +530,20 @@ export const adminResetPassword = asyncHandler(async (req, res) => {
     user.refreshToken = null;
     await user.save({ validateBeforeSave: false });
 
-    // Invalidate all active sessions for security
     await UserSession.updateMany(
         { userId: user._id, isRevoked: false },
         { isRevoked: true, revokedAt: new Date() }
     );
 
-    return res.status(200).json(new ApiResponse(200, null, 'User password has been successfully reset. All active sessions revoked.'));
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                null,
+                'User password has been successfully reset. All active sessions revoked.'
+            )
+        );
 });
 
 export const updatePassword = asyncHandler(async (req, res) => {

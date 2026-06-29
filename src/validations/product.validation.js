@@ -123,4 +123,15 @@ export const productValidation = {
             })
             .strict(),
     }),
+
+    bulkAdjustPrice: z.object({
+        body: z
+            .object({
+                percentage: z
+                    .number()
+                    .min(-90, 'Cannot decrease price by more than 90%')
+                    .max(500, 'Cannot increase price by more than 500%'),
+            })
+            .strict(),
+    }),
 };
