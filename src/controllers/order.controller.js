@@ -1935,6 +1935,8 @@ export const importWukusyStatusesCsv = async (req, res) => {
             label_prin: 'SHIPPED',
             paid: 'SHIPPED',
             dispatched: 'SHIPPED',
+            ready_to_ship: 'SHIPPED',
+            'ready to ship': 'SHIPPED',
 
             confirmed: 'PROCESSING',
             pickup_pending: 'PROCESSING',
@@ -1998,21 +2000,22 @@ export const importWukusyStatusesCsv = async (req, res) => {
                 continue;
             }
 
-            // Create a flexible regex for matching (treats - and _ as interchangeable)
-            const makeFlexible = (id) => (id ? id.replace(/[-_]/g, '[-_]') : '');
+            // Create a flexible regex for matching (treats - and _ as interchangeable, ignores leading/trailing whitespace)
+            const makeFlexible = (id) => (id ? id.trim().replace(/[-_]/g, '[-_]') : '');
             const flexPlatform = makeFlexible(platformOrderNo);
             const flexSovely = makeFlexible(sovelyOrderId);
 
             // Search by Sovely Order ID first, then fallback to Platform Order No
             let order = null;
             if (sovelyOrderId) {
+                const trimmedSovely = sovelyOrderId.trim();
                 // Search both fields with this value
                 order = await Order.findOne({
                     $or: [
-                        { orderId: sovelyOrderId },
-                        { platformOrderNo: sovelyOrderId },
-                        { orderId: { $regex: new RegExp(`^${flexSovely}$`, 'i') } },
-                        { platformOrderNo: { $regex: new RegExp(`^${flexSovely}$`, 'i') } },
+                        { orderId: trimmedSovely },
+                        { platformOrderNo: trimmedSovely },
+                        { orderId: { $regex: new RegExp(`^\\s*${flexSovely}\\s*$`, 'i') } },
+                        { platformOrderNo: { $regex: new RegExp(`^\\s*${flexSovely}\\s*$`, 'i') } },
                     ],
                     status: { $in: ['PENDING', 'PROCESSING', 'SHIPPED'] },
                 });
@@ -2023,12 +2026,13 @@ export const importWukusyStatusesCsv = async (req, res) => {
             }
 
             if (!order && platformOrderNo) {
+                const trimmedPlatform = platformOrderNo.trim();
                 order = await Order.findOne({
                     $or: [
-                        { platformOrderNo: platformOrderNo },
-                        { orderId: platformOrderNo },
-                        { platformOrderNo: { $regex: new RegExp(`^${flexPlatform}$`, 'i') } },
-                        { orderId: { $regex: new RegExp(`^${flexPlatform}$`, 'i') } },
+                        { platformOrderNo: trimmedPlatform },
+                        { orderId: trimmedPlatform },
+                        { platformOrderNo: { $regex: new RegExp(`^\\s*${flexPlatform}\\s*$`, 'i') } },
+                        { orderId: { $regex: new RegExp(`^\\s*${flexPlatform}\\s*$`, 'i') } },
                     ],
                     status: { $in: ['PENDING', 'PROCESSING', 'SHIPPED'] },
                 }).sort({ createdAt: -1 });
@@ -2039,8 +2043,9 @@ export const importWukusyStatusesCsv = async (req, res) => {
             }
 
             if (!order && sovelyOrderId) {
+                const trimmedSovely = sovelyOrderId.trim();
                 order = await Order.findOne({
-                    orderId: { $regex: new RegExp(`^${sovelyOrderId}$`, 'i') },
+                    orderId: { $regex: new RegExp(`^\\s*${trimmedSovely}\\s*$`, 'i') },
                     status: { $in: ['PENDING', 'PROCESSING', 'SHIPPED'] },
                 });
             }

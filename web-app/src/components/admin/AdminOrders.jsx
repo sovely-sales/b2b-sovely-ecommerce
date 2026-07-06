@@ -68,6 +68,8 @@ const WUKUSY_STATUS_MAP = {
     paid: 'SHIPPED',
     dispatched: 'SHIPPED',
     'in-transit': 'SHIPPED',
+    'ready_to_ship': 'SHIPPED',
+    'ready to ship': 'SHIPPED',
 
     confirmed: 'PROCESSING',
     pickup_pending: 'PROCESSING',
