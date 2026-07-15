@@ -141,16 +141,10 @@ export default function ContactUs() {
                                         Email Desks
                                     </p>
                                     <a
-                                        href="mailto:partners@sovely.com"
+                                        href="mailto:admin@sovely.in"
                                         className="mt-1 block font-bold text-emerald-600 hover:text-emerald-700"
                                     >
-                                        partners@sovely.com
-                                    </a>
-                                    <a
-                                        href="mailto:support@sovely.com"
-                                        className="block font-medium text-slate-600 hover:text-slate-900"
-                                    >
-                                        support@sovely.com
+                                        admin@sovely.in
                                     </a>
                                 </div>
                             </div>
