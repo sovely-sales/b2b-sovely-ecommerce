@@ -442,7 +442,7 @@ function renderContent(tabId) {
                         </p>
                         <p>
                             To exercise any of these rights, please contact us at{' '}
-                            <strong>[support@yourdomain.com]</strong>. Please note that we may ask
+                            <strong>admin@sovely.in</strong>. Please note that we may ask
                             you to verify your identity before responding to such requests.
                         </p>
                     </section>
@@ -968,7 +968,7 @@ function renderContent(tabId) {
                         </p>
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                             <p className="font-bold text-slate-900">Name: Grievance Officer</p>
-                            <p className="text-slate-600">Email: [support@yourdomain.com]</p>
+                            <p className="text-slate-600">Email: admin@sovely.in</p>
                         </div>
                     </section>
                 </div>

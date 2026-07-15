@@ -88,7 +88,7 @@ class QikinkService {
                 address1: address.street || '',
                 address2: '',
                 phone: orderDoc.endCustomerDetails?.phone || '',
-                email: 'customer@sovely.com',
+                email: 'admin@sovely.in',
                 city: address.city || '',
                 zip: Number(address.zip) || 0, // Must explicitly be numeric per docs
                 province: address.state || '',
