@@ -47,91 +47,70 @@ export const productValidation = {
             id: objectId,
         }),
     }),
-
     createProduct: z.object({
         body: z.object({
             title: z.string().min(3),
             sku: z.string().min(3),
             categoryId: objectId,
-
-            dropshipBasePrice: z.number().positive(),
-            suggestedRetailPrice: z.number().positive(),
-            tieredPricing: z
-                .array(
-                    z.object({
-                        minQty: z.number().int().positive(),
-                        pricePerUnit: z.number().positive(),
-                    })
-                )
-                .optional(),
-
-            weightGrams: z.number().positive(),
-            hsnCode: z.string().min(4, 'HSN Code must be at least 4 digits'),
-            gstSlab: z.union([
-                z.literal(0),
-                z.literal(5),
-                z.literal(12),
-                z.literal(18),
-                z.literal(28),
-            ]),
-            moq: z.number().int().positive().default(1),
-            inventory: z
-                .object({
-                    stock: z.number().int().nonnegative(),
-                    alertThreshold: z.number().int().nonnegative().optional(),
+            
+            // z.coerce intercepts FormData strings (e.g. "450") and safely casts to 450
+            dropshipBasePrice: z.coerce.number().positive(),
+            suggestedRetailPrice: z.coerce.number().positive(),
+            tieredPricing: z.array(
+                z.object({
+                    minQty: z.coerce.number().int().positive(),
+                    pricePerUnit: z.coerce.number().positive(),
                 })
-                .optional(),
+            ).optional(),
+            
+            weightGrams: z.coerce.number().positive(),
+            hsnCode: z.string().min(4, 'HSN Code must be at least 4 digits'),
+            
+            // Coerce the GST string dropdown to a strict number literal
+            gstSlab: z.coerce.number().pipe(z.union([
+                z.literal(0), z.literal(5), z.literal(12), 
+                z.literal(18), z.literal(28)
+            ])),
+            moq: z.coerce.number().int().positive().default(1),
+            inventory: z.object({
+                stock: z.coerce.number().int().nonnegative(),
+                alertThreshold: z.coerce.number().int().nonnegative().optional(),
+            }).optional(),
             status: z.enum(['active', 'draft', 'archived']).optional(),
         }),
     }),
 
     updateProduct: z.object({
-        params: z.object({
-            id: objectId,
-        }),
-        body: z
-            .object({
-                title: z.string().min(3).optional(),
-                dropshipBasePrice: z.number().positive().optional(),
-                suggestedRetailPrice: z.number().positive().optional(),
-                tieredPricing: z
-                    .array(
-                        z.object({
-                            minQty: z.number().int().positive(),
-                            pricePerUnit: z.number().positive(),
-                        })
-                    )
-                    .optional(),
-                hsnCode: z.string().min(4).optional(),
-                gstSlab: z
-                    .union([
-                        z.literal(0),
-                        z.literal(5),
-                        z.literal(12),
-                        z.literal(18),
-                        z.literal(28),
-                    ])
-                    .optional(),
-                moq: z.number().int().positive().optional(),
-                inventory: z
-                    .object({
-                        stock: z.number().int().nonnegative().optional(),
-                        alertThreshold: z.number().int().nonnegative().optional(),
-                    })
-                    .optional(),
-                status: z.enum(['active', 'draft', 'archived']).optional(),
-            })
-            .strict(),
+        params: z.object({ id: objectId }),
+        body: z.object({
+            title: z.string().min(3).optional(),
+            dropshipBasePrice: z.coerce.number().positive().optional(),
+            suggestedRetailPrice: z.coerce.number().positive().optional(),
+            tieredPricing: z.array(
+                z.object({
+                    minQty: z.coerce.number().int().positive(),
+                    pricePerUnit: z.coerce.number().positive(),
+                })
+            ).optional(),
+            hsnCode: z.string().min(4).optional(),
+            gstSlab: z.coerce.number().pipe(z.union([
+                z.literal(0), z.literal(5), z.literal(12), 
+                z.literal(18), z.literal(28)
+            ])).optional(),
+            moq: z.coerce.number().int().positive().optional(),
+            inventory: z.object({
+                stock: z.coerce.number().int().nonnegative().optional(),
+                alertThreshold: z.coerce.number().int().nonnegative().optional(),
+            }).optional(),
+            status: z.enum(['active', 'draft', 'archived']).optional(),
+        }).strict(),
     }),
 
     bulkAdjustPrice: z.object({
-        body: z
-            .object({
-                percentage: z
-                    .number()
-                    .min(-90, 'Cannot decrease price by more than 90%')
-                    .max(500, 'Cannot increase price by more than 500%'),
-            })
-            .strict(),
+        body: z.object({
+            percentage: z.coerce.number()
+                .min(-90, 'Cannot decrease price by more than 90%')
+                .max(500, 'Cannot increase price by more than 500%'),
+        }).strict(),
     }),
 };
