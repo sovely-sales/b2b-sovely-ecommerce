@@ -129,6 +129,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
                         cost: baseCost,
                         srp: variantPrice > 0 ? variantPrice : baseCost,
                         status: (row['Status'] || 'active').toLowerCase(),
+                        hsnCode: (row['HSN Code'] || row['HSN'] || row['hsn'] || '').trim(),
                         images: [],
                     });
                 }
@@ -206,7 +207,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
             tieredPricing: [],
             weightGrams,
             dimensions,
-            hsnCode: '39239090',
+            hsnCode: p.hsnCode || '39239090',
             gstSlab: 18,
             shippingDays: '3-5',
             moq: 1,
