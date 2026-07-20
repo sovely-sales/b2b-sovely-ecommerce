@@ -374,27 +374,24 @@ export const generateInvoicePDF = async (req, res, next) => {
             doc.fillColor('#000000')
                 .fontSize(8.5)
                 .font('Helvetica-Bold')
-                .text('Dabster International Private Limited', 45, sellerY, { width: 245 });
-            
-            sellerY = doc.y + 1;
-            doc.fontSize(7.5)
-                .font('Helvetica')
-                .text('(Formerly Known as Deodap International Private Limited)', 45, sellerY, { width: 245 });
+                .text('Infinity Enterprises', 45, sellerY, { width: 245 });
             
             sellerY = doc.y + 2;
-            doc.text('PLOT NO. 1, RSN 112/3, NR RUDA TRANSPORT NAGAR,\nRANGOLI MASALA STREET, NAVAGRAM, RAJKOT-360003 (GUJARAT)', 45, sellerY, { width: 245 });
+            doc.fontSize(7.5)
+                .font('Helvetica')
+                .text('123 Enterprise Avenue, Tech Park,\nBengaluru, Karnataka 560001', 45, sellerY, { width: 245 });
             
             sellerY = doc.y + 3;
             doc.font('Helvetica-Bold')
                 .text('GSTIN/UIN: ', 45, sellerY, { continued: true })
                 .font('Helvetica')
-                .text('24AAHCD5265C1ZX', { width: 245 });
+                .text('29DTGPS4598H2ZR', { width: 245 });
             
             sellerY = doc.y + 2;
             doc.font('Helvetica-Bold')
                 .text('State Name: ', 45, sellerY, { continued: true })
                 .font('Helvetica')
-                .text('Gujarat, Code : 24', { width: 245 });
+                .text('Karnataka, Code : 29', { width: 245 });
 
             // Horizontal line under seller details
             doc.moveTo(40, 150).lineTo(297.5, 150).stroke('#000000');
@@ -775,7 +772,7 @@ export const generateInvoicePDF = async (req, res, next) => {
 
         doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#000000')
             .text(`Remarks: Order Ref No: #${invoice.orderId?.orderId || 'N/A'}`, 45, footerInfoY + 5)
-            .text(`Company's PAN : AAHCD5265C`, 45, footerInfoY + 22)
+            .text(`Company's PAN : DTGPS4598H`, 45, footerInfoY + 22)
             .text('Declaration', 45, footerInfoY + 36);
 
         doc.font('Helvetica').fontSize(7).fillColor('#444444')
@@ -783,7 +780,7 @@ export const generateInvoicePDF = async (req, res, next) => {
 
         // Signatory box on the right
         doc.font('Helvetica').fontSize(8.5).fillColor('#000000')
-            .text('for Dabster International Private Limited', 345, footerInfoY + 5, { width: 205, align: 'right' })
+            .text('for Infinity Enterprises', 345, footerInfoY + 5, { width: 205, align: 'right' })
             .font('Helvetica-Bold')
             .text('Authorised Signatory', 345, footerInfoY + 65, { width: 205, align: 'right' });
 
