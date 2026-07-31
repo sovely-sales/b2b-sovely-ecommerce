@@ -37,17 +37,36 @@ RAZORPAY_KEY_SECRET=your_razorpay_secret
 Execute the following in your terminal:
 
 ```bash
-# 1. Install Backend Dependencies
+# 1. Start Redis using Docker (Required for BullMQ & Caching)
+# Run this once to create the container:
+docker run -d -p 6379:6379 --name sovely-redis redis:alpine
+# If the container already exists and you just need to start it:
+# docker start sovely-redis
+
+# 2. Install Backend Dependencies
 npm install
 
-# 2. Install Frontend Dependencies
+# 3. Install Frontend Dependencies
 cd web-app && npm install && cd ..
 
-# 3. Seed Initial Data (Products & Categories)
+# 4. Seed Initial Data (Products & Categories)
 npm run seed
+```
 
-# 4. Launch Development Environment
-# Starts Backend on 8000 and Frontend on 5173
+### 4. Launch Development Environment
+
+You will need two separate terminals to run the frontend and backend.
+
+**Terminal 1: Start Backend**
+```bash
+# Starts Node.js Backend on port 8000
+npm run dev
+```
+
+**Terminal 2: Start Frontend**
+```bash
+# Starts Vite React Frontend on port 5173
+cd web-app
 npm run dev
 ```
 

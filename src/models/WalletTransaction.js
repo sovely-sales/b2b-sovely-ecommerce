@@ -18,6 +18,7 @@ const walletTransactionSchema = new mongoose.Schema(
             enum: [
                 'WALLET_RECHARGE',
                 'ORDER_DEDUCTION',
+                'ORDER_DEDUCTION_REVERSAL',
                 'PROFIT_CREDIT',
                 'RTO_PENALTY',
                 'REFUND',

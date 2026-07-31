@@ -15,6 +15,7 @@ import {
     exportUntrackedWukusyOrders,
     importWukusyStatusesCsv,
     deleteOrder,
+    overrideOrderStatus,
 } from '../controllers/order.controller.js';
 import { verifyJWT, authorizeRoles } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
@@ -31,6 +32,7 @@ router.get('/export-me', exportMyOrdersToCsv);
 router.get('/export-courier', authorizeRoles('ADMIN'), exportCourierOrdersToCsv);
 router.route('/bulk-dropship').post(verifyJWT, createBulkDropshipOrders);
 router.put('/:id/status', authorizeRoles('ADMIN'), updateOrderStatus);
+router.put('/:id/override-status', authorizeRoles('ADMIN'), overrideOrderStatus);
 router.post('/:id/dispatch', authorizeRoles('ADMIN'), adminDispatchOrder);
 router.put('/:id/authorize', authorizeRoles('ADMIN'), adminAuthorizeOrder);
 router.delete('/:id', authorizeRoles('ADMIN'), deleteOrder);

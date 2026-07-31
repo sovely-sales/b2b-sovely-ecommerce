@@ -371,6 +371,38 @@ const AdminOrders = () => {
         }
     };
 
+    const submitOrderOverride = async (id) => {
+        if (!editForm.status) {
+            toast.error('Please select a valid status before overriding.');
+            return;
+        }
+        const reason = window.prompt(`Please enter a reason for forcing this status override to ${editForm.status} (Mandatory):`);
+        if (!reason) {
+            toast.error('A reason is mandatory for manual overrides.');
+            return;
+        }
+        if (!window.confirm(`Are you absolutely sure you want to FORCE update this order to ${editForm.status}? This bypasses normal checks and may reverse settlements.`)) {
+            return;
+        }
+        
+        setIsSaving(true);
+        try {
+            const payload = {
+                status: editForm.status,
+                reason: reason,
+            };
+
+            const res = await api.put(`/orders/${id}/override-status`, payload);
+            setOrders((prev) => prev.map((o) => (o._id === id ? res.data.data : o)));
+            toast.success(`Order forcefully updated successfully`);
+            setSelectedOrder(null);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to force update order');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleAuthorize = async (orderId) => {
         setIsSaving(true);
         try {
@@ -1591,6 +1623,42 @@ const AdminOrders = () => {
                                         </div>
                                     )}
                                 </div>
+
+                                {selectedOrder.status !== 'PENDING' && (
+                                    <div className="border-t border-slate-200 bg-red-50 p-4">
+                                        <label className="mb-2 block text-[10px] font-bold text-red-600 uppercase">
+                                            Danger Zone: Force Status Override
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={editForm.status}
+                                                onChange={(e) =>
+                                                    setEditForm({
+                                                        ...editForm,
+                                                        status: e.target.value,
+                                                    })
+                                                }
+                                                className="flex-1 rounded-lg border border-red-200 bg-white p-2.5 text-xs font-bold text-slate-900 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                                            >
+                                                <option value="" disabled>Select Target Status</option>
+                                                {DEFAULT_MANUAL_OVERRIDE_STATUSES.map(
+                                                    (statusCode) => (
+                                                        <option key={statusCode} value={statusCode}>
+                                                            {MANUAL_OVERRIDE_LABELS[statusCode] || statusCode.replace(/_/g, ' ')}
+                                                        </option>
+                                                    )
+                                                )}
+                                            </select>
+                                            <button
+                                                disabled={isSaving || !editForm.status || editForm.status === selectedOrder.status}
+                                                onClick={() => submitOrderOverride(selectedOrder._id)}
+                                                className="rounded-lg bg-red-600 px-4 py-2.5 text-xs font-extrabold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                                            >
+                                                Force Override
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="flex flex-wrap gap-3 border-t border-slate-200 bg-white p-4">
                                     <button
