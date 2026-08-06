@@ -117,6 +117,13 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
 
           const baseCost = costPerItem > 0 ? costPerItem : Math.round(variantPrice * 0.6);
 
+          let gstStr = row['GST Rate'] || row['GST'] || row['gst'];
+          let parsedGst = 18;
+          if (gstStr) {
+            let tempGst = parseInt(String(gstStr).replace(/[^\d]/g, ''), 10);
+            if ([0, 5, 18, 40].includes(tempGst)) parsedGst = tempGst;
+          }
+
           productMap.set(handle, {
             handle,
             title: (row['Title'] || '').trim(),
@@ -130,6 +137,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
             srp: variantPrice > 0 ? variantPrice : baseCost,
             status: (row['Status'] || 'active').toLowerCase(),
             hsnCode: (row['HSN Code'] || row['HSN'] || row['hsn'] || '').trim(),
+            gstSlab: parsedGst,
             images: [],
           });
         }
@@ -208,7 +216,7 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
       weightGrams,
       dimensions,
       hsnCode: p.hsnCode || '39239090',
-      gstSlab: 18,
+      gstSlab: p.gstSlab || 18,
       shippingDays: '3-5',
       moq: 1,
       inventory: { stock: 0, alertThreshold: 10 },
@@ -285,11 +293,25 @@ export const syncInventoryFromCSV = asyncHandler(async (req, res) => {
         // NEW: Grab the HSN code if it exists in the row
         let hsnCode = (row['HSN Code'] || row['HSN'] || row['hsn'] || '').trim();
 
-        // Proceed if there is either a valid stock number OR an HSN code
-        if (!isNaN(stock) || hsnCode) {
+        // NEW: Grab the Price if it exists in the row
+        let priceStr = row['Variant Price'] || row['Price'] || row['price'] || row['Cost per item'];
+        let price = priceStr ? toNum(priceStr) : null;
+        
+        // NEW: Grab the GST if it exists in the row
+        let gstStr = row['GST Rate'] || row['GST'] || row['gst'];
+        let gst = null;
+        if (gstStr) {
+          let tempGst = parseInt(String(gstStr).replace(/[^\d]/g, ''), 10);
+          if ([0, 5, 18, 40].includes(tempGst)) gst = tempGst;
+        }
+
+        // Proceed if there is either a valid stock number, HSN code, price, or GST
+        if (!isNaN(stock) || hsnCode || price !== null || gst !== null) {
           inventoryUpdates.set(sku, {
             stock: !isNaN(stock) ? stock : null,
-            hsnCode: hsnCode || null
+            hsnCode: hsnCode || null,
+            price,
+            gst
           });
         }
       })
@@ -316,6 +338,8 @@ export const syncInventoryFromCSV = asyncHandler(async (req, res) => {
       // Build the update query dynamically based on what was in the CSV
       if (updates.stock !== null) updateFields['inventory.stock'] = updates.stock;
       if (updates.hsnCode !== null) updateFields['hsnCode'] = updates.hsnCode;
+      if (updates.price !== null) updateFields['dropshipBasePrice'] = updates.price;
+      if (updates.gst !== null) updateFields['gstSlab'] = updates.gst;
 
       if (Object.keys(updateFields).length > 0) {
         bulkOps.push({
