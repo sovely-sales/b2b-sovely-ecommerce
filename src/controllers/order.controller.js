@@ -1335,7 +1335,7 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
 
     const orders = await Order.find(query)
         .sort({ createdAt: -1 })
-        .populate('resellerId', 'name companyName email phoneNumber billingAddress');
+        .populate('resellerId', 'name companyName email phoneNumber billingAddress gstin');
 
     const escapeCsv = (val) => {
         if (val === null || val === undefined) return '';
@@ -1363,6 +1363,7 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
         'Quantity',
         'Payment Method',
         'Selling Price',
+        'Seller GSTIN',
     ];
 
     let csvContent = '\uFEFF' + headers.map(escapeCsv).join(',') + '\n';
@@ -1412,6 +1413,7 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
                 item.qty,
                 order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
                 item.resellerSellingPrice || item.platformBasePrice,
+                reseller.gstin || '',
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });
@@ -1561,7 +1563,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
 
     const orders = await Order.find(query)
         .sort({ createdAt: -1 })
-        .populate('resellerId', 'name companyName email phoneNumber billingAddress');
+        .populate('resellerId', 'name companyName email phoneNumber billingAddress gstin');
 
     const headers = [
         'Platform order number',
@@ -1580,6 +1582,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
         'Quantity',
         'Payment Method',
         'Selling Price',
+        'Seller GSTIN',
     ];
 
     const escapeCsv = (val) => {
@@ -1645,6 +1648,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
                 item.qty,
                 order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
                 item.resellerSellingPrice || item.platformBasePrice,
+                order.resellerId?.gstin || '',
             ];
 
             csvContent += row.map(escapeCsv).join(',') + '\n';
@@ -1764,6 +1768,7 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
         'Quantity',
         'Payment Method',
         'Selling Price',
+        'Seller GSTIN',
     ];
 
     const escapeCsv = (val) => {
@@ -1830,6 +1835,7 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
                 item.qty,
                 order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
                 item.resellerSellingPrice || item.platformBasePrice,
+                order.resellerId?.gstin || '',
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });
