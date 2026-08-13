@@ -3,7 +3,7 @@ import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, AlignJustify, LayoutGrid, Box, ShoppingCart, X, FilterX } from 'lucide-react';
+import { ChevronDown, AlignJustify, LayoutGrid, Box, ShoppingCart, X, FilterX, Home, Sparkles, Gamepad2, Smartphone, Shirt, Tent, Briefcase, Wrench } from 'lucide-react';
 
 import api from '../utils/api.js';
 import { useDebounce } from '../hooks/useDebounce';
@@ -63,6 +63,22 @@ const BRAND_OPTIONS = [
     'Zequz',
 ];
 
+const ICONS = {
+    'Home': Home,
+    'Sparkles': Sparkles,
+    'Gamepad2': Gamepad2,
+    'Smartphone': Smartphone,
+    'Shirt': Shirt,
+    'Tent': Tent,
+    'Briefcase': Briefcase,
+    'Wrench': Wrench,
+};
+
+const getIconComponent = (iconName) => {
+    const Icon = ICONS[iconName];
+    return Icon ? <Icon size={18} className="text-slate-500" /> : null;
+};
+
 export default function DropshipProducts({
     globalSearchQuery = '',
     initialCategory = 'All Categories',
@@ -73,6 +89,18 @@ export default function DropshipProducts({
     const navigate = useNavigate();
     const [viewMode, setViewMode] = useState('grid');
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+    const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+    const categoryMenuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (categoryMenuRef.current && !categoryMenuRef.current.contains(event.target)) {
+                setIsCategoryMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const loadMoreRef = useRef(null);
 
@@ -158,14 +186,8 @@ export default function DropshipProducts({
 
     const selectedCatId = useMemo(() => {
         if (!filters.category || filters.category === 'All Categories') return null;
-
-        if (/^[a-f0-9]{24}$/i.test(filters.category)) return filters.category;
-
-        const found = dbCategories.find(
-            (c) => c.name.trim().toLowerCase() === filters.category.trim().toLowerCase()
-        );
-        return found ? found._id : null;
-    }, [filters.category, dbCategories]);
+        return filters.category;
+    }, [filters.category]);
 
     const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery({
         queryKey: [
@@ -318,25 +340,61 @@ export default function DropshipProducts({
                 <div
                     className={`flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:gap-4 ${isFiltersOpen ? 'flex' : 'hidden xl:flex'}`}
                 >
-                    <div className="relative">
-                        <select
-                            value={filters.category}
-                            onChange={(e) =>
-                                setFilters((p) => ({ ...p, category: e.target.value }))
-                            }
-                            className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pr-10 pl-4 text-sm font-semibold text-slate-900 shadow-sm transition-shadow outline-none hover:border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 sm:w-auto"
+                    <div className="relative" ref={categoryMenuRef}>
+                        <button
+                            type="button"
+                            onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
+                            className="flex w-full min-w-[220px] items-center justify-between rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-4 text-sm font-semibold text-slate-900 shadow-sm transition-all hover:border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 sm:w-auto"
                         >
-                            <option value="All Categories">All Categories</option>
-                            {dbCategories.map((cat) => (
-                                <option key={cat._id} value={cat._id}>
-                                    {cat.name}
-                                </option>
-                            ))}
-                        </select>
-                        <ChevronDown
-                            size={16}
-                            className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-slate-400"
-                        />
+                            <span className="truncate">
+                                {filters.category === 'All Categories' 
+                                    ? 'All Categories' 
+                                    : (dbCategories.find(c => c._id === filters.category)?.name || filters.category)
+                                }
+                            </span>
+                            <ChevronDown
+                                size={16}
+                                className={`ml-2 text-slate-400 transition-transform ${isCategoryMenuOpen ? 'rotate-180' : ''}`}
+                            />
+                        </button>
+
+                        <AnimatePresence>
+                            {isCategoryMenuOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 5 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute left-0 z-50 mt-2 max-h-[400px] w-64 overflow-y-auto rounded-xl border border-slate-200 bg-white py-2 shadow-xl"
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setFilters(p => ({ ...p, category: 'All Categories' }));
+                                            setIsCategoryMenuOpen(false);
+                                        }}
+                                        className={`flex w-full items-center px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-slate-50 ${filters.category === 'All Categories' ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
+                                    >
+                                        All Categories
+                                    </button>
+                                    <div className="my-1 h-px w-full bg-slate-100" />
+                                    {dbCategories.map((cat) => (
+                                        <button
+                                            key={cat._id}
+                                            type="button"
+                                            onClick={() => {
+                                                setFilters(p => ({ ...p, category: cat._id }));
+                                                setIsCategoryMenuOpen(false);
+                                            }}
+                                            className={`flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-slate-50 ${filters.category === cat._id ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}
+                                        >
+                                            {getIconComponent(cat.icon)}
+                                            <span>{cat.name}</span>
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
 
                     <div className="relative">

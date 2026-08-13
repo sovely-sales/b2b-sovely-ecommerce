@@ -5,6 +5,8 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { qikinkService } from '../services/qikink.service.js';
 import { SystemConfig } from '../models/SystemConfig.js';
+import { Category } from '../models/Category.js';
+import { TOP_LEVEL_CATEGORIES } from '../config/categories.js';
 
 export const createProduct = asyncHandler(async (req, res) => {
     let {
@@ -138,11 +140,24 @@ export const getProducts = asyncHandler(async (req, res) => {
         ];
     }
 
-    if (category) {
-        if (mongoose.Types.ObjectId.isValid(category)) {
-            query.categoryId = new mongoose.Types.ObjectId(category);
+    if (category && category !== 'All Categories') {
+        const topCategory = TOP_LEVEL_CATEGORIES.find(c => c._id === category || c.name === category);
+        
+        if (topCategory) {
+            const regexes = topCategory.keywords.map(kw => new RegExp(kw, 'i'));
+            const matchedCategories = await Category.find({ name: { $in: regexes } }).select('_id').lean();
+            
+            if (matchedCategories.length > 0) {
+                query.categoryId = { $in: matchedCategories.map(c => c._id) };
+            } else {
+                query.categoryId = new mongoose.Types.ObjectId();
+            }
         } else {
-            query.categoryId = category;
+            if (mongoose.Types.ObjectId.isValid(category)) {
+                query.categoryId = new mongoose.Types.ObjectId(category);
+            } else {
+                query.categoryId = category;
+            }
         }
     }
 

@@ -9,7 +9,7 @@ export const productValidation = {
                 page: z.string().regex(/^\d+$/).optional(),
                 limit: z.string().regex(/^\d+$/).optional(),
                 search: z.string().optional(),
-                category: objectId.optional(),
+                category: z.string().optional(),
                 minMargin: z.string().regex(/^\d*$/).optional(),
                 margin: z.string().regex(/^\d*$/).optional(),
                 minBasePrice: z.string().regex(/^\d*$/).optional(),
