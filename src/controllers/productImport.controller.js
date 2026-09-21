@@ -103,7 +103,8 @@ export const importProductsFromCSV = asyncHandler(async (req, res) => {
   const productMap = new Map();
 
   await new Promise((resolve, reject) => {
-    const readable = Readable.from(req.file.buffer.toString('utf8'));
+    const csvData = req.file.buffer.toString('utf8').replace(/^\uFEFF/, '');
+    const readable = Readable.from(csvData);
     readable
       .pipe(csvParser())
       .on('data', (row) => {
@@ -280,7 +281,8 @@ export const syncInventoryFromCSV = asyncHandler(async (req, res) => {
   const inventoryUpdates = new Map();
 
   await new Promise((resolve, reject) => {
-    const readable = Readable.from(req.file.buffer.toString('utf8'));
+    const csvData = req.file.buffer.toString('utf8').replace(/^\uFEFF/, '');
+    const readable = Readable.from(csvData);
     readable
       .pipe(csvParser())
       .on('data', (row) => {
