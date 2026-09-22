@@ -49,8 +49,7 @@ npm install
 # 3. Install Frontend Dependencies
 cd web-app && npm install && cd ..
 
-# 4. Seed Initial Data (Products & Categories)
-npm run seed
+
 ```
 
 ### 4. Launch Development Environment
