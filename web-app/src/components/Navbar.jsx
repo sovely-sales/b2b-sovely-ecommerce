@@ -24,6 +24,7 @@ import {
     Wallet,
     Headphones,
     Menu,
+    Store,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -388,6 +389,15 @@ function Navbar({ onToggleSidebar }) {
                         >
                             <Search size={20} strokeWidth={2.5} />
                         </button>
+                        <a
+                            href="https://dropshipping.sovely.in/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-bold transition-colors hover:bg-indigo-50 hover:text-indigo-600 lg:flex ${isScrolled ? 'text-slate-800' : 'text-slate-600'}`}
+                        >
+                            <Store size={20} strokeWidth={2.5} />
+                            <span>Dropshipping</span>
+                        </a>
                         {user && user.accountType === 'B2B' && (
                             <Link
                                 to={ROUTES.MY_ACCOUNT}

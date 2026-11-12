@@ -20,6 +20,7 @@ import webhookRouter from './routes/webhook.routes.js';
 import accessRequestRouter from './routes/accessRequest.routes.js';
 import ticketRouter from './routes/ticket.routes.js';
 import syncHistoryRouter from './routes/syncHistory.routes.js';
+import chatRouter from './routes/chat.routes.js';
 import './services/queue.service.js';
 import './services/cron.service.js';
 
@@ -34,6 +35,7 @@ app.use(
 
 const allowedOrigins = [
     process.env.CORS_ORIGIN,
+    'https://dropshipping.sovely.in',
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
@@ -100,6 +102,7 @@ app.use(`${apiVersion}/analytics`, analyticsRouter);
 app.use(`${apiVersion}/access-requests`, accessRequestRouter);
 app.use(`${apiVersion}/tickets`, ticketRouter);
 app.use(`${apiVersion}/sync-history`, syncHistoryRouter);
+app.use(`${apiVersion}/chat`, chatRouter);
 
 app.use((req, res, next) => {
     console.log(`❌ 404 Not Found: ${req.method} ${req.originalUrl}`);

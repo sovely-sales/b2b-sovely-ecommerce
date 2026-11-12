@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../utils/routes';
-import { LayoutGrid, Search, Menu, X } from 'lucide-react';
+import { LayoutGrid, Search, Menu, X, Store } from 'lucide-react';
+
+const DROPSHIPPING_URL = 'https://dropshipping.sovely.in/';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function PublicNavbar() {
@@ -43,6 +45,14 @@ function PublicNavbar() {
                         >
                             <Search size={18} /> Search
                         </Link>
+                        <a
+                            href={DROPSHIPPING_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm font-bold text-slate-600 transition-colors hover:text-indigo-600"
+                        >
+                            <Store size={18} /> Start Dropshipping
+                        </a>
                     </div>
                 </div>
 
@@ -87,6 +97,15 @@ function PublicNavbar() {
                             >
                                 <Search size={18} /> Search
                             </Link>
+                            <a
+                                href={DROPSHIPPING_URL}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="flex items-center gap-2 text-sm font-bold text-slate-600 transition-colors hover:text-indigo-600"
+                            >
+                                <Store size={18} /> Start Dropshipping
+                            </a>
                             <div className="my-2 h-px w-full bg-slate-100" />
                             <Link
                                 to={ROUTES.LOGIN}
