@@ -33,9 +33,18 @@ export const buildPrompt = (data) => {
     const plans = Object.values(data.plans || {});
     if (plans.length) {
         lines.push('PLANS (one-time platform fee, no monthly subscription)');
-        plans.forEach((p) =>
-            lines.push(`- ${p.name}: ${p.price} today (regular ${p.regularPrice}). Includes ${p.features}.`)
-        );
+        plans.forEach((p) => {
+            const extras = [
+                p.regularPrice && `regular ${p.regularPrice}`,
+                p.worth && `worth ${p.worth}`,
+                p.saving && `saves ${p.saving}`,
+            ].filter(Boolean);
+            lines.push(
+                `- ${p.name}: ${p.price} today${extras.length ? ` (${extras.join(', ')})` : ''}.` +
+                    (p.bestFor ? ` Best for ${p.bestFor}.` : '') +
+                    ` Includes ${p.features}.`
+            );
+        });
     }
     if (data.charges) {
         lines.push('', 'CHARGES (listed rates; actual shipping/RTO can vary with weight, courier and location)');
