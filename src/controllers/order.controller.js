@@ -1317,6 +1317,21 @@ export const createBulkDropshipOrders = asyncHandler(async (req, res) => {
     }
 });
 
+// DD-MM-YYYY in Indian time, for CSV exports.
+const formatIstDate = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return '';
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    }).formatToParts(d);
+    const get = (t) => parts.find((x) => x.type === t)?.value;
+    return `${get('day')}-${get('month')}-${get('year')}`;
+};
+
 export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
     const { startDate, endDate } = req.query;
 
@@ -1347,6 +1362,8 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
     };
 
     const headers = [
+        'Order ID',
+        'Purchase Date',
         'Platform order number',
         'First Name',
         'Last Name',
@@ -1395,8 +1412,12 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
             (isDropship ? order.endCustomerDetails?.address?.zip : reseller.billingAddress?.zip) ||
             '';
 
+        const purchaseDate = formatIstDate(order.orderDate || order.createdAt);
+
         order.items.forEach((item) => {
             const row = [
+                order.orderId,
+                purchaseDate,
                 order.platformOrderNo || order.orderId,
                 firstName,
                 lastName,
@@ -1762,13 +1783,10 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
         'City',
         'State',
         'Pincode',
-        'SKU',
-        'HSN Code',
         'GST %',
         'Quantity',
         'Payment Method',
         'Selling Price',
-        'Seller GSTIN',
     ];
 
     const escapeCsv = (val) => {
@@ -1829,13 +1847,10 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
                 city,
                 state,
                 pincode,
-                item.sku,
-                item.hsnCode || '',
                 item.gstSlab || 18,
                 item.qty,
                 order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
                 item.resellerSellingPrice || item.platformBasePrice,
-                order.resellerId?.gstin || '',
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });

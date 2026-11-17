@@ -4,6 +4,7 @@ import {
     listMyInvoices,
     markAsPaidManual,
     generateInvoicePDF,
+    generateMonthlyInvoicesPDF,
     getAllInvoices,
     getMyInvoices,
     exportAdminInvoicesToCsv,
@@ -22,6 +23,7 @@ router.get('/admin/export', authorizeRoles('ADMIN'), exportAdminInvoicesToCsv);
 router.get('/', listMyInvoices);
 router.route('/me').get(verifyJWT, getMyInvoices);
 router.get('/export', exportMyInvoicesToCsv);
+router.get('/monthly/pdf', generateMonthlyInvoicesPDF);
 
 router.get('/:id', getInvoice);
 router.get('/:id/pdf', generateInvoicePDF);

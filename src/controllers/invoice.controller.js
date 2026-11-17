@@ -326,6 +326,443 @@ export const exportMyInvoicesToCsv = asyncHandler(async (req, res) => {
     return res.status(200).send(csvContent);
 });
 
+// Draws one full tax invoice on the current page(s) of `doc`.
+// Shared by the single-invoice PDF and the monthly combined PDF.
+const renderTaxInvoice = (doc, invoice) => {
+    // Use thin lines for borders
+    doc.lineWidth(0.5);
+
+    // --- PAGE LAYOUT DRAWING HELPER ---
+    const drawInvoiceForm = (currentPageInvoice) => {
+        // Draw outer border (x, y, width, height)
+        doc.rect(40, 40, 515, 762).stroke('#000000');
+
+        // Header Title Bar
+        doc.moveTo(40, 65).lineTo(555, 65).stroke('#000000');
+        doc.fillColor('#000000')
+            .fontSize(10)
+            .font('Helvetica-Bold')
+            .text('Tax Invoice', 40, 48, { align: 'center', width: 515 });
+
+        // Vertical line dividing left and right grids
+        doc.moveTo(297.5, 65).lineTo(297.5, 325).stroke('#000000');
+
+        // --- Top Left: Seller Details ---
+        let sellerY = 71;
+        doc.fillColor('#000000')
+            .fontSize(8.5)
+            .font('Helvetica-Bold')
+            .text('Infinity Enterprises', 45, sellerY, { width: 245 });
+        
+        sellerY = doc.y + 2;
+        doc.fontSize(7.5)
+            .font('Helvetica')
+            .text('123 Enterprise Avenue, Tech Park,\nBengaluru, Karnataka 560001', 45, sellerY, { width: 245 });
+        
+        sellerY = doc.y + 3;
+        doc.font('Helvetica-Bold')
+            .text('GSTIN/UIN: ', 45, sellerY, { continued: true })
+            .font('Helvetica')
+            .text('29DTGPS4598H2ZR', { width: 245 });
+        
+        sellerY = doc.y + 2;
+        doc.font('Helvetica-Bold')
+            .text('State Name: ', 45, sellerY, { continued: true })
+            .font('Helvetica')
+            .text('Karnataka, Code : 29', { width: 245 });
+
+        // Horizontal line under seller details
+        doc.moveTo(40, 150).lineTo(297.5, 150).stroke('#000000');
+
+        // --- Middle Left Upper: Consignee (Ship to) ---
+        doc.font('Helvetica-Bold').fontSize(8).text('Consignee (Ship to)', 45, 154, { width: 245 });
+        if (currentPageInvoice.shippedTo?.name) {
+            let shipY = 163;
+            doc.font('Helvetica-Bold').fontSize(8.5).text(currentPageInvoice.shippedTo.name, 45, shipY, { width: 245 });
+            
+            shipY = doc.y + 1;
+            const shipAddress = currentPageInvoice.shippedTo.address;
+            const addressText = `${shipAddress.street || ''}\n${shipAddress.city || ''} ${shipAddress.state || ''} ${shipAddress.zip || ''}`;
+            doc.font('Helvetica').fontSize(7.5).text(addressText, 45, shipY, { width: 245, maxRows: 2, ellipsis: true });
+            
+            shipY = doc.y + 2;
+            const destStateCode = currentPageInvoice.billedTo?.address?.stateCode || '29';
+            doc.font('Helvetica-Bold').fontSize(7.5)
+                .text('State Name : ', 45, shipY, { continued: true })
+                .font('Helvetica')
+                .text(`${shipAddress.state || ''}, Code : ${destStateCode}`, { width: 245 });
+        } else {
+            doc.font('Helvetica').fontSize(7.5).text('N/A', 45, 163, { width: 245 });
+        }
+
+        // Horizontal line under Consignee details
+        doc.moveTo(40, 220).lineTo(297.5, 220).stroke('#000000');
+
+        // --- Middle Left Lower: Buyer (Bill to) ---
+        doc.font('Helvetica-Bold').fontSize(8).text('Buyer (Bill to)', 45, 224, { width: 245 });
+        const billedName = currentPageInvoice.billedTo?.companyName || currentPageInvoice.resellerId?.companyName || currentPageInvoice.resellerId?.name || 'Guest Reseller';
+        
+        let buyerY = 233;
+        doc.font('Helvetica-Bold').fontSize(8.5).text(billedName, 45, buyerY, { width: 245 });
+        
+        buyerY = doc.y + 1;
+        if (currentPageInvoice.billedTo?.address?.street) {
+            const billAddress = currentPageInvoice.billedTo.address;
+            const addressText = `${billAddress.street || ''}\n${billAddress.city || ''} ${billAddress.state || ''} ${billAddress.zip || ''}`;
+            doc.font('Helvetica').fontSize(7.5).text(addressText, 45, buyerY, { width: 245, maxRows: 2, ellipsis: true });
+            
+            buyerY = doc.y + 2;
+            if (currentPageInvoice.billedTo.gstin) {
+                doc.font('Helvetica-Bold').fontSize(7.5)
+                    .text('GSTIN/UIN : ', 45, buyerY, { continued: true })
+                    .font('Helvetica')
+                    .text(currentPageInvoice.billedTo.gstin, { width: 245 });
+                buyerY = doc.y + 2;
+            }
+            const destStateCode = billAddress.stateCode || '29';
+            doc.font('Helvetica-Bold').fontSize(7.5)
+                .text('State Name : ', 45, buyerY, { continued: true })
+                .font('Helvetica')
+                .text(`${billAddress.state || ''}, Code : ${destStateCode}`, { width: 245 });
+        } else {
+            doc.font('Helvetica').fontSize(7.5).text('Address not available', 45, buyerY, { width: 245 });
+        }
+
+        // --- Top Right & Middle Right Metadata Tables ---
+        const drawMetadataCell = (x, y, width, height, title, value) => {
+            doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#333333').text(title, x + 5, y + 4);
+            if (value) {
+                let displayValue = String(value);
+                if (height <= 30 && displayValue.length > 26) {
+                    displayValue = displayValue.substring(0, 23) + '...';
+                }
+                doc.font('Helvetica').fontSize(8).fillColor('#000000').text(displayValue, x + 5, y + 14, { width: width - 10 });
+            }
+        };
+
+        // Grid of lines on the right side
+        // Horizontal lines
+        doc.moveTo(297.5, 93).lineTo(555, 93).stroke('#000000');
+        doc.moveTo(297.5, 121).lineTo(555, 121).stroke('#000000');
+        doc.moveTo(297.5, 149).lineTo(555, 149).stroke('#000000');
+        doc.moveTo(297.5, 177).lineTo(555, 177).stroke('#000000');
+        doc.moveTo(297.5, 205).lineTo(555, 205).stroke('#000000');
+        doc.moveTo(297.5, 233).lineTo(555, 233).stroke('#000000');
+        doc.moveTo(297.5, 261).lineTo(555, 261).stroke('#000000');
+
+        // Inner vertical dividing line for metadata
+        doc.moveTo(426.25, 65).lineTo(426.25, 261).stroke('#000000');
+
+        // Fill Metadata
+        drawMetadataCell(297.5, 65, 128.75, 28, 'Invoice No.', currentPageInvoice.invoiceNumber);
+        drawMetadataCell(426.25, 65, 128.75, 28, 'Invoice Date', new Date(currentPageInvoice.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'));
+
+        drawMetadataCell(297.5, 93, 128.75, 28, 'Delivery Note', '');
+        drawMetadataCell(426.25, 93, 128.75, 28, 'Mode/Terms of Payment', currentPageInvoice.paymentTerms || 'PREPAID');
+
+        drawMetadataCell(297.5, 121, 128.75, 28, 'Reference No. & Date', '');
+        drawMetadataCell(426.25, 121, 128.75, 28, 'Other References', '');
+
+        drawMetadataCell(297.5, 149, 128.75, 28, "Buyer's Order No.", currentPageInvoice.orderId?.orderId || '');
+        drawMetadataCell(426.25, 149, 128.75, 28, 'Dated', new Date(currentPageInvoice.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'));
+
+        drawMetadataCell(297.5, 177, 128.75, 28, 'Dispatch Doc No.', '');
+        drawMetadataCell(426.25, 177, 128.75, 28, 'Delivery Note Date', '');
+
+        drawMetadataCell(297.5, 205, 128.75, 28, 'Dispatched through', '');
+        drawMetadataCell(426.25, 205, 128.75, 28, 'Destination', currentPageInvoice.shippedTo?.address?.city || '');
+
+        // Terms of Delivery cell (spans both columns)
+        drawMetadataCell(297.5, 233, 257.5, 28, 'Terms of Delivery', '');
+
+        // Dispatch Info (bottom right box above table)
+        drawMetadataCell(297.5, 261, 257.5, 64, 'Dispatch Details', currentPageInvoice.orderId?.ewayBillNumber ? `E-Way Bill: ${currentPageInvoice.orderId.ewayBillNumber}` : 'Standard Courier Dispatch');
+
+        // Line above product table header
+        doc.moveTo(40, 325).lineTo(555, 325).stroke('#000000');
+    };
+
+    // Table column coordinates (X positions)
+    const colSI = 40;
+    const colDesc = 60;
+    const colHSN = 250;
+    const colGST = 300;
+    const colQty = 345;
+    const colRate = 385;
+    const colPer = 435;
+    const colAmount = 475;
+    const endTable = 555;
+
+    const drawTableHeader = (y) => {
+        doc.font('Helvetica-Bold').fontSize(8).fillColor('#000000');
+        doc.text('SI', colSI + 2, y + 4, { width: 18, align: 'center' });
+        doc.text('No.', colSI + 2, y + 13, { width: 18, align: 'center' });
+
+        doc.text('Description of Goods', colDesc + 5, y + 8);
+        doc.text('HSN/SAC', colHSN + 2, y + 8, { width: 46, align: 'center' });
+        doc.text('GST Rate', colGST + 2, y + 8, { width: 41, align: 'center' });
+
+        doc.text('Quantity', colQty + 2, y + 8, { width: 36, align: 'center' });
+        doc.text('Rate', colRate + 2, y + 8, { width: 46, align: 'right' });
+        doc.text('per', colPer + 2, y + 8, { width: 36, align: 'center' });
+        doc.text('Amount', colAmount + 2, y + 8, { width: 75, align: 'right' });
+
+        // Table header bottom line
+        doc.moveTo(40, y + 25).lineTo(555, y + 25).stroke('#000000');
+    };
+
+    const drawTableVerticalLines = (startY, endY) => {
+        doc.moveTo(colDesc, startY).lineTo(colDesc, endY).stroke('#000000');
+        doc.moveTo(colHSN, startY).lineTo(colHSN, endY).stroke('#000000');
+        doc.moveTo(colGST, startY).lineTo(colGST, endY).stroke('#000000');
+        doc.moveTo(colQty, startY).lineTo(colQty, endY).stroke('#000000');
+        doc.moveTo(colRate, startY).lineTo(colRate, endY).stroke('#000000');
+        doc.moveTo(colPer, startY).lineTo(colPer, endY).stroke('#000000');
+        doc.moveTo(colAmount, startY).lineTo(colAmount, endY).stroke('#000000');
+    };
+
+    // Render Invoice
+    drawInvoiceForm(invoice);
+    let tableTopY = 325;
+    drawTableHeader(tableTopY);
+
+    let currentY = tableTopY + 25;
+    const pageLimitY = 660; // Leave room for totals and GST breakdowns at the bottom
+
+    // Add items to product table
+    const items = invoice.items || [];
+    items.forEach((item, index) => {
+        if (currentY > pageLimitY) {
+            // Draw vertical lines for current page
+            drawTableVerticalLines(tableTopY + 25, currentY);
+            // End current page border
+            doc.addPage();
+            drawInvoiceForm(invoice);
+            tableTopY = 325;
+            drawTableHeader(tableTopY);
+            currentY = tableTopY + 25;
+        }
+
+        doc.font('Helvetica').fontSize(8).fillColor('#000000');
+        
+        // SI No
+        doc.text((index + 1).toString(), colSI, currentY + 4, { width: 20, align: 'center' });
+        
+        // Description (wrap nicely)
+        const titleStr = item.title || '';
+        const displayTitle = titleStr.length > 52 ? titleStr.substring(0, 49) + '...' : titleStr;
+        doc.text(displayTitle, colDesc + 5, currentY + 4, { width: colHSN - colDesc - 10 });
+
+        // HSN/SAC
+        doc.text(item.hsnCode || '0000', colHSN, currentY + 4, { width: colGST - colHSN, align: 'center' });
+
+        // GST Rate
+        doc.text(`${item.gstSlab}%`, colGST, currentY + 4, { width: colQty - colGST, align: 'center' });
+
+        // Qty
+        doc.text(`${item.qty} No`, colQty, currentY + 4, { width: colRate - colQty, align: 'center' });
+
+        // Rate
+        doc.text(item.unitBasePrice.toFixed(2), colRate, currentY + 4, { width: colPer - colRate - 2, align: 'right' });
+
+        // per
+        doc.text('No', colPer, currentY + 4, { width: colAmount - colPer, align: 'center' });
+
+        // Amount
+        const baseAmount = item.totalBaseAmount || (item.unitBasePrice * item.qty);
+        doc.text(baseAmount.toFixed(2), colAmount, currentY + 4, { width: endTable - colAmount - 5, align: 'right' });
+
+        currentY += 20;
+    });
+
+    // Fill remaining table space down to Y = 525 to match typical tax invoice layout
+    const targetTableEndY = 525;
+    if (currentY < targetTableEndY) {
+        currentY = targetTableEndY;
+    }
+    drawTableVerticalLines(tableTopY + 25, currentY);
+
+    // Line under table items
+    doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
+
+    // Draw subtotal row
+    doc.font('Helvetica-Bold').fontSize(8.5);
+    doc.text('Total', colDesc + 5, currentY + 4);
+    
+    // Sum total quantities
+    const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
+    doc.text(`${totalQty} No`, colQty, currentY + 4, { width: colRate - colQty, align: 'center' });
+
+    // Base Amount Subtotal
+    doc.text(invoice.totalTaxableValue.toFixed(2), colAmount, currentY + 4, { width: endTable - colAmount - 5, align: 'right' });
+
+    currentY += 16;
+    doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
+
+    // GST Tax lines & Round Off
+    const gstLines = [];
+    if (invoice.isInterState) {
+        gstLines.push({ name: 'IGST', amt: invoice.totalIgst });
+    } else {
+        gstLines.push({ name: 'CGST', amt: invoice.totalCgst });
+        gstLines.push({ name: 'SGST', amt: invoice.totalSgst });
+    }
+
+    // Calculate Round Off
+    const exactTotal = invoice.totalTaxableValue + (invoice.isInterState ? invoice.totalIgst : (invoice.totalCgst + invoice.totalSgst));
+    const roundOffVal = Number((invoice.grandTotal - exactTotal).toFixed(2));
+    gstLines.push({ name: 'Round Off', amt: roundOffVal });
+
+    gstLines.forEach((g) => {
+        doc.moveTo(colAmount, currentY).lineTo(colAmount, currentY + 16).stroke('#000000');
+        doc.font('Helvetica-Bold').fontSize(8);
+        doc.text(g.name, colPer + 5, currentY + 4);
+        doc.font('Helvetica').text(g.amt.toFixed(2), colAmount, currentY + 4, { width: endTable - colAmount - 5, align: 'right' });
+        currentY += 16;
+        doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
+    });
+
+    // Grand Total row
+    doc.moveTo(colAmount, currentY).lineTo(colAmount, currentY + 16).stroke('#000000');
+    doc.font('Helvetica-Bold').fontSize(9.5);
+    doc.text('Total', colPer + 5, currentY + 3);
+    doc.text(`${totalQty} No`, colQty, currentY + 3, { width: colRate - colQty, align: 'center' });
+    doc.text(`Rs. ${invoice.grandTotal.toFixed(2)}`, colAmount, currentY + 3, { width: endTable - colAmount - 5, align: 'right' });
+
+    currentY += 16;
+    doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
+
+    // Amount chargeable in words
+    doc.font('Helvetica').fontSize(8).fillColor('#333333');
+    doc.text('Amount Chargeable (in words):', 45, currentY + 4);
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#000000');
+    doc.text(`INR ${amountToWords(invoice.grandTotal)}`, 45, currentY + 14);
+
+    currentY += 28;
+    doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
+
+    // --- Tax Breakdown Table Grid ---
+    const breakY = currentY;
+    const breakRowHeight = 15;
+
+    // Sub-table columns
+    const bxTaxable = 40; // width = 110
+    const bxCgstR = 150; // width = 50
+    const bxCgstA = 200; // width = 60
+    const bxSgstR = 260; // width = 50
+    const bxSgstA = 310; // width = 60
+    const bxIgstR = 370; // width = 50
+    const bxIgstA = 420; // width = 60
+    const bxTotalTax = 480; // width = 75
+
+    // Draw sub-table header
+    doc.font('Helvetica-Bold').fontSize(7.5);
+    doc.text('Taxable', bxTaxable, breakY + 3, { width: 110, align: 'center' });
+    doc.text('Value', bxTaxable, breakY + 11, { width: 110, align: 'center' });
+
+    if (invoice.isInterState) {
+        doc.text('Integrated Tax', bxIgstR, breakY + 3, { width: 110, align: 'center' });
+        doc.moveTo(bxIgstR, breakY + 13).lineTo(bxTotalTax, breakY + 13).stroke('#000000');
+        doc.text('Rate', bxIgstR, breakY + 15, { width: 50, align: 'center' });
+        doc.text('Amount', bxIgstA, breakY + 15, { width: 60, align: 'center' });
+    } else {
+        doc.text('Central Tax', bxCgstR, breakY + 3, { width: 110, align: 'center' });
+        doc.moveTo(bxCgstR, breakY + 13).lineTo(bxSgstR, breakY + 13).stroke('#000000');
+        doc.text('Rate', bxCgstR, breakY + 15, { width: 50, align: 'center' });
+        doc.text('Amount', bxCgstA, breakY + 15, { width: 60, align: 'center' });
+
+        doc.text('State Tax', bxSgstR, breakY + 3, { width: 110, align: 'center' });
+        doc.moveTo(bxSgstR, breakY + 13).lineTo(bxIgstR, breakY + 13).stroke('#000000');
+        doc.text('Rate', bxSgstR, breakY + 15, { width: 50, align: 'center' });
+        doc.text('Amount', bxSgstA, breakY + 15, { width: 60, align: 'center' });
+    }
+
+    doc.text('Total', bxTotalTax, breakY + 3, { width: 75, align: 'center' });
+    doc.text('Tax Amount', bxTotalTax, breakY + 11, { width: 75, align: 'center' });
+
+    // Vertical lines for sub-table
+    doc.moveTo(bxCgstR, breakY).lineTo(bxCgstR, breakY + 45).stroke('#000000');
+    if (!invoice.isInterState) {
+        doc.moveTo(bxCgstA, breakY + 13).lineTo(bxCgstA, breakY + 45).stroke('#000000');
+        doc.moveTo(bxSgstR, breakY).lineTo(bxSgstR, breakY + 45).stroke('#000000');
+        doc.moveTo(bxSgstA, breakY + 13).lineTo(bxSgstA, breakY + 45).stroke('#000000');
+        doc.moveTo(bxIgstR, breakY).lineTo(bxIgstR, breakY + 45).stroke('#000000');
+    } else {
+        doc.moveTo(bxIgstR, breakY).lineTo(bxIgstR, breakY + 45).stroke('#000000');
+        doc.moveTo(bxIgstA, breakY + 13).lineTo(bxIgstA, breakY + 45).stroke('#000000');
+    }
+    doc.moveTo(bxTotalTax, breakY).lineTo(bxTotalTax, breakY + 45).stroke('#000000');
+
+    doc.moveTo(40, breakY + 25).lineTo(555, breakY + 25).stroke('#000000');
+
+    // Fill sub-table row
+    const valY = breakY + 28;
+    doc.font('Helvetica').fontSize(8);
+    doc.text(invoice.totalTaxableValue.toFixed(2), bxTaxable, valY, { width: 110, align: 'right' });
+
+    const totalTaxAmt = invoice.isInterState ? invoice.totalIgst : (invoice.totalCgst + invoice.totalSgst);
+
+    if (invoice.isInterState) {
+        // Assume 18% slab for shipping charges and averaged for simplicity
+        const rateStr = items.length > 0 ? `${items[0].gstSlab}%` : '18%';
+        doc.text(rateStr, bxIgstR, valY, { width: 50, align: 'center' });
+        doc.text(invoice.totalIgst.toFixed(2), bxIgstA, valY, { width: 60, align: 'right' });
+    } else {
+        const firstSlab = items.length > 0 ? items[0].gstSlab : 18;
+        const halfSlab = (firstSlab / 2).toString() + '%';
+        doc.text(halfSlab, bxCgstR, valY, { width: 50, align: 'center' });
+        doc.text(invoice.totalCgst.toFixed(2), bxCgstA, valY, { width: 60, align: 'right' });
+
+        doc.text(halfSlab, bxSgstR, valY, { width: 50, align: 'center' });
+        doc.text(invoice.totalSgst.toFixed(2), bxSgstA, valY, { width: 60, align: 'right' });
+    }
+    doc.text(totalTaxAmt.toFixed(2), bxTotalTax, valY, { width: 75, align: 'right' });
+
+    doc.moveTo(40, breakY + 45).lineTo(555, breakY + 45).stroke('#000000');
+
+    // Total Row of sub-table
+    doc.font('Helvetica-Bold');
+    doc.text('Total', bxTaxable + 5, breakY + 49);
+    doc.text(invoice.totalTaxableValue.toFixed(2), bxTaxable, breakY + 49, { width: 110, align: 'right' });
+    if (invoice.isInterState) {
+        doc.text(invoice.totalIgst.toFixed(2), bxIgstA, breakY + 49, { width: 60, align: 'right' });
+    } else {
+        doc.text(invoice.totalCgst.toFixed(2), bxCgstA, breakY + 49, { width: 60, align: 'right' });
+        doc.text(invoice.totalSgst.toFixed(2), bxSgstA, breakY + 49, { width: 60, align: 'right' });
+    }
+    doc.text(totalTaxAmt.toFixed(2), bxTotalTax, breakY + 49, { width: 75, align: 'right' });
+
+    currentY = breakY + 60;
+    doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
+
+    // Tax Amount (in words)
+    doc.font('Helvetica').fontSize(7.5).fillColor('#333333');
+    doc.text('Tax Amount (in words) : ', 45, currentY + 4, { continued: true });
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#000000');
+    doc.text(`INR ${amountToWords(totalTaxAmt)}`);
+
+    currentY += 14;
+    doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
+
+    // Remarks, PAN, and declaration split screen
+    const footerInfoY = currentY;
+    doc.moveTo(340, footerInfoY).lineTo(340, 802).stroke('#000000');
+
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#000000')
+        .text(`Remarks: Order Ref No: #${invoice.orderId?.orderId || 'N/A'}`, 45, footerInfoY + 5)
+        .text(`Company's PAN : DTGPS4598H`, 45, footerInfoY + 22)
+        .text('Declaration', 45, footerInfoY + 36);
+
+    doc.font('Helvetica').fontSize(7).fillColor('#444444')
+        .text('We declare that this invoice shows the actual price of the goods described and that all particulars are true and accurate.', 45, footerInfoY + 46, { width: 285 });
+
+    // Signatory box on the right
+    doc.font('Helvetica').fontSize(8.5).fillColor('#000000')
+        .text('for Infinity Enterprises', 345, footerInfoY + 5, { width: 205, align: 'right' })
+        .font('Helvetica-Bold')
+        .text('Authorised Signatory', 345, footerInfoY + 65, { width: 205, align: 'right' });
+};
+
 export const generateInvoicePDF = async (req, res, next) => {
     try {
         const query = {};
@@ -351,438 +788,60 @@ export const generateInvoicePDF = async (req, res, next) => {
             if (!res.headersSent) next(new ApiError(500, 'Failed to generate PDF'));
         });
 
-        // Use thin lines for borders
-        doc.lineWidth(0.5);
+        renderTaxInvoice(doc, invoice);
 
-        // --- PAGE LAYOUT DRAWING HELPER ---
-        const drawInvoiceForm = (currentPageInvoice) => {
-            // Draw outer border (x, y, width, height)
-            doc.rect(40, 40, 515, 762).stroke('#000000');
+        doc.end();
+    } catch (error) {
+        next(error);
+    }
+};
 
-            // Header Title Bar
-            doc.moveTo(40, 65).lineTo(555, 65).stroke('#000000');
-            doc.fillColor('#000000')
-                .fontSize(10)
-                .font('Helvetica-Bold')
-                .text('Tax Invoice', 40, 48, { align: 'center', width: 515 });
+// One PDF with all of the logged-in seller's tax invoices for a month,
+// one invoice per page (oldest first). GET /invoices/monthly/pdf?month=YYYY-MM
+export const generateMonthlyInvoicesPDF = async (req, res, next) => {
+    try {
+        const { month } = req.query;
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month || '')) {
+            throw new ApiError(400, 'Choose a month in YYYY-MM format');
+        }
 
-            // Vertical line dividing left and right grids
-            doc.moveTo(297.5, 65).lineTo(297.5, 325).stroke('#000000');
+        // Month boundaries in Indian time (UTC+05:30)
+        const [year, mon] = month.split('-').map(Number);
+        const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+        const start = new Date(Date.UTC(year, mon - 1, 1) - IST_OFFSET_MS);
+        const end = new Date(Date.UTC(year, mon, 1) - IST_OFFSET_MS);
 
-            // --- Top Left: Seller Details ---
-            let sellerY = 71;
-            doc.fillColor('#000000')
-                .fontSize(8.5)
-                .font('Helvetica-Bold')
-                .text('Infinity Enterprises', 45, sellerY, { width: 245 });
-            
-            sellerY = doc.y + 2;
-            doc.fontSize(7.5)
-                .font('Helvetica')
-                .text('123 Enterprise Avenue, Tech Park,\nBengaluru, Karnataka 560001', 45, sellerY, { width: 245 });
-            
-            sellerY = doc.y + 3;
-            doc.font('Helvetica-Bold')
-                .text('GSTIN/UIN: ', 45, sellerY, { continued: true })
-                .font('Helvetica')
-                .text('29DTGPS4598H2ZR', { width: 245 });
-            
-            sellerY = doc.y + 2;
-            doc.font('Helvetica-Bold')
-                .text('State Name: ', 45, sellerY, { continued: true })
-                .font('Helvetica')
-                .text('Karnataka, Code : 29', { width: 245 });
+        const invoices = await Invoice.find({
+            resellerId: req.user._id,
+            invoiceType: { $ne: 'WALLET_TOPUP' },
+            createdAt: { $gte: start, $lt: end },
+        })
+            .sort({ createdAt: 1 })
+            .populate('orderId')
+            .populate('resellerId');
 
-            // Horizontal line under seller details
-            doc.moveTo(40, 150).lineTo(297.5, 150).stroke('#000000');
+        if (invoices.length === 0) {
+            throw new ApiError(404, 'No tax invoices found for this month');
+        }
 
-            // --- Middle Left Upper: Consignee (Ship to) ---
-            doc.font('Helvetica-Bold').fontSize(8).text('Consignee (Ship to)', 45, 154, { width: 245 });
-            if (currentPageInvoice.shippedTo?.name) {
-                let shipY = 163;
-                doc.font('Helvetica-Bold').fontSize(8.5).text(currentPageInvoice.shippedTo.name, 45, shipY, { width: 245 });
-                
-                shipY = doc.y + 1;
-                const shipAddress = currentPageInvoice.shippedTo.address;
-                const addressText = `${shipAddress.street || ''}\n${shipAddress.city || ''} ${shipAddress.state || ''} ${shipAddress.zip || ''}`;
-                doc.font('Helvetica').fontSize(7.5).text(addressText, 45, shipY, { width: 245, maxRows: 2, ellipsis: true });
-                
-                shipY = doc.y + 2;
-                const destStateCode = currentPageInvoice.billedTo?.address?.stateCode || '29';
-                doc.font('Helvetica-Bold').fontSize(7.5)
-                    .text('State Name : ', 45, shipY, { continued: true })
-                    .font('Helvetica')
-                    .text(`${shipAddress.state || ''}, Code : ${destStateCode}`, { width: 245 });
-            } else {
-                doc.font('Helvetica').fontSize(7.5).text('N/A', 45, 163, { width: 245 });
-            }
+        const doc = new PDFDocument({ margin: 40, size: 'A4' });
 
-            // Horizontal line under Consignee details
-            doc.moveTo(40, 220).lineTo(297.5, 220).stroke('#000000');
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename=Tax_Invoices_${month}.pdf`
+        );
 
-            // --- Middle Left Lower: Buyer (Bill to) ---
-            doc.font('Helvetica-Bold').fontSize(8).text('Buyer (Bill to)', 45, 224, { width: 245 });
-            const billedName = currentPageInvoice.billedTo?.companyName || currentPageInvoice.resellerId?.companyName || currentPageInvoice.resellerId?.name || 'Guest Reseller';
-            
-            let buyerY = 233;
-            doc.font('Helvetica-Bold').fontSize(8.5).text(billedName, 45, buyerY, { width: 245 });
-            
-            buyerY = doc.y + 1;
-            if (currentPageInvoice.billedTo?.address?.street) {
-                const billAddress = currentPageInvoice.billedTo.address;
-                const addressText = `${billAddress.street || ''}\n${billAddress.city || ''} ${billAddress.state || ''} ${billAddress.zip || ''}`;
-                doc.font('Helvetica').fontSize(7.5).text(addressText, 45, buyerY, { width: 245, maxRows: 2, ellipsis: true });
-                
-                buyerY = doc.y + 2;
-                if (currentPageInvoice.billedTo.gstin) {
-                    doc.font('Helvetica-Bold').fontSize(7.5)
-                        .text('GSTIN/UIN : ', 45, buyerY, { continued: true })
-                        .font('Helvetica')
-                        .text(currentPageInvoice.billedTo.gstin, { width: 245 });
-                    buyerY = doc.y + 2;
-                }
-                const destStateCode = billAddress.stateCode || '29';
-                doc.font('Helvetica-Bold').fontSize(7.5)
-                    .text('State Name : ', 45, buyerY, { continued: true })
-                    .font('Helvetica')
-                    .text(`${billAddress.state || ''}, Code : ${destStateCode}`, { width: 245 });
-            } else {
-                doc.font('Helvetica').fontSize(7.5).text('Address not available', 45, buyerY, { width: 245 });
-            }
-
-            // --- Top Right & Middle Right Metadata Tables ---
-            const drawMetadataCell = (x, y, width, height, title, value) => {
-                doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#333333').text(title, x + 5, y + 4);
-                if (value) {
-                    let displayValue = String(value);
-                    if (height <= 30 && displayValue.length > 26) {
-                        displayValue = displayValue.substring(0, 23) + '...';
-                    }
-                    doc.font('Helvetica').fontSize(8).fillColor('#000000').text(displayValue, x + 5, y + 14, { width: width - 10 });
-                }
-            };
-
-            // Grid of lines on the right side
-            // Horizontal lines
-            doc.moveTo(297.5, 93).lineTo(555, 93).stroke('#000000');
-            doc.moveTo(297.5, 121).lineTo(555, 121).stroke('#000000');
-            doc.moveTo(297.5, 149).lineTo(555, 149).stroke('#000000');
-            doc.moveTo(297.5, 177).lineTo(555, 177).stroke('#000000');
-            doc.moveTo(297.5, 205).lineTo(555, 205).stroke('#000000');
-            doc.moveTo(297.5, 233).lineTo(555, 233).stroke('#000000');
-            doc.moveTo(297.5, 261).lineTo(555, 261).stroke('#000000');
-
-            // Inner vertical dividing line for metadata
-            doc.moveTo(426.25, 65).lineTo(426.25, 261).stroke('#000000');
-
-            // Fill Metadata
-            drawMetadataCell(297.5, 65, 128.75, 28, 'Invoice No.', currentPageInvoice.invoiceNumber);
-            drawMetadataCell(426.25, 65, 128.75, 28, 'Invoice Date', new Date(currentPageInvoice.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'));
-
-            drawMetadataCell(297.5, 93, 128.75, 28, 'Delivery Note', '');
-            drawMetadataCell(426.25, 93, 128.75, 28, 'Mode/Terms of Payment', currentPageInvoice.paymentTerms || 'PREPAID');
-
-            drawMetadataCell(297.5, 121, 128.75, 28, 'Reference No. & Date', '');
-            drawMetadataCell(426.25, 121, 128.75, 28, 'Other References', '');
-
-            drawMetadataCell(297.5, 149, 128.75, 28, "Buyer's Order No.", currentPageInvoice.orderId?.orderId || '');
-            drawMetadataCell(426.25, 149, 128.75, 28, 'Dated', new Date(currentPageInvoice.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-'));
-
-            drawMetadataCell(297.5, 177, 128.75, 28, 'Dispatch Doc No.', '');
-            drawMetadataCell(426.25, 177, 128.75, 28, 'Delivery Note Date', '');
-
-            drawMetadataCell(297.5, 205, 128.75, 28, 'Dispatched through', '');
-            drawMetadataCell(426.25, 205, 128.75, 28, 'Destination', currentPageInvoice.shippedTo?.address?.city || '');
-
-            // Terms of Delivery cell (spans both columns)
-            drawMetadataCell(297.5, 233, 257.5, 28, 'Terms of Delivery', '');
-
-            // Dispatch Info (bottom right box above table)
-            drawMetadataCell(297.5, 261, 257.5, 64, 'Dispatch Details', currentPageInvoice.orderId?.ewayBillNumber ? `E-Way Bill: ${currentPageInvoice.orderId.ewayBillNumber}` : 'Standard Courier Dispatch');
-
-            // Line above product table header
-            doc.moveTo(40, 325).lineTo(555, 325).stroke('#000000');
-        };
-
-        // Table column coordinates (X positions)
-        const colSI = 40;
-        const colDesc = 60;
-        const colHSN = 250;
-        const colGST = 300;
-        const colQty = 345;
-        const colRate = 385;
-        const colPer = 435;
-        const colAmount = 475;
-        const endTable = 555;
-
-        const drawTableHeader = (y) => {
-            doc.font('Helvetica-Bold').fontSize(8).fillColor('#000000');
-            doc.text('SI', colSI + 2, y + 4, { width: 18, align: 'center' });
-            doc.text('No.', colSI + 2, y + 13, { width: 18, align: 'center' });
-
-            doc.text('Description of Goods', colDesc + 5, y + 8);
-            doc.text('HSN/SAC', colHSN + 2, y + 8, { width: 46, align: 'center' });
-            doc.text('GST Rate', colGST + 2, y + 8, { width: 41, align: 'center' });
-
-            doc.text('Quantity', colQty + 2, y + 8, { width: 36, align: 'center' });
-            doc.text('Rate', colRate + 2, y + 8, { width: 46, align: 'right' });
-            doc.text('per', colPer + 2, y + 8, { width: 36, align: 'center' });
-            doc.text('Amount', colAmount + 2, y + 8, { width: 75, align: 'right' });
-
-            // Table header bottom line
-            doc.moveTo(40, y + 25).lineTo(555, y + 25).stroke('#000000');
-        };
-
-        const drawTableVerticalLines = (startY, endY) => {
-            doc.moveTo(colDesc, startY).lineTo(colDesc, endY).stroke('#000000');
-            doc.moveTo(colHSN, startY).lineTo(colHSN, endY).stroke('#000000');
-            doc.moveTo(colGST, startY).lineTo(colGST, endY).stroke('#000000');
-            doc.moveTo(colQty, startY).lineTo(colQty, endY).stroke('#000000');
-            doc.moveTo(colRate, startY).lineTo(colRate, endY).stroke('#000000');
-            doc.moveTo(colPer, startY).lineTo(colPer, endY).stroke('#000000');
-            doc.moveTo(colAmount, startY).lineTo(colAmount, endY).stroke('#000000');
-        };
-
-        // Render Invoice
-        drawInvoiceForm(invoice);
-        let tableTopY = 325;
-        drawTableHeader(tableTopY);
-
-        let currentY = tableTopY + 25;
-        const pageLimitY = 660; // Leave room for totals and GST breakdowns at the bottom
-
-        // Add items to product table
-        const items = invoice.items || [];
-        items.forEach((item, index) => {
-            if (currentY > pageLimitY) {
-                // Draw vertical lines for current page
-                drawTableVerticalLines(tableTopY + 25, currentY);
-                // End current page border
-                doc.addPage();
-                drawInvoiceForm(invoice);
-                tableTopY = 325;
-                drawTableHeader(tableTopY);
-                currentY = tableTopY + 25;
-            }
-
-            doc.font('Helvetica').fontSize(8).fillColor('#000000');
-            
-            // SI No
-            doc.text((index + 1).toString(), colSI, currentY + 4, { width: 20, align: 'center' });
-            
-            // Description (wrap nicely)
-            const titleStr = item.title || '';
-            const displayTitle = titleStr.length > 52 ? titleStr.substring(0, 49) + '...' : titleStr;
-            doc.text(displayTitle, colDesc + 5, currentY + 4, { width: colHSN - colDesc - 10 });
-
-            // HSN/SAC
-            doc.text(item.hsnCode || '0000', colHSN, currentY + 4, { width: colGST - colHSN, align: 'center' });
-
-            // GST Rate
-            doc.text(`${item.gstSlab}%`, colGST, currentY + 4, { width: colQty - colGST, align: 'center' });
-
-            // Qty
-            doc.text(`${item.qty} No`, colQty, currentY + 4, { width: colRate - colQty, align: 'center' });
-
-            // Rate
-            doc.text(item.unitBasePrice.toFixed(2), colRate, currentY + 4, { width: colPer - colRate - 2, align: 'right' });
-
-            // per
-            doc.text('No', colPer, currentY + 4, { width: colAmount - colPer, align: 'center' });
-
-            // Amount
-            const baseAmount = item.totalBaseAmount || (item.unitBasePrice * item.qty);
-            doc.text(baseAmount.toFixed(2), colAmount, currentY + 4, { width: endTable - colAmount - 5, align: 'right' });
-
-            currentY += 20;
+        doc.pipe(res);
+        doc.on('error', (err) => {
+            console.error('Monthly PDF Generation Error:', err);
+            if (!res.headersSent) next(new ApiError(500, 'Failed to generate PDF'));
         });
 
-        // Fill remaining table space down to Y = 525 to match typical tax invoice layout
-        const targetTableEndY = 525;
-        if (currentY < targetTableEndY) {
-            currentY = targetTableEndY;
-        }
-        drawTableVerticalLines(tableTopY + 25, currentY);
-
-        // Line under table items
-        doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
-
-        // Draw subtotal row
-        doc.font('Helvetica-Bold').fontSize(8.5);
-        doc.text('Total', colDesc + 5, currentY + 4);
-        
-        // Sum total quantities
-        const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
-        doc.text(`${totalQty} No`, colQty, currentY + 4, { width: colRate - colQty, align: 'center' });
-
-        // Base Amount Subtotal
-        doc.text(invoice.totalTaxableValue.toFixed(2), colAmount, currentY + 4, { width: endTable - colAmount - 5, align: 'right' });
-
-        currentY += 16;
-        doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
-
-        // GST Tax lines & Round Off
-        const gstLines = [];
-        if (invoice.isInterState) {
-            gstLines.push({ name: 'IGST', amt: invoice.totalIgst });
-        } else {
-            gstLines.push({ name: 'CGST', amt: invoice.totalCgst });
-            gstLines.push({ name: 'SGST', amt: invoice.totalSgst });
-        }
-
-        // Calculate Round Off
-        const exactTotal = invoice.totalTaxableValue + (invoice.isInterState ? invoice.totalIgst : (invoice.totalCgst + invoice.totalSgst));
-        const roundOffVal = Number((invoice.grandTotal - exactTotal).toFixed(2));
-        gstLines.push({ name: 'Round Off', amt: roundOffVal });
-
-        gstLines.forEach((g) => {
-            doc.moveTo(colAmount, currentY).lineTo(colAmount, currentY + 16).stroke('#000000');
-            doc.font('Helvetica-Bold').fontSize(8);
-            doc.text(g.name, colPer + 5, currentY + 4);
-            doc.font('Helvetica').text(g.amt.toFixed(2), colAmount, currentY + 4, { width: endTable - colAmount - 5, align: 'right' });
-            currentY += 16;
-            doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
+        invoices.forEach((invoice, index) => {
+            if (index > 0) doc.addPage();
+            renderTaxInvoice(doc, invoice);
         });
-
-        // Grand Total row
-        doc.moveTo(colAmount, currentY).lineTo(colAmount, currentY + 16).stroke('#000000');
-        doc.font('Helvetica-Bold').fontSize(9.5);
-        doc.text('Total', colPer + 5, currentY + 3);
-        doc.text(`${totalQty} No`, colQty, currentY + 3, { width: colRate - colQty, align: 'center' });
-        doc.text(`Rs. ${invoice.grandTotal.toFixed(2)}`, colAmount, currentY + 3, { width: endTable - colAmount - 5, align: 'right' });
-
-        currentY += 16;
-        doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
-
-        // Amount chargeable in words
-        doc.font('Helvetica').fontSize(8).fillColor('#333333');
-        doc.text('Amount Chargeable (in words):', 45, currentY + 4);
-        doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#000000');
-        doc.text(`INR ${amountToWords(invoice.grandTotal)}`, 45, currentY + 14);
-
-        currentY += 28;
-        doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
-
-        // --- Tax Breakdown Table Grid ---
-        const breakY = currentY;
-        const breakRowHeight = 15;
-
-        // Sub-table columns
-        const bxTaxable = 40; // width = 110
-        const bxCgstR = 150; // width = 50
-        const bxCgstA = 200; // width = 60
-        const bxSgstR = 260; // width = 50
-        const bxSgstA = 310; // width = 60
-        const bxIgstR = 370; // width = 50
-        const bxIgstA = 420; // width = 60
-        const bxTotalTax = 480; // width = 75
-
-        // Draw sub-table header
-        doc.font('Helvetica-Bold').fontSize(7.5);
-        doc.text('Taxable', bxTaxable, breakY + 3, { width: 110, align: 'center' });
-        doc.text('Value', bxTaxable, breakY + 11, { width: 110, align: 'center' });
-
-        if (invoice.isInterState) {
-            doc.text('Integrated Tax', bxIgstR, breakY + 3, { width: 110, align: 'center' });
-            doc.moveTo(bxIgstR, breakY + 13).lineTo(bxTotalTax, breakY + 13).stroke('#000000');
-            doc.text('Rate', bxIgstR, breakY + 15, { width: 50, align: 'center' });
-            doc.text('Amount', bxIgstA, breakY + 15, { width: 60, align: 'center' });
-        } else {
-            doc.text('Central Tax', bxCgstR, breakY + 3, { width: 110, align: 'center' });
-            doc.moveTo(bxCgstR, breakY + 13).lineTo(bxSgstR, breakY + 13).stroke('#000000');
-            doc.text('Rate', bxCgstR, breakY + 15, { width: 50, align: 'center' });
-            doc.text('Amount', bxCgstA, breakY + 15, { width: 60, align: 'center' });
-
-            doc.text('State Tax', bxSgstR, breakY + 3, { width: 110, align: 'center' });
-            doc.moveTo(bxSgstR, breakY + 13).lineTo(bxIgstR, breakY + 13).stroke('#000000');
-            doc.text('Rate', bxSgstR, breakY + 15, { width: 50, align: 'center' });
-            doc.text('Amount', bxSgstA, breakY + 15, { width: 60, align: 'center' });
-        }
-
-        doc.text('Total', bxTotalTax, breakY + 3, { width: 75, align: 'center' });
-        doc.text('Tax Amount', bxTotalTax, breakY + 11, { width: 75, align: 'center' });
-
-        // Vertical lines for sub-table
-        doc.moveTo(bxCgstR, breakY).lineTo(bxCgstR, breakY + 45).stroke('#000000');
-        if (!invoice.isInterState) {
-            doc.moveTo(bxCgstA, breakY + 13).lineTo(bxCgstA, breakY + 45).stroke('#000000');
-            doc.moveTo(bxSgstR, breakY).lineTo(bxSgstR, breakY + 45).stroke('#000000');
-            doc.moveTo(bxSgstA, breakY + 13).lineTo(bxSgstA, breakY + 45).stroke('#000000');
-            doc.moveTo(bxIgstR, breakY).lineTo(bxIgstR, breakY + 45).stroke('#000000');
-        } else {
-            doc.moveTo(bxIgstR, breakY).lineTo(bxIgstR, breakY + 45).stroke('#000000');
-            doc.moveTo(bxIgstA, breakY + 13).lineTo(bxIgstA, breakY + 45).stroke('#000000');
-        }
-        doc.moveTo(bxTotalTax, breakY).lineTo(bxTotalTax, breakY + 45).stroke('#000000');
-
-        doc.moveTo(40, breakY + 25).lineTo(555, breakY + 25).stroke('#000000');
-
-        // Fill sub-table row
-        const valY = breakY + 28;
-        doc.font('Helvetica').fontSize(8);
-        doc.text(invoice.totalTaxableValue.toFixed(2), bxTaxable, valY, { width: 110, align: 'right' });
-
-        const totalTaxAmt = invoice.isInterState ? invoice.totalIgst : (invoice.totalCgst + invoice.totalSgst);
-
-        if (invoice.isInterState) {
-            // Assume 18% slab for shipping charges and averaged for simplicity
-            const rateStr = items.length > 0 ? `${items[0].gstSlab}%` : '18%';
-            doc.text(rateStr, bxIgstR, valY, { width: 50, align: 'center' });
-            doc.text(invoice.totalIgst.toFixed(2), bxIgstA, valY, { width: 60, align: 'right' });
-        } else {
-            const firstSlab = items.length > 0 ? items[0].gstSlab : 18;
-            const halfSlab = (firstSlab / 2).toString() + '%';
-            doc.text(halfSlab, bxCgstR, valY, { width: 50, align: 'center' });
-            doc.text(invoice.totalCgst.toFixed(2), bxCgstA, valY, { width: 60, align: 'right' });
-
-            doc.text(halfSlab, bxSgstR, valY, { width: 50, align: 'center' });
-            doc.text(invoice.totalSgst.toFixed(2), bxSgstA, valY, { width: 60, align: 'right' });
-        }
-        doc.text(totalTaxAmt.toFixed(2), bxTotalTax, valY, { width: 75, align: 'right' });
-
-        doc.moveTo(40, breakY + 45).lineTo(555, breakY + 45).stroke('#000000');
-
-        // Total Row of sub-table
-        doc.font('Helvetica-Bold');
-        doc.text('Total', bxTaxable + 5, breakY + 49);
-        doc.text(invoice.totalTaxableValue.toFixed(2), bxTaxable, breakY + 49, { width: 110, align: 'right' });
-        if (invoice.isInterState) {
-            doc.text(invoice.totalIgst.toFixed(2), bxIgstA, breakY + 49, { width: 60, align: 'right' });
-        } else {
-            doc.text(invoice.totalCgst.toFixed(2), bxCgstA, breakY + 49, { width: 60, align: 'right' });
-            doc.text(invoice.totalSgst.toFixed(2), bxSgstA, breakY + 49, { width: 60, align: 'right' });
-        }
-        doc.text(totalTaxAmt.toFixed(2), bxTotalTax, breakY + 49, { width: 75, align: 'right' });
-
-        currentY = breakY + 60;
-        doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
-
-        // Tax Amount (in words)
-        doc.font('Helvetica').fontSize(7.5).fillColor('#333333');
-        doc.text('Tax Amount (in words) : ', 45, currentY + 4, { continued: true });
-        doc.font('Helvetica-Bold').fontSize(8).fillColor('#000000');
-        doc.text(`INR ${amountToWords(totalTaxAmt)}`);
-
-        currentY += 14;
-        doc.moveTo(40, currentY).lineTo(555, currentY).stroke('#000000');
-
-        // Remarks, PAN, and declaration split screen
-        const footerInfoY = currentY;
-        doc.moveTo(340, footerInfoY).lineTo(340, 802).stroke('#000000');
-
-        doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#000000')
-            .text(`Remarks: Order Ref No: #${invoice.orderId?.orderId || 'N/A'}`, 45, footerInfoY + 5)
-            .text(`Company's PAN : DTGPS4598H`, 45, footerInfoY + 22)
-            .text('Declaration', 45, footerInfoY + 36);
-
-        doc.font('Helvetica').fontSize(7).fillColor('#444444')
-            .text('We declare that this invoice shows the actual price of the goods described and that all particulars are true and accurate.', 45, footerInfoY + 46, { width: 285 });
-
-        // Signatory box on the right
-        doc.font('Helvetica').fontSize(8.5).fillColor('#000000')
-            .text('for Infinity Enterprises', 345, footerInfoY + 5, { width: 205, align: 'right' })
-            .font('Helvetica-Bold')
-            .text('Authorised Signatory', 345, footerInfoY + 65, { width: 205, align: 'right' });
 
         doc.end();
     } catch (error) {

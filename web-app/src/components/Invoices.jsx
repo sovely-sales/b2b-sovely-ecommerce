@@ -26,8 +26,54 @@ const Invoices = () => {
     const [exportEndDate, setExportEndDate] = useState('');
     const [isExporting, setIsExporting] = useState(false);
 
+    const [showMonthlyModal, setShowMonthlyModal] = useState(false);
+    const [monthlyMonth, setMonthlyMonth] = useState(() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+    const [isDownloadingMonthly, setIsDownloadingMonthly] = useState(false);
+
     const [listStartDate, setListStartDate] = useState('');
     const [listEndDate, setListEndDate] = useState('');
+
+    const handleDownloadMonthlyInvoice = async () => {
+        if (!monthlyMonth) {
+            toast.error('Please select a month');
+            return;
+        }
+        setIsDownloadingMonthly(true);
+        try {
+            const res = await api.get('/invoices/monthly/pdf', {
+                params: { month: monthlyMonth },
+                responseType: 'blob',
+            });
+            const url = window.URL.createObjectURL(
+                new Blob([res.data], { type: 'application/pdf' })
+            );
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Tax_Invoices_${monthlyMonth}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success('Monthly invoice downloaded');
+            setShowMonthlyModal(false);
+        } catch (err) {
+            let message = 'Failed to download the monthly invoice. Please try again.';
+            if (err.response?.data instanceof Blob) {
+                try {
+                    message = JSON.parse(await err.response.data.text()).message || message;
+                } catch {
+                    /* keep default message */
+                }
+            }
+            toast.error(message);
+        } finally {
+            setIsDownloadingMonthly(false);
+        }
+    };
 
     const handleExportMyInvoices = async () => {
         if (!exportStartDate || !exportEndDate) {
@@ -190,6 +236,15 @@ const Invoices = () => {
                             </button>
                         )}
                     </div>
+
+                    <button
+                        onClick={() => setShowMonthlyModal(true)}
+                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-extrabold whitespace-nowrap text-slate-900 shadow-sm transition-all hover:bg-slate-50"
+                        title="Download all tax invoices of a month as one PDF"
+                    >
+                        <FileText size={18} />
+                        Monthly Invoice
+                    </button>
 
                     <button
                         onClick={() => setShowExportModal(true)}
@@ -455,6 +510,101 @@ const Invoices = () => {
                                 ) : (
                                     <>
                                         <Download size={16} /> Download CSV
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showMonthlyModal && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 9999,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        backdropFilter: 'blur(4px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1rem',
+                    }}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setShowMonthlyModal(false);
+                    }}
+                >
+                    <div
+                        style={{
+                            background: 'white',
+                            borderRadius: '1.5rem',
+                            padding: '2rem',
+                            width: '100%',
+                            maxWidth: '28rem',
+                            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                        }}
+                    >
+                        <div className="mb-6 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
+                                    <FileText size={18} />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-black text-slate-900">
+                                        Monthly Tax Invoice
+                                    </h2>
+                                    <p className="text-xs font-medium text-slate-500">
+                                        All invoices of a month in one PDF
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowMonthlyModal(false)}
+                                className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <label className="mb-2 block text-xs font-bold tracking-wider text-slate-500 uppercase">
+                            Month
+                        </label>
+                        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <Calendar size={16} className="text-slate-400" />
+                            <input
+                                type="month"
+                                value={monthlyMonth}
+                                max={new Date().toISOString().slice(0, 7)}
+                                onChange={(e) => setMonthlyMonth(e.target.value)}
+                                className="flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none"
+                            />
+                        </div>
+
+                        <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-xs font-medium text-slate-500">
+                            Every GST tax invoice for your orders in this month, one invoice per
+                            page. Wallet top-up receipts are not included.
+                        </p>
+
+                        <div className="mt-6 flex gap-3">
+                            <button
+                                onClick={() => setShowMonthlyModal(false)}
+                                className="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-extrabold text-slate-700 hover:bg-slate-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDownloadMonthlyInvoice}
+                                disabled={isDownloadingMonthly}
+                                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-extrabold text-white hover:bg-slate-800 disabled:opacity-50"
+                            >
+                                {isDownloadingMonthly ? (
+                                    <>
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />{' '}
+                                        Preparing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download size={16} /> Download PDF
                                     </>
                                 )}
                             </button>

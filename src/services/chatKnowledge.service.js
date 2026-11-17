@@ -38,6 +38,7 @@ export const buildPrompt = (data) => {
                 p.regularPrice && `regular ${p.regularPrice}`,
                 p.worth && `worth ${p.worth}`,
                 p.saving && `saves ${p.saving}`,
+                p.gstPrice && `${p.gstPrice} if already GST registered`,
             ].filter(Boolean);
             lines.push(
                 `- ${p.name}: ${p.price} today${extras.length ? ` (${extras.join(', ')})` : ''}.` +
