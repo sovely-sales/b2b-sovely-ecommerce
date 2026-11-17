@@ -5,6 +5,8 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { qikinkService } from '../services/qikink.service.js';
 import { SystemConfig } from '../models/SystemConfig.js';
+import { Category } from '../models/Category.js';
+import { TOP_LEVEL_CATEGORIES } from '../config/categories.js';
 
 export const createProduct = asyncHandler(async (req, res) => {
     let {
@@ -138,11 +140,24 @@ export const getProducts = asyncHandler(async (req, res) => {
         ];
     }
 
-    if (category) {
-        if (mongoose.Types.ObjectId.isValid(category)) {
-            query.categoryId = new mongoose.Types.ObjectId(category);
+    if (category && category !== 'All Categories') {
+        const topCategory = TOP_LEVEL_CATEGORIES.find(c => c._id === category || c.name === category);
+        
+        if (topCategory) {
+            const regexes = topCategory.keywords.map(kw => new RegExp(kw, 'i'));
+            const matchedCategories = await Category.find({ name: { $in: regexes } }).select('_id').lean();
+            
+            if (matchedCategories.length > 0) {
+                query.categoryId = { $in: matchedCategories.map(c => c._id) };
+            } else {
+                query.categoryId = new mongoose.Types.ObjectId();
+            }
         } else {
-            query.categoryId = category;
+            if (mongoose.Types.ObjectId.isValid(category)) {
+                query.categoryId = new mongoose.Types.ObjectId(category);
+            } else {
+                query.categoryId = category;
+            }
         }
     }
 
@@ -325,10 +340,6 @@ export const updateProduct = asyncHandler(async (req, res) => {
         delete req.body.inventory;
     }
 
-    if (req.body.tieredPricing) {
-        product.tieredPricing = [];
-    }
-
     Object.assign(product, req.body);
     await product.save();
 
@@ -338,10 +349,8 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, product, 'Product updated successfully'));
 });
-
 export const bulkAdjustPrices = asyncHandler(async (req, res) => {
     const { percentage } = req.body;
-
     const multiplier = 1 + percentage / 100;
 
     const result = await Product.updateMany(
@@ -349,15 +358,15 @@ export const bulkAdjustPrices = asyncHandler(async (req, res) => {
         [
             {
                 $set: {
+                    // $max ensures price never drops below ₹1 to prevent math crashes
                     dropshipBasePrice: {
-                        $round: [{ $multiply: ['$dropshipBasePrice', multiplier] }, 0],
+                        $max: [1, { $round: [{ $multiply: ['$dropshipBasePrice', multiplier] }, 0] }]
                     },
                     suggestedRetailPrice: {
-                        $round: [{ $multiply: ['$suggestedRetailPrice', multiplier] }, 0],
+                        $max: [1, { $round: [{ $multiply: ['$suggestedRetailPrice', multiplier] }, 0] }]
                     },
                 },
             },
-
             {
                 $set: {
                     estimatedMarginPercent: {
@@ -365,7 +374,7 @@ export const bulkAdjustPrices = asyncHandler(async (req, res) => {
                             if: {
                                 $and: [
                                     { $gt: ['$suggestedRetailPrice', '$dropshipBasePrice'] },
-                                    { $gt: ['$dropshipBasePrice', 0] },
+                                    { $gt: ['$dropshipBasePrice', 0] }, // Failsafe
                                 ],
                             },
                             then: {
@@ -374,12 +383,7 @@ export const bulkAdjustPrices = asyncHandler(async (req, res) => {
                                         $multiply: [
                                             {
                                                 $divide: [
-                                                    {
-                                                        $subtract: [
-                                                            '$suggestedRetailPrice',
-                                                            '$dropshipBasePrice',
-                                                        ],
-                                                    },
+                                                    { $subtract: ['$suggestedRetailPrice', '$dropshipBasePrice'] },
                                                     '$suggestedRetailPrice',
                                                 ],
                                             },
@@ -398,15 +402,13 @@ export const bulkAdjustPrices = asyncHandler(async (req, res) => {
         { updatePipeline: true }
     );
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                { modifiedCount: result.modifiedCount },
-                `Successfully adjusted prices for ${result.modifiedCount} active products by ${percentage >= 0 ? '+' : ''}${percentage}%.`
-            )
-        );
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { modifiedCount: result.modifiedCount },
+            `Successfully adjusted prices for ${result.modifiedCount} active products by ${percentage >= 0 ? '+' : ''}${percentage}%.`
+        )
+    );
 });
 
 export const deleteProduct = asyncHandler(async (req, res) => {

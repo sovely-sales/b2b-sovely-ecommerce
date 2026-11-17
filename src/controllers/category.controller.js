@@ -3,33 +3,15 @@ import { Product } from '../models/Product.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import mongoose from 'mongoose';
+import { TOP_LEVEL_CATEGORIES } from '../config/categories.js';
 
 export const getCategories = asyncHandler(async (req, res) => {
-    const rawCategories = await Category.aggregate([
-        {
-            $match: {
-                parentCategoryId: null,
-                name: { $ne: 'Uncategorized' },
-            },
-        },
-        {
-            $project: {
-                name: 1,
-            },
-        },
-        { $sort: { name: 1 } },
-    ]);
-
-    const seen = new Set();
-    const categories = rawCategories.filter((category) => {
-        const normalizedName = category.name.trim().toLowerCase();
-        if (seen.has(normalizedName)) {
-            return false;
-        }
-
-        seen.add(normalizedName);
-        return true;
-    });
+    // Return standard high-level categories instead of all 3,800 micro-categories
+    const categories = TOP_LEVEL_CATEGORIES.map(cat => ({
+        _id: cat._id,
+        name: cat.name,
+        icon: cat.icon
+    }));
 
     return res
         .status(200)

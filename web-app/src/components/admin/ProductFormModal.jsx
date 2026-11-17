@@ -79,8 +79,6 @@ const ProductFormModal = ({ isOpen, onClose, onSuccess, initialData = null }) =>
             JSON.stringify({ stock: Number(formData.stock || 0), alertThreshold: 10 })
         );
 
-        data.append('tieredPricing', JSON.stringify([]));
-
         images.forEach((image) => {
             data.append('images', image);
         });

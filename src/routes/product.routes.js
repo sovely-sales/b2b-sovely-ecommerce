@@ -57,13 +57,7 @@ router.post(
     uploadImages.array('images', 8),
     (req, res, next) => {
         try {
-            if (req.body.dropshipBasePrice)
-                req.body.dropshipBasePrice = Number(req.body.dropshipBasePrice);
-            if (req.body.suggestedRetailPrice)
-                req.body.suggestedRetailPrice = Number(req.body.suggestedRetailPrice);
-            if (req.body.weightGrams) req.body.weightGrams = Number(req.body.weightGrams);
-            if (req.body.gstSlab) req.body.gstSlab = Number(req.body.gstSlab);
-            if (req.body.moq) req.body.moq = Number(req.body.moq);
+            // Only parse objects/arrays. Let Zod handle the Number coercion.
             if (req.body.inventory && typeof req.body.inventory === 'string') {
                 req.body.inventory = JSON.parse(req.body.inventory);
             }
@@ -103,18 +97,13 @@ router.put(
     uploadImages.array('images', 8),
     (req, res, next) => {
         try {
-            if (req.body.dropshipBasePrice)
-                req.body.dropshipBasePrice = Number(req.body.dropshipBasePrice);
-            if (req.body.suggestedRetailPrice)
-                req.body.suggestedRetailPrice = Number(req.body.suggestedRetailPrice);
-            if (req.body.weightGrams) req.body.weightGrams = Number(req.body.weightGrams);
-            if (req.body.gstSlab) req.body.gstSlab = Number(req.body.gstSlab);
-            if (req.body.moq) req.body.moq = Number(req.body.moq);
+            // Only parse objects/arrays. 
             if (req.body.inventory && typeof req.body.inventory === 'string') {
                 req.body.inventory = JSON.parse(req.body.inventory);
             }
-
-            if (req.body.tieredPricing) req.body.tieredPricing = [];
+            if (req.body.tieredPricing && typeof req.body.tieredPricing === 'string') {
+                req.body.tieredPricing = JSON.parse(req.body.tieredPricing);
+            }
             next();
         } catch (error) {
             next(error);

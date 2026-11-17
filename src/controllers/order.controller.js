@@ -1335,7 +1335,7 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
 
     const orders = await Order.find(query)
         .sort({ createdAt: -1 })
-        .populate('resellerId', 'name companyName email phoneNumber billingAddress');
+        .populate('resellerId', 'name companyName email phoneNumber billingAddress gstin');
 
     const escapeCsv = (val) => {
         if (val === null || val === undefined) return '';
@@ -1359,9 +1359,11 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
         'Pincode',
         'SKU',
         'HSN Code',
+        'GST %',
         'Quantity',
         'Payment Method',
         'Selling Price',
+        'Seller GSTIN',
     ];
 
     let csvContent = '\uFEFF' + headers.map(escapeCsv).join(',') + '\n';
@@ -1407,9 +1409,11 @@ export const exportAdminOrdersToCsv = asyncHandler(async (req, res) => {
                 pincode,
                 item.sku,
                 item.hsnCode || '',
+                item.gstSlab || 18,
                 item.qty,
                 order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
                 item.resellerSellingPrice || item.platformBasePrice,
+                reseller.gstin || '',
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });
@@ -1475,6 +1479,7 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
         'Company',
         'SKU',
         'HSN Code',
+        'GST %',
         'Quantity',
         'Selling Price',
         'Status',
@@ -1525,6 +1530,7 @@ export const exportMyOrdersToCsv = asyncHandler(async (req, res) => {
                 company,
                 item.sku,
                 item.hsnCode || '',
+                item.gstSlab || 18,
                 item.qty,
                 item.resellerSellingPrice,
                 order.status,
@@ -1557,7 +1563,7 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
 
     const orders = await Order.find(query)
         .sort({ createdAt: -1 })
-        .populate('resellerId', 'name companyName email phoneNumber billingAddress');
+        .populate('resellerId', 'name companyName email phoneNumber billingAddress gstin');
 
     const headers = [
         'Platform order number',
@@ -1572,9 +1578,11 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
         'Pincode',
         'SKU',
         'HSN Code',
+        'GST %',
         'Quantity',
         'Payment Method',
         'Selling Price',
+        'Seller GSTIN',
     ];
 
     const escapeCsv = (val) => {
@@ -1636,9 +1644,11 @@ export const exportCourierOrdersToCsv = asyncHandler(async (req, res) => {
                 pincode,
                 item.sku,
                 item.hsnCode || '',
+                item.gstSlab || 18,
                 item.qty,
                 order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
                 item.resellerSellingPrice || item.platformBasePrice,
+                order.resellerId?.gstin || '',
             ];
 
             csvContent += row.map(escapeCsv).join(',') + '\n';
@@ -1754,9 +1764,11 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
         'Pincode',
         'SKU',
         'HSN Code',
+        'GST %',
         'Quantity',
         'Payment Method',
         'Selling Price',
+        'Seller GSTIN',
     ];
 
     const escapeCsv = (val) => {
@@ -1819,9 +1831,11 @@ export const exportUntrackedWukusyOrders = asyncHandler(async (req, res) => {
                 pincode,
                 item.sku,
                 item.hsnCode || '',
+                item.gstSlab || 18,
                 item.qty,
                 order.paymentMethod === 'COD' ? 'COD' : 'Prepaid',
                 item.resellerSellingPrice || item.platformBasePrice,
+                order.resellerId?.gstin || '',
             ];
             csvContent += row.map(escapeCsv).join(',') + '\n';
         });
@@ -2176,5 +2190,138 @@ export const deleteOrder = asyncHandler(async (req, res) => {
         await session.abortTransaction();
         session.endSession();
         throw new ApiError(500, error.message || 'Failed to delete order');
+    }
+});
+
+export const overrideOrderStatus = asyncHandler(async (req, res) => {
+    const { status: newStatus, reason } = req.body;
+    const { id } = req.params;
+
+    const normalizedStatus =
+        typeof newStatus === 'string' ? newStatus.trim().toUpperCase().replace(/\s+/g, '_') : '';
+
+    if (!normalizedStatus || !ALLOWED_ORDER_STATUSES.has(normalizedStatus)) {
+        throw new ApiError(400, 'Invalid order status');
+    }
+
+    if (!reason) {
+        throw new ApiError(400, 'A reason is mandatory for manual status override.');
+    }
+
+    const order = await Order.findById(id).populate('items.productId');
+    if (!order) throw new ApiError(404, 'Order not found');
+
+    if (order.status === normalizedStatus) {
+        throw new ApiError(400, `Order is already in ${normalizedStatus} status`);
+    }
+
+    const wasCancelled = FINAL_REFUND_STATUSES.has(order.status) && !FINAL_REFUND_STATUSES.has(normalizedStatus);
+    const hasRefundProcessed = hasStatusInHistory(order, 'REFUND_PROCESSED');
+    const hasInventoryRestocked = hasStatusInHistory(order, 'RESTOCKED');
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        if (wasCancelled) {
+            const reseller = await User.findById(order.resellerId).session(session);
+            if (!reseller) throw new ApiError(404, 'Reseller not found');
+
+            if (hasRefundProcessed) {
+                let amountToDebit = 0;
+                let purpose = 'ORDER_DEDUCTION_REVERSAL';
+                let description = '';
+
+                if (order.status === 'CANCELLED') {
+                    amountToDebit = roundMoney(order.totalPlatformCost);
+                    description = `Platform cost re-deducted for un-cancelling order ${order.orderId}. Reason: ${reason}`;
+                } else if (order.status === 'RTO_DELIVERED') {
+                    const breakdown = getRtoDeliveredSettlementBreakdown(order);
+                    amountToDebit = breakdown.refundProductPrincipalAndTax;
+                    description = `RTO delivered refund reversed for order ${order.orderId}. Reason: ${reason}`;
+                }
+
+                if (amountToDebit > 0) {
+                    if (reseller.walletBalance < amountToDebit) {
+                        throw new ApiError(400, `Reseller has insufficient funds to reverse this order. Required: ₹${amountToDebit}, Available: ₹${reseller.walletBalance}`);
+                    }
+
+                    const updatedReseller = await User.findByIdAndUpdate(
+                        order.resellerId,
+                        { $inc: { walletBalance: -amountToDebit } },
+                        { new: true, session }
+                    );
+
+                    await WalletTransaction.create(
+                        [
+                            {
+                                resellerId: order.resellerId,
+                                type: 'DEBIT',
+                                purpose,
+                                amount: amountToDebit,
+                                closingBalance: updatedReseller.walletBalance,
+                                referenceId: `REVERSE-${order.orderId}`,
+                                description,
+                                status: 'COMPLETED',
+                            },
+                        ],
+                        { session }
+                    );
+                    
+                    order.statusHistory.push({
+                        status: 'REFUND_REVERSED',
+                        comment: `₹${amountToDebit} debited from wallet to reverse prior refund. Reason: ${reason}`,
+                    });
+                }
+            }
+
+            if (hasInventoryRestocked) {
+                for (const item of order.items) {
+                    const product = await Product.findById(item.productId._id || item.productId).session(session);
+                    if (!product) throw new ApiError(404, `Product ${item.sku} not found`);
+                    
+                    if (product.inventory.stock < item.qty) {
+                        throw new ApiError(400, `Product ${item.sku} is out of stock or does not have enough stock (${product.inventory.stock} available, ${item.qty} required). Cannot un-cancel order.`);
+                    }
+                }
+
+                for (const item of order.items) {
+                    await Product.findByIdAndUpdate(
+                        item.productId._id || item.productId,
+                        { $inc: { 'inventory.stock': -item.qty } },
+                        { session }
+                    );
+                }
+
+                order.statusHistory.push({
+                    status: 'STOCK_DEDUCTED',
+                    comment: `Inventory manually re-deducted due to un-cancelling order. Reason: ${reason}`,
+                });
+            }
+        } else if (FINAL_REFUND_STATUSES.has(normalizedStatus) && !FINAL_REFUND_STATUSES.has(order.status)) {
+            await applyFinalStatusSettlement({
+                order,
+                targetStatus: normalizedStatus,
+                session,
+                source: 'MANUAL_OVERRIDE'
+            });
+        }
+
+        order.statusHistory.push({
+            status: normalizedStatus,
+            comment: `[FORCE OVERRIDE] Status updated to ${normalizedStatus}. Reason: ${reason}`,
+        });
+
+        order.status = normalizedStatus;
+        await order.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.status(200).json(new ApiResponse(200, order, `Order status forcefully updated to ${normalizedStatus}`));
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        throw new ApiError(error.statusCode || 500, error.message || 'Failed to force update order status');
     }
 });
