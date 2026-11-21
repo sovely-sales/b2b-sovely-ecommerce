@@ -318,7 +318,7 @@ export default function AccountHub() {
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
                 {}
-                <div className="lg:col-span-3">
+                <div className="min-w-0 lg:col-span-3">
                     <div className="sticky top-24 space-y-3 lg:space-y-3">
                         <div className="mb-4 flex items-center gap-4 rounded-3xl bg-slate-900 p-4 text-white shadow-xl lg:mb-8 lg:p-6">
                             {}
@@ -400,7 +400,7 @@ export default function AccountHub() {
                 </div>
 
                 {}
-                <div className="lg:col-span-9">
+                <div className="min-w-0 lg:col-span-9">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={activeTab}

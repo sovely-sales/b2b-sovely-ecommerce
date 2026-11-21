@@ -207,7 +207,7 @@ const ResellerAnalytics = () => {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {}
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md lg:col-span-2">
+                <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-6 pb-14 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md lg:col-span-2">
                     <div className="mb-6 flex items-center justify-between">
                         <div>
                             <h3 className="text-lg font-extrabold text-slate-900">Margin Trend</h3>
@@ -222,7 +222,7 @@ const ResellerAnalytics = () => {
 
                     {}
                     <div
-                        className={`flex h-56 w-full items-end border-b border-slate-100 pb-2 ${gapClass}`}
+                        className={`flex h-56 w-full min-w-0 items-end border-b border-slate-100 pb-2 ${gapClass}`}
                     >
                         {data.profitTrend?.map((day, idx) => {
                             const heightPct = Math.max((day.profit / maxProfit) * 100, 1);
@@ -232,7 +232,7 @@ const ResellerAnalytics = () => {
                             return (
                                 <div
                                     key={idx}
-                                    className="group relative flex h-full min-w-[2px] flex-1 flex-col items-center justify-end"
+                                    className="group relative flex h-full min-w-0 flex-1 basis-0 flex-col items-center justify-end"
                                 >
                                     <div className="absolute -top-10 z-10 scale-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold whitespace-nowrap text-white opacity-0 shadow-md transition-all group-hover:scale-100 group-hover:opacity-100">
                                         ₹{day.profit.toLocaleString('en-IN')}
@@ -249,7 +249,7 @@ const ResellerAnalytics = () => {
                                     ></motion.div>
 
                                     <span
-                                        className={`mt-3 -ml-2 origin-top-left rotate-[-45deg] text-[10px] font-bold whitespace-nowrap text-slate-400 transition-opacity ${showLabel ? 'opacity-100' : 'hidden opacity-0 sm:block sm:opacity-0'}`}
+                                        className={`absolute top-full left-1/2 mt-3 -ml-2 origin-top-left rotate-[-45deg] text-[10px] font-bold whitespace-nowrap text-slate-400 ${showLabel ? 'block' : 'hidden'}`}
                                     >
                                         {day.date}
                                     </span>
