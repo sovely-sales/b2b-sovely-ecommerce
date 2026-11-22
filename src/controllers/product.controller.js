@@ -131,7 +131,7 @@ export const getProducts = asyncHandler(async (req, res) => {
 
     if (search) {
         const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const searchRegex = new RegExp(`${/^\w/.test(search) ? '\\b' : ''}${safeSearch}`, 'i');
+        const searchRegex = new RegExp(safeSearch, 'i');
         query.$or = [
             { title: searchRegex },
             { sku: searchRegex },
@@ -457,7 +457,7 @@ export const getAllAdminProducts = asyncHandler(async (req, res) => {
 
     if (search) {
         const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const searchRegex = new RegExp(`${/^\w/.test(search) ? '\\b' : ''}${safeSearch}`, 'i');
+        const searchRegex = new RegExp(safeSearch, 'i');
         query.$or = [{ title: searchRegex }, { sku: searchRegex }, { vendor: searchRegex }];
     }
 
